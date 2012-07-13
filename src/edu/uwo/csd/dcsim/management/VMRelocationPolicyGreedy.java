@@ -16,6 +16,7 @@ public abstract class VMRelocationPolicyGreedy extends VMRelocationPolicy {
 	protected double lowerThreshold;
 	protected double upperThreshold;
 	protected double targetUtilization;
+	private static int numRuns = 0;
 	
 	public VMRelocationPolicyGreedy(Simulation simulation, DataCentre dc, long interval, double lowerThreshold, double upperThreshold, double targetUtilization) {
 		super(simulation, dc, interval);
@@ -30,6 +31,9 @@ public abstract class VMRelocationPolicyGreedy extends VMRelocationPolicy {
 	
 	@Override
 	public void execute() {
+		
+		numRuns++;
+		//System.out.println("executing run#: " + numRuns);
 		
 		ArrayList<Host> hostList = dc.getHosts();
 		

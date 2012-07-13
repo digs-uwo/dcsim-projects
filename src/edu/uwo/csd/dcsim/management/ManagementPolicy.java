@@ -38,6 +38,11 @@ public abstract class ManagementPolicy implements SimulationEventListener {
 		running = false;
 	}
 	
+	public final void startDelayed(long time){
+		simulation.sendEvent(new Event(ManagementPolicy.MANAGEMENT_POLICY_EXECUTE_EVENT, (simulation.getSimulationTime() + time), this, this));
+		running = true;
+	}
+	
 	@Override
 	public void handleEvent(Event e) {
 		if (e.getType() == MANAGEMENT_POLICY_EXECUTE_EVENT) {

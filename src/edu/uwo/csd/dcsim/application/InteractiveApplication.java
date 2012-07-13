@@ -311,4 +311,8 @@ public class InteractiveApplication extends Application {
 		return totalMigrationPenalty;
 	}
 	
+	public double getWork(){
+		return incomingWork;
+	}
+	
 }
