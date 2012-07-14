@@ -4,23 +4,25 @@ import java.util.ArrayList;
 import java.util.Collections;
 
 import edu.uwo.csd.dcsim.DataCentre;
+import edu.uwo.csd.dcsim.core.Daemon;
 import edu.uwo.csd.dcsim.core.Simulation;
 import edu.uwo.csd.dcsim.management.action.MigrationAction;
 import edu.uwo.csd.dcsim.management.stub.*;
 
-public class VMAllocationPolicyGreedy extends VMRelocationPolicy {
+public class VMAllocationPolicyGreedy implements Daemon {
 
+	DataCentre dc;
 	double lowerThreshold;
 	double targetThreshold;
 	double upperThreshold;
 	private static int numRuns = 0;
 	
-	public VMAllocationPolicyGreedy(Simulation simulation, DataCentre dc, long interval,
+	public VMAllocationPolicyGreedy(DataCentre dc,
 			double lowerThreshold,
 			double targetThreshold,
 			double upperThreshold) {
-		super(simulation, dc, interval);
 		
+		this.dc = dc;
 		this.lowerThreshold = lowerThreshold;
 		this.targetThreshold = targetThreshold;
 		this.upperThreshold = upperThreshold;
@@ -28,7 +30,7 @@ public class VMAllocationPolicyGreedy extends VMRelocationPolicy {
 	}
 
 	@Override
-	public void execute() {
+	public void run(Simulation simulation) {
 		
 		numRuns++;
 		//System.out.println("Executing run#: " + numRuns);
@@ -155,6 +157,16 @@ public class VMAllocationPolicyGreedy extends VMRelocationPolicy {
 		for (MigrationAction migration : migrationList) {
 			migration.execute(simulation, this);
 		}
+		
+	}
+
+	@Override
+	public void start(Simulation simulation) {
+		
+	}
+
+	@Override
+	public void stop(Simulation simulation) {
 		
 	}
 

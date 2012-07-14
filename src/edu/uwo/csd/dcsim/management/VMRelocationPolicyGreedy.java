@@ -2,25 +2,27 @@ package edu.uwo.csd.dcsim.management;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedList;
 
-import edu.uwo.csd.dcsim.DataCentre;
-import edu.uwo.csd.dcsim.core.Simulation;
+import edu.uwo.csd.dcsim.*;
+import edu.uwo.csd.dcsim.common.Utility;
+import edu.uwo.csd.dcsim.core.*;
 import edu.uwo.csd.dcsim.host.Host;
 import edu.uwo.csd.dcsim.management.action.MigrationAction;
-import edu.uwo.csd.dcsim.management.stub.HostStub;
-import edu.uwo.csd.dcsim.management.stub.HostStubCpuInUseComparator;
-import edu.uwo.csd.dcsim.management.stub.VmStub;
+import edu.uwo.csd.dcsim.management.stub.*;
 
-public abstract class VMRelocationPolicyGreedy extends VMRelocationPolicy {
+public abstract class VMRelocationPolicyGreedy implements Daemon {
 
+	protected DataCentre dc;
+	protected DCUtilizationMonitor utilizationMonitor;
 	protected double lowerThreshold;
 	protected double upperThreshold;
 	protected double targetUtilization;
 	private static int numRuns = 0;
 	
-	public VMRelocationPolicyGreedy(Simulation simulation, DataCentre dc, long interval, double lowerThreshold, double upperThreshold, double targetUtilization) {
-		super(simulation, dc, interval);
-		
+	public VMRelocationPolicyGreedy(DataCentre dc, DCUtilizationMonitor utilizationMonitor, double lowerThreshold, double upperThreshold, double targetUtilization) {
+		this.dc = dc;
+		this.utilizationMonitor = utilizationMonitor;
 		this.lowerThreshold = lowerThreshold;
 		this.upperThreshold = upperThreshold;
 		this.targetUtilization = targetUtilization;
@@ -28,9 +30,9 @@ public abstract class VMRelocationPolicyGreedy extends VMRelocationPolicy {
 	
 	protected abstract ArrayList<HostStub> orderTargetHosts(ArrayList<HostStub> partiallyUtilized, ArrayList<HostStub> underUtilized, ArrayList<HostStub> empty);
 	protected abstract ArrayList<VmStub> orderSourceVms(ArrayList<VmStub> sourceVms);
-	
+
 	@Override
-	public void execute() {
+	public void run(Simulation simulation) {
 		
 		numRuns++;
 		//System.out.println("executing run#: " + numRuns);
@@ -44,17 +46,40 @@ public abstract class VMRelocationPolicyGreedy extends VMRelocationPolicy {
 		ArrayList<HostStub> stressed = new ArrayList<HostStub>();
 		
 		for (Host host : hostList) {
-			double cpuUtilization = host.getCpuManager().getCpuUtilization();
+			// Calculate host's avg CPU utilization in the last window of time.
+			LinkedList<Double> hostUtilValues = this.utilizationMonitor.getHostInUse(host);
+			double avgCpuInUse = 0;
+			for (Double x : hostUtilValues) {
+				avgCpuInUse += x;
+			}
+			avgCpuInUse = avgCpuInUse / this.utilizationMonitor.getWindowSize();
+			
+			double avgCpuUtilization = Utility.roundDouble(avgCpuInUse / host.getCpuManager().getTotalCpu());
+			
 			if (host.getVMAllocations().size() == 0) {
 				empty.add(new HostStub(host));
-			} else if (cpuUtilization < lowerThreshold) {
+			} else if (avgCpuUtilization < lowerThreshold) {
 				underUtilized.add(new HostStub(host));
-			} else if (cpuUtilization > upperThreshold) {
+			} else if (avgCpuUtilization > upperThreshold) {
 				stressed.add(new HostStub(host));
 			} else {
 				partiallyUtilized.add(new HostStub(host));
 			}
 		}
+		
+//		for (Host host : hostList) {
+//			double cpuUtilization = host.getCpuManager().getCpuUtilization();
+//			
+//			if (host.getVMAllocations().size() == 0) {
+//				empty.add(new HostStub(host));
+//			} else if (cpuUtilization < lowerThreshold) {
+//				underUtilized.add(new HostStub(host));
+//			} else if (cpuUtilization > upperThreshold) {
+//				stressed.add(new HostStub(host));
+//			} else {
+//				partiallyUtilized.add(new HostStub(host));
+//			}
+//		}
 				
 		//sort stressed list
 		Collections.sort(stressed, new HostStubCpuInUseComparator());
@@ -96,6 +121,16 @@ public abstract class VMRelocationPolicyGreedy extends VMRelocationPolicy {
 		for (MigrationAction migration : migrations) {
 			migration.execute(simulation, this);
 		}
+		
+	}
+	
+	@Override
+	public void start(Simulation simulation) {
+
+	}
+
+	@Override
+	public void stop(Simulation simulation) {
 		
 	}
 }

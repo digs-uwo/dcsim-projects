@@ -2,7 +2,6 @@ package edu.uwo.csd.dcsim.management.action;
 
 import edu.uwo.csd.dcsim.core.Event;
 import edu.uwo.csd.dcsim.core.Simulation;
-import edu.uwo.csd.dcsim.core.SimulationEventListener;
 import edu.uwo.csd.dcsim.core.metrics.AggregateMetric;
 import edu.uwo.csd.dcsim.host.Host;
 import edu.uwo.csd.dcsim.management.stub.HostStub;
@@ -39,7 +38,7 @@ public class MigrationAction implements ManagementAction {
 	 * Perform this VM migration
 	 * @param triggeringEntity The SimulationEntity (VMRelocationPolicy, VMConsolidiationPolicy, etc.) that is triggering this migration
 	 */
-	public void execute(Simulation simulation, SimulationEventListener triggeringEntity) {
+	public void execute(Simulation simulation, Object triggeringEntity) {
 		VMAllocationRequest vmAllocationRequest = new VMAllocationRequest(vm.getVM().getVMAllocation()); //create allocation request based on current allocation
 		
 		if (target.getHost().getState() != Host.HostState.ON && target.getHost().getState() != Host.HostState.POWERING_ON) {
@@ -54,7 +53,7 @@ public class MigrationAction implements ManagementAction {
 		target.getHost().sendMigrationEvent(vmAllocationRequest, vm.getVM(), source.getHost());
 		
 		if (simulation.isRecordingMetrics()) {
-			AggregateMetric.getSimulationMetric(simulation, MIGRATION_COUNT_METRIC).addValue(1);
+			AggregateMetric.getSimulationMetric(simulation, MIGRATION_COUNT_METRIC + "-" + triggeringEntity.getClass().getSimpleName()).addValue(1);
 		}
 		
 		//if the source host will no longer contain any VMs, instruct it to shut down

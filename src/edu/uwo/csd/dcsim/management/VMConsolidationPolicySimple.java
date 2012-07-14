@@ -3,8 +3,12 @@ package edu.uwo.csd.dcsim.management;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedList;
 
+import edu.uwo.csd.dcsim.DCUtilizationMonitor;
 import edu.uwo.csd.dcsim.DataCentre;
+import edu.uwo.csd.dcsim.common.Utility;
+import edu.uwo.csd.dcsim.core.Daemon;
 import edu.uwo.csd.dcsim.core.Simulation;
 import edu.uwo.csd.dcsim.host.Host;
 import edu.uwo.csd.dcsim.management.action.MigrationAction;
@@ -14,19 +18,23 @@ import edu.uwo.csd.dcsim.management.stub.HostStubVmCountComparator;
 import edu.uwo.csd.dcsim.management.stub.VmStub;
 import edu.uwo.csd.dcsim.management.stub.VmStubCpuInUseComparator;
 
-public class VMConsolidationPolicySimple extends VMConsolidationPolicy {
+public class VMConsolidationPolicySimple implements Daemon {
 
-	double lowerThreshold;
-	double upperThreshold;
+	protected DataCentre dc;
+	protected DCUtilizationMonitor utilizationMonitor;
+	protected double lowerThreshold;
+	protected double upperThreshold;
 	
-	public VMConsolidationPolicySimple(Simulation simulation, DataCentre dc, long interval, double lowerThreshold, double upperThreshold) {
-		super(simulation, dc, interval);
+	public VMConsolidationPolicySimple(DataCentre dc, DCUtilizationMonitor utilizationMonitor, double lowerThreshold, double upperThreshold) {
+
+		this.dc = dc;
+		this.utilizationMonitor = utilizationMonitor;
 		this.lowerThreshold = lowerThreshold;
 		this.upperThreshold = upperThreshold;
 	}
 
 	@Override
-	public void execute() {
+	public void run(Simulation simulation) {
 	
 		ArrayList<Host> hostList = dc.getHosts();
 		
@@ -37,17 +45,40 @@ public class VMConsolidationPolicySimple extends VMConsolidationPolicy {
 		ArrayList<HostStub> stressed = new ArrayList<HostStub>();
 		
 		for (Host host : hostList) {
-			double cpuUtilization = host.getCpuManager().getCpuUtilization();
+			// Calculate host's avg CPU utilization in the last window of time.
+			LinkedList<Double> hostUtilValues = this.utilizationMonitor.getHostInUse(host);
+			double avgCpuInUse = 0;
+			for (Double x : hostUtilValues) {
+				avgCpuInUse += x;
+			}
+			avgCpuInUse = avgCpuInUse / this.utilizationMonitor.getWindowSize();
+			
+			double avgCpuUtilization = Utility.roundDouble(avgCpuInUse / host.getCpuManager().getTotalCpu());
+			
 			if (host.getVMAllocations().size() == 0) {
 				empty.add(new HostStub(host));
-			} else if (cpuUtilization < lowerThreshold) {
+			} else if (avgCpuUtilization < lowerThreshold) {
 				underUtilized.add(new HostStub(host));
-			} else if (cpuUtilization > upperThreshold) {
+			} else if (avgCpuUtilization > upperThreshold) {
 				stressed.add(new HostStub(host));
 			} else {
 				partiallyUtilized.add(new HostStub(host));
 			}
 		}
+		
+//		for (Host host : hostList) {
+//			double cpuUtilization = host.getCpuManager().getCpuUtilization();
+//			
+//			if (host.getVMAllocations().size() == 0) {
+//				empty.add(new HostStub(host));
+//			} else if (cpuUtilization < lowerThreshold) {
+//				underUtilized.add(new HostStub(host));
+//			} else if (cpuUtilization > upperThreshold) {
+//				stressed.add(new HostStub(host));
+//			} else {
+//				partiallyUtilized.add(new HostStub(host));
+//			}
+//		}
 		
 		//sort underutilized
 		Collections.sort(underUtilized, new HostStubVmCountComparator(new HostStubCpuInUseComparator()));
@@ -116,6 +147,18 @@ public class VMConsolidationPolicySimple extends VMConsolidationPolicy {
 		Collections.reverse(targets);
 		
 		return targets;
+	}
+
+	@Override
+	public void start(Simulation simulation) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void stop(Simulation simulation) {
+		// TODO Auto-generated method stub
+		
 	}
 
 }
