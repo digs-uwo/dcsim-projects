@@ -54,17 +54,16 @@ public class StrategySwitching extends DCSimulationTask {
 		VMAllocationPolicyGreedy powerPolicy = new VMAllocationPolicyGreedy(dc, 0.6, 0.90, 0.90);
 		VMAllocationPolicyGreedy slaPolicy = new VMAllocationPolicyGreedy(dc, 0.4, 0.75, 0.75);
 		
-		SlaVsPowerSwitchingPolicy switchingPolicy = new SlaVsPowerSwitchingPolicy.Builder(dcMon).slaPolicy(slaPolicy)
+		SlaVsPowerSwitchingPolicy switchingPolicy = new SlaVsPowerSwitchingPolicy.Builder(dcMon)
+				.slaPolicy(slaPolicy)
 				.powerPolicy(powerPolicy)
 				.switchingInterval(3600000)
-				.slaHigh(0.01)
-				.slaNormal(0.005)
-				.powerHigh(1.4)
-				.powerNormal(1.3)
+				.slaHigh(0.008)
+				.slaNormal(0.003)
+				.powerHigh(1.33)
+				.powerNormal(1.28)
 				.optimalPowerPerCpu(0.01165)
 				.build();
-		
-		
 		
 		DaemonScheduler policyDaemon = new FixedIntervalDaemonScheduler(simulation, 600000, switchingPolicy);
 		policyDaemon.start(600000);
