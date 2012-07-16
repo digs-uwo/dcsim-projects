@@ -4,23 +4,30 @@ import edu.uwo.csd.dcsim.DCUtilizationMonitor;
 import edu.uwo.csd.dcsim.common.ObjectBuilder;
 import edu.uwo.csd.dcsim.core.Daemon;
 import edu.uwo.csd.dcsim.core.Simulation;
+import edu.uwo.csd.dcsim.core.metrics.AggregateMetric;
 
 public class SlaVsPowerSwitchingPolicy implements Daemon {
 
-	DCUtilizationMonitor dcMon;
-	Daemon slaPolicy;
-	Daemon powerPolicy;
-	long switchingInterval;
-	long lastSwitch = Long.MIN_VALUE;
-	Daemon currentPolicy;
-	double slaHigh;
-	double slaNormal;
-	double powerHigh;
-	double powerNormal;
-	double optimalPowerPerCpu;
-	double lastSlavWork = 0;
-	double lastWork = 0;
-	double lastPower = 0;
+	//metric names
+	public static final String POWER_POLICY_EXEC_METRIC = "powerPolicyExecs";
+	public static final String SLA_POLICY_EXEC_METRIC = "slaPolicyExec";
+	public static final String POLICY_SWITCH = "policySwitch";
+	public static final String POLICY_SWITCH_EVAL = "policySwitchEval";
+	
+	DCUtilizationMonitor dcMon; 		//monitor to get datacentre metrics
+	Daemon slaPolicy; 					//an SLA friendly policy
+	Daemon powerPolicy;					//a power friendly policy
+	long switchingInterval;				//the time interval on which to decide if the policy should be switched
+	long lastSwitch = Long.MIN_VALUE;	//the last time a policy switch was considered
+	Daemon currentPolicy;				//the current policy being enforced
+	double slaHigh;						//a threshold indicating high SLA values
+	double slaNormal;					//normal SLA values fall below this threshold
+	double powerHigh;					//a threshold indicating high power values
+	double powerNormal;					//normal power values fall below this threshold
+	double optimalPowerPerCpu;			//the optimal power-per-cpu, used as a goal for power consumption
+	double lastSlavWork = 0;			//the total SLA violated work at the last check
+	double lastWork = 0;				//the total incoming work at the last check
+	double lastPower = 0;				//the total power consumption at the last check
 	
 	public SlaVsPowerSwitchingPolicy(Builder builder) {
 		this.dcMon = builder.dcMon;
@@ -94,6 +101,11 @@ public class SlaVsPowerSwitchingPolicy implements Daemon {
 	@Override
 	public void run(Simulation simulation) {
 		if (lastSwitch + switchingInterval <= simulation.getSimulationTime()) {
+			lastSwitch = simulation.getSimulationTime();
+			
+			if (simulation.isRecordingMetrics())
+				AggregateMetric.getSimulationMetric(simulation, POLICY_SWITCH_EVAL).addValue(1);
+			
 			/*
 			 * Perform hard-coded checks to switch policies. For a true strategy-tree implementation, this block should be replaced by the strategy-tree code.
 			 */
@@ -124,6 +136,8 @@ public class SlaVsPowerSwitchingPolicy implements Daemon {
 				
 					//switch to power policy to attempt to reduce power to normal level
 					currentPolicy = powerPolicy;
+					if (simulation.isRecordingMetrics())
+						AggregateMetric.getSimulationMetric(simulation, POLICY_SWITCH).addValue(1);
 				}
 				
 				//if power exceeds powerHigh but SLA is still above slaNormal, remain on SLA policy to continue to reduce SLA
@@ -136,11 +150,19 @@ public class SlaVsPowerSwitchingPolicy implements Daemon {
 				
 					//switch to SLA policy to attempt to reduce SLA to normal level
 					currentPolicy = slaPolicy;
+					
+					if (simulation.isRecordingMetrics())
+						AggregateMetric.getSimulationMetric(simulation, POLICY_SWITCH).addValue(1);
 				}
 				
 				//if SLA exceeds slaHigh but power is still above powerNormal, remain on power policy to continue to reduce power 
 			}
 		}
+		
+		if (currentPolicy == powerPolicy && simulation.isRecordingMetrics())
+			AggregateMetric.getSimulationMetric(simulation, POWER_POLICY_EXEC_METRIC).addValue(1);
+		else if (currentPolicy == slaPolicy && simulation.isRecordingMetrics())
+			AggregateMetric.getSimulationMetric(simulation, SLA_POLICY_EXEC_METRIC).addValue(1);
 		
 		//run the current policy
 		if (currentPolicy != null)

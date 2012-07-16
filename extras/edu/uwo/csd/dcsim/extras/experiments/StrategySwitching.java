@@ -16,7 +16,11 @@ public class StrategySwitching extends DCSimulationTask {
 		
 		Simulation.initializeLogging();
 		
-		StrategySwitching task = new StrategySwitching("strat-switching");
+		StrategySwitching task = new StrategySwitching("strat-switching", 6198910678692541341l);
+//		StrategySwitching task = new StrategySwitching("strat-switching", 5646441053220106016l);
+//		StrategySwitching task = new StrategySwitching("strat-switching", -5705302823151233610l);
+//		StrategySwitching task = new StrategySwitching("strat-switching", 8289672009575825404l);
+//		StrategySwitching task = new StrategySwitching("strat-switching", -4637549055860880177l);
 		
 		task.run();
 		
@@ -33,7 +37,7 @@ public class StrategySwitching extends DCSimulationTask {
 	
 	public StrategySwitching(String name) {
 		super(name, 864000000);
-		this.setMetricRecordStart(86400000);
+		this.setMetricRecordStart(0);
 	}
 	
 	@Override
@@ -47,9 +51,26 @@ public class StrategySwitching extends DCSimulationTask {
 		DCUtilizationMonitor dcMon = new DCUtilizationMonitor(simulation, 120000, 10, dc);
 		simulation.addMonitor(dcMon);
 		
-		VMAllocationPolicyGreedy vmAllocationPolicy = new VMAllocationPolicyGreedy(dc, 0.6, 0.90, 0.90);
-		DaemonScheduler policyDaemon = new FixedIntervalDaemonScheduler(simulation, 600000, vmAllocationPolicy);
+		VMAllocationPolicyGreedy powerPolicy = new VMAllocationPolicyGreedy(dc, 0.6, 0.90, 0.90);
+		VMAllocationPolicyGreedy slaPolicy = new VMAllocationPolicyGreedy(dc, 0.4, 0.75, 0.75);
+		
+		SlaVsPowerSwitchingPolicy switchingPolicy = new SlaVsPowerSwitchingPolicy.Builder(dcMon).slaPolicy(slaPolicy)
+				.powerPolicy(powerPolicy)
+				.switchingInterval(3600000)
+				.slaHigh(0.01)
+				.slaNormal(0.005)
+				.powerHigh(1.4)
+				.powerNormal(1.3)
+				.optimalPowerPerCpu(0.01165)
+				.build();
+		
+		
+		
+		DaemonScheduler policyDaemon = new FixedIntervalDaemonScheduler(simulation, 600000, switchingPolicy);
 		policyDaemon.start(600000);
+		
+		
+		
 		
 	}
 
