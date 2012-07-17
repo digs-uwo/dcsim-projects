@@ -14,7 +14,12 @@ import edu.uwo.csd.dcsim.management.VMPlacementPolicy;
 import edu.uwo.csd.dcsim.vm.*;
 
 /**
- * @author gkeller2
+ * Implements a First Fit Decreasing algorithm for a Green Strategy, where it 
+ * is the target hosts that are sorted in decreasing order by power efficiency 
+ * (first factor) and CPU utilization (second factor), and by power efficiency 
+ * (first factor) and power state (second factor) if the hosts are empty.
+ * 
+ * @author Gaston Keller
  *
  */
 public class VMPlacementPolicyFFDGreen extends VMPlacementPolicy {
@@ -34,6 +39,11 @@ public class VMPlacementPolicyFFDGreen extends VMPlacementPolicy {
 		this.targetUtilization = targetUtilization;
 	}
 	
+	/**
+	 * Places a new VM in the most efficient (first factor) and highly 
+	 * utilized (second factor) host with enough spare capacity to take the VM 
+	 * without exceeding the _targetUtilization_ threshold.
+	 */
 	@Override
 	public boolean submitVM(VMAllocationRequest vmAllocationRequest) {
 		
@@ -81,6 +91,15 @@ public class VMPlacementPolicyFFDGreen extends VMPlacementPolicy {
 		return submitVM(vmAllocationRequest, allocatedHost);
 	}
 
+	/**
+	 * Sorts the target hosts (Partially-utilized, Underutilized and Empty) in 
+	 * decreasing order by power efficiency (first factor) and CPU utilization 
+	 * (second factor), and by power efficiency (first factor) and power state 
+	 * (second factor) if the hosts are empty.
+	 * 
+	 * Returns Partially-utilized and Underutilized hosts first, followed by 
+	 * Empty hosts.
+	 */
 	private ArrayList<Host> orderTargetHosts(ArrayList<Host> partiallyUtilized,	ArrayList<Host> underUtilized, ArrayList<Host> empty) {
 		ArrayList<Host> targets = new ArrayList<Host>();
 		
@@ -101,6 +120,12 @@ public class VMPlacementPolicyFFDGreen extends VMPlacementPolicy {
 		return targets;
 	}
 
+	/**
+	 * Places a set of new VMs, one by one, in the most efficient (first 
+	 * factor) and highly utilized (second factor) hosts with enough spare 
+	 * capacity to take the VMs without exceeding the _targetUtilization_ 
+	 * threshold.
+	 */
 	@Override
 	public boolean submitVMs(ArrayList<VMAllocationRequest> vmAllocationRequests) {
 		for (VMAllocationRequest request : vmAllocationRequests) {

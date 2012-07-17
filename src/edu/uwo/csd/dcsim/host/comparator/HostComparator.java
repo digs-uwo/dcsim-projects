@@ -4,6 +4,17 @@ import java.util.Comparator;
 import edu.uwo.csd.dcsim.host.Host;
 
 /**
+ * Compares hosts by a (non-empty) series of attributes or factors. The 
+ * available factors are:
+ * 
+ * + CPU_CORES:		total number of cores across all CPUs;
+ * + CORE_CAP:		core capacity;
+ * + MEMORY:		memory;
+ * + BANDWIDTH:		bandwidth;
+ * + CPU_UTIL: 		current CPU utilization;
+ * + EFFICIENCY:	power efficiency of the host at 100% CPU utilization;
+ * + PWR_STATE:		current power state.
+ * 
  * @author Gaston Keller
  *
  */
@@ -41,9 +52,7 @@ public enum HostComparator implements Comparator<Host> {
 	},
 	EFFICIENCY {
 		public int compare(Host o1, Host o2) {
-			double o1PowerE = o1.getTotalCpu() / o1.getPowerModel().getPowerConsumption(1);
-			double o2PowerE = o2.getTotalCpu() / o2.getPowerModel().getPowerConsumption(1);
-			double compare = o1PowerE - o2PowerE;
+			double compare = o1.getPowerEfficiency(1) - o2.getPowerEfficiency(1);
 			if (compare < 0)
 				return -1;
 			else if (compare > 0)
