@@ -12,6 +12,7 @@ import edu.uwo.csd.dcsim.host.Host;
  * + MEMORY:		memory;
  * + BANDWIDTH:		bandwidth;
  * + CPU_UTIL: 		current CPU utilization;
+ * + CPU_IN_USE:	current CPU in use;
  * + EFFICIENCY:	power efficiency of the host at 100% CPU utilization;
  * + PWR_STATE:		current power state.
  * 
@@ -43,6 +44,16 @@ public enum HostComparator implements Comparator<Host> {
 	CPU_UTIL {
 		public int compare(Host o1, Host o2) {
 			double compare = o1.getCpuManager().getCpuUtilization() - o2.getCpuManager().getCpuUtilization(); 
+			if (compare < 0)
+				return -1;
+			else if (compare > 0)
+				return 1;
+			return 0;
+		}
+	},
+	CPU_IN_USE {
+		public int compare(Host o1, Host o2) {
+			double compare = o1.getCpuManager().getCpuInUse() - o2.getCpuManager().getCpuInUse(); 
 			if (compare < 0)
 				return -1;
 			else if (compare > 0)
