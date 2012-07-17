@@ -37,49 +37,13 @@ public abstract class VMRelocationPolicyGreedy implements Daemon {
 		numRuns++;
 		//System.out.println("executing run#: " + numRuns);
 		
-		ArrayList<Host> hostList = dc.getHosts();
-		
-		//Categorize hosts
-		ArrayList<HostStub> empty = new ArrayList<HostStub>();
-		ArrayList<HostStub> underUtilized = new ArrayList<HostStub>();
-		ArrayList<HostStub> partiallyUtilized = new ArrayList<HostStub>();
+		// Categorize hosts.
 		ArrayList<HostStub> stressed = new ArrayList<HostStub>();
+		ArrayList<HostStub> partiallyUtilized = new ArrayList<HostStub>();
+		ArrayList<HostStub> underUtilized = new ArrayList<HostStub>();
+		ArrayList<HostStub> empty = new ArrayList<HostStub>();
 		
-		for (Host host : hostList) {
-			// Calculate host's avg CPU utilization in the last window of time.
-			LinkedList<Double> hostUtilValues = this.utilizationMonitor.getHostInUse(host);
-			double avgCpuInUse = 0;
-			for (Double x : hostUtilValues) {
-				avgCpuInUse += x;
-			}
-			avgCpuInUse = avgCpuInUse / this.utilizationMonitor.getWindowSize();
-			
-			double avgCpuUtilization = Utility.roundDouble(avgCpuInUse / host.getCpuManager().getTotalCpu());
-			
-			if (host.getVMAllocations().size() == 0) {
-				empty.add(new HostStub(host));
-			} else if (avgCpuUtilization < lowerThreshold) {
-				underUtilized.add(new HostStub(host));
-			} else if (avgCpuUtilization > upperThreshold) {
-				stressed.add(new HostStub(host));
-			} else {
-				partiallyUtilized.add(new HostStub(host));
-			}
-		}
-		
-//		for (Host host : hostList) {
-//			double cpuUtilization = host.getCpuManager().getCpuUtilization();
-//			
-//			if (host.getVMAllocations().size() == 0) {
-//				empty.add(new HostStub(host));
-//			} else if (cpuUtilization < lowerThreshold) {
-//				underUtilized.add(new HostStub(host));
-//			} else if (cpuUtilization > upperThreshold) {
-//				stressed.add(new HostStub(host));
-//			} else {
-//				partiallyUtilized.add(new HostStub(host));
-//			}
-//		}
+		this.classifyHosts(stressed, partiallyUtilized, underUtilized, empty);
 				
 		//sort stressed list
 		Collections.sort(stressed, new HostStubCpuInUseComparator());
@@ -122,6 +86,66 @@ public abstract class VMRelocationPolicyGreedy implements Daemon {
 			migration.execute(simulation, this);
 		}
 		
+	}
+	
+	/**
+	 * Classifies hosts as Stressed, Partially-Utilized, Underutilized or 
+	 * Empty based on the hosts' current CPU utilization.
+	 */
+	protected void classifyHostsCurrentCpuUtil(ArrayList<HostStub> stressed, 
+			ArrayList<HostStub> partiallyUtilized, 
+			ArrayList<HostStub> underUtilized, 
+			ArrayList<HostStub> empty) {
+		
+		ArrayList<Host> hostList = dc.getHosts();
+		
+		for (Host host : hostList) {
+			double cpuUtilization = host.getCpuManager().getCpuUtilization();
+			
+			if (host.getVMAllocations().size() == 0) {
+				empty.add(new HostStub(host));
+			} else if (cpuUtilization < lowerThreshold) {
+				underUtilized.add(new HostStub(host));
+			} else if (cpuUtilization > upperThreshold) {
+				stressed.add(new HostStub(host));
+			} else {
+				partiallyUtilized.add(new HostStub(host));
+			}
+		}
+	}
+	
+	/**
+	 * Classifies hosts as Stressed, Partially-Utilized, Underutilized or 
+	 * Empty based on the hosts' average CPU utilization over the last CPU 
+	 * load monitoring window (see DCUtilizationMonitor).
+	 */
+	protected void classifyHosts(ArrayList<HostStub> stressed, 
+			ArrayList<HostStub> partiallyUtilized, 
+			ArrayList<HostStub> underUtilized, 
+			ArrayList<HostStub> empty) {
+		
+		ArrayList<Host> hostList = dc.getHosts();
+		
+		for (Host host : hostList) {
+			// Calculate host's avg CPU utilization in the last window of time.
+			LinkedList<Double> hostUtilValues = this.utilizationMonitor.getHostInUse(host);
+			double avgCpuInUse = 0;
+			for (Double x : hostUtilValues) {
+				avgCpuInUse += x;
+			}
+			avgCpuInUse = avgCpuInUse / this.utilizationMonitor.getWindowSize();
+			double avgCpuUtilization = Utility.roundDouble(avgCpuInUse / host.getCpuManager().getTotalCpu());
+			
+			if (host.getVMAllocations().size() == 0) {
+				empty.add(new HostStub(host));
+			} else if (avgCpuUtilization < lowerThreshold) {
+				underUtilized.add(new HostStub(host));
+			} else if (avgCpuUtilization > upperThreshold) {
+				stressed.add(new HostStub(host));
+			} else {
+				partiallyUtilized.add(new HostStub(host));
+			}
+		}
 	}
 	
 	@Override
