@@ -9,11 +9,8 @@ import edu.uwo.csd.dcsim.DataCentre;
 import edu.uwo.csd.dcsim.common.Utility;
 import edu.uwo.csd.dcsim.core.Simulation;
 import edu.uwo.csd.dcsim.host.Host;
+import edu.uwo.csd.dcsim.host.comparator.HostComparator;
 import edu.uwo.csd.dcsim.management.VMPlacementPolicy;
-import edu.uwo.csd.dcsim.management.action.MigrationAction;
-import edu.uwo.csd.dcsim.management.stub.HostStub;
-import edu.uwo.csd.dcsim.management.stub.HostStubCpuInUseComparator;
-import edu.uwo.csd.dcsim.management.stub.HostStubPowerStateComparator;
 import edu.uwo.csd.dcsim.vm.*;
 
 /**
@@ -87,25 +84,18 @@ public class VMPlacementPolicyFFDGreen extends VMPlacementPolicy {
 	private ArrayList<Host> orderTargetHosts(ArrayList<Host> partiallyUtilized,	ArrayList<Host> underUtilized, ArrayList<Host> empty) {
 		ArrayList<Host> targets = new ArrayList<Host>();
 		
+		// Sort Partially-utilized and Underutilized hosts in decreasing order 
+		// by power efficiency and CPU utilization.
 		targets.addAll(partiallyUtilized);
 		targets.addAll(underUtilized);
-		//Collections.sort(targets, new HostComparator());
+		Collections.sort(targets, HostComparator.getComparator(HostComparator.EFFICIENCY, HostComparator.CPU_UTIL));
+		Collections.reverse(targets);
 		
-		// Sort Partially-utilized hosts in decreasing order by CPU utilization.
-		//Collections.sort(partiallyUtilized, new HostStubCpuInUseComparator());
-		Collections.reverse(partiallyUtilized);
-		
-		// Sort Underutilized hosts in decreasing order by CPU utilization.
-		//Collections.sort(underUtilized, new HostStubCpuInUseComparator());
-		Collections.reverse(underUtilized);
-		
-		// Sort Empty hosts in decreasing order by power state 
-		// (on, suspended, off).
-		//Collections.sort(empty, new HostStubPowerStateComparator());
+		// Sort Empty hosts in decreasing order by power efficiency and power 
+		// state (on, suspended, off).
+		Collections.sort(empty, HostComparator.getComparator(HostComparator.EFFICIENCY, HostComparator.PWR_STATE));
 		Collections.reverse(empty);
 		
-		targets.addAll(partiallyUtilized);
-		targets.addAll(underUtilized);
 		targets.addAll(empty);
 		
 		return targets;
