@@ -9,7 +9,7 @@ import edu.uwo.csd.dcsim.management.VMRelocationPolicyGreedy;
 import edu.uwo.csd.dcsim.management.stub.*;
 
 /**
- * VmRelocationPolicyFFIDGreen implements the following VM relocation policy:
+ * Implements the following VM relocation policy:
  * 
  * - source hosts: only those hosts whose CPU utilization has remained above 
  *   the _upperThreshold_ *all the time* over the last CPU load monitoring 

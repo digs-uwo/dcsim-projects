@@ -18,6 +18,10 @@ import edu.uwo.csd.dcsim.management.stub.*;
  * cannot be used both as consolidation source and target) and 
  * Partially-Utilized hosts.
  * 
+ * Hosts are classified as Stressed, Partially-Utilized, Underutilized or 
+ * Empty based on the hosts' average CPU utilization over the last CPU load 
+ * monitoring window (see DCUtilizationMonitor).
+ * 
  * There's no limit to the number of VMs that can be migrated out of a host.
  * 
  * @author Gaston Keller
