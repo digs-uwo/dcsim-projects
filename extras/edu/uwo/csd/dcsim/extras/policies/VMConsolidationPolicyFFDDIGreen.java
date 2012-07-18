@@ -5,12 +5,18 @@ import java.util.Collections;
 
 import edu.uwo.csd.dcsim.DCUtilizationMonitor;
 import edu.uwo.csd.dcsim.DataCentre;
-import edu.uwo.csd.dcsim.management.stub.HostStub;
-import edu.uwo.csd.dcsim.management.stub.HostStubComparator;
-import edu.uwo.csd.dcsim.management.stub.VmStub;
-import edu.uwo.csd.dcsim.management.stub.VmStubCpuInUseComparator;
+import edu.uwo.csd.dcsim.management.stub.*;
 
 /**
+ * Implements the following VM consolidation policy:
+ * 
+ * - relocation candidates: sort VMs in decreasing order by overall capacity;
+ * - target hosts: sort Partially-utilized and Underutilized hosts in 
+ *   decreasing order by power efficiency (first factor) and CPU load (second 
+ *   factor).
+ * - source hosts: sort Underutilized hosts in increasing order by power 
+ *   efficiency (first factor) and CPU load (second factor).
+ * 
  * @author Gaston Keller
  *
  */
@@ -23,11 +29,23 @@ public class VMConsolidationPolicyFFDDIGreen extends VMConsolidationPolicyGreedy
 		super(dc, utilizationMonitor, lowerThreshold, upperThreshold, targetUtilization);
 	}
 
+	/**
+	 * Sorts VMs in decreasing order by overall capacity, so as to place the 
+	 * _biggest_ VMs first.
+	 * 
+	 * (Note: since CPU can be oversubscribed, but memory can't, memory takes 
+	 * priority over CPU when comparing VMs by _size_ (capacity).)
+	 */
 	@Override
 	protected ArrayList<VmStub> orderSourceVms(ArrayList<VmStub> sourceVms) {
 		ArrayList<VmStub> sources = new ArrayList<VmStub>(sourceVms);
-		Collections.sort(sources, new VmStubCpuInUseComparator());
+		
+		// Sort VMs in decreasing order by overall capacity.
+		// (Note: since CPU can be oversubscribed, but memory can't, memory 
+		// takes priority over CPU when comparing VMs by _size_ (capacity).)
+		Collections.sort(sources, VmStubComparator.getComparator(VmStubComparator.MEMORY, VmStubComparator.CPU_CORES, VmStubComparator.CORE_CAP));
 		Collections.reverse(sources);
+		
 		return sources;
 	}
 	
