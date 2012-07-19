@@ -122,8 +122,8 @@ public class IM2012TestEnvironment {
 		//serviceRates.add(new Tuple<Long, Double>(14400000l, 30d));
 		//serviceRates.add(new Tuple<Long, Double>(28800000l, 5d));
 		//serviceRates.add(new Tuple<Long, Double>(43200000l, 5d));
-		serviceRates.add(new Tuple<Long, Double>(1000l, 100d));
-		serviceRates.add(new Tuple<Long, Double>(72000000l, 0d));	// 10 hours
+		serviceRates.add(new Tuple<Long, Double>(1000l, 50d));
+		serviceRates.add(new Tuple<Long, Double>(72000000l, 0d));	// 20 hours
 		serviceRates.add(new Tuple<Long, Double>(864000000l, 0d));	// 10 days
 		
 		// Create the ServiceProducer.
