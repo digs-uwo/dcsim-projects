@@ -122,7 +122,8 @@ public final class Host implements SimulationEventListener {
 		privDomainAllocation.attachVm(privVM);
 
 		//set default state
-		state = HostState.ON;
+		//state = HostState.ON;
+		state = HostState.OFF;
 		
 		//initialize metric output formatting
 		AggregateMetric.getSimulationMetric(simulation, POWER_CONSUMED_METRIC).initializeOutputFormatter(new PowerFormatter());
