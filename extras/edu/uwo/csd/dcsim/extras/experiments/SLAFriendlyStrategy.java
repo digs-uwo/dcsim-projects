@@ -12,9 +12,9 @@ import edu.uwo.csd.dcsim.extras.policies.*;
  * This class serves to test the set of policies that conform the SLA-friendly 
  * Strategy:
  * 
- * + VMPlacementPolicyFFDGreen
- * + VMRelocationPolicyFFIDGreen
- * + VMConsolidationPolicyFFDDIGreen
+ * + VMPlacementPolicyFFMSla
+ * + VMRelocationPolicyFFIMSla
+ * + VMConsolidationPolicyFFDMISla
  *   
  * @author Gaston Keller
  *
@@ -53,6 +53,11 @@ public class SLAFriendlyStrategy extends DCSimulationTask {
 
 	@Override
 	public void setup(DataCentreSimulation simulation) {
+		// Set utilization thresholds.
+		double lower = 0.6;
+		double upper = 0.85;
+		double target = 0.85;
+		
 		// Create data centre (with default VM Placement policy).
 		DataCentre dc = IM2012TestEnvironment.createDataCentre(simulation);
 		simulation.addDatacentre(dc);
@@ -62,7 +67,7 @@ public class SLAFriendlyStrategy extends DCSimulationTask {
 		simulation.addMonitor(dcMon);
 		
 		// Create and set desired VM Placement policy for the data centre.
-		dc.setVMPlacementPolicy(new VMPlacementPolicyFFDGreen(simulation, dc, dcMon, 0.6, 0.95, 0.90));
+		dc.setVMPlacementPolicy(new VMPlacementPolicyFFMSla(simulation, dc, dcMon, lower, upper, target));
 		
 		// Create and start ServiceProducer.
 		IM2012TestEnvironment.createServiceProducer(simulation, dc).start();
@@ -70,7 +75,7 @@ public class SLAFriendlyStrategy extends DCSimulationTask {
 		/*
 		 * Relocation policies.
 		 */
-		VMRelocationPolicyFFDI vmRelocationPolicy = new VMRelocationPolicyFFDI(dc, dcMon, 0.5, 0.85, 0.85);
+		VMRelocationPolicyFFIMSla vmRelocationPolicy = new VMRelocationPolicyFFIMSla(dc, dcMon, lower, upper, target);
 		
 		DaemonScheduler relocationPolicyDaemon = new FixedIntervalDaemonScheduler(simulation, 600000, vmRelocationPolicy);
 		relocationPolicyDaemon.start(600000);
@@ -78,7 +83,7 @@ public class SLAFriendlyStrategy extends DCSimulationTask {
 		/*
 		 * Consolidation policies.
 		 */
-		VMConsolidationPolicyFFDMIsla vmConsolidationPolicy = new VMConsolidationPolicyFFDMIsla(dc, dcMon, 0.5, 0.85, 0.85);
+		VMConsolidationPolicyFFDMISla vmConsolidationPolicy = new VMConsolidationPolicyFFDMISla(dc, dcMon, lower, upper, target);
 		
 		DaemonScheduler consolidationPolicyDaemon = new FixedIntervalDaemonScheduler(simulation, 14400000, vmConsolidationPolicy);
 		//consolidationPolicyDaemon.start(3601000);		//  1 hour
