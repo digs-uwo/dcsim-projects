@@ -104,7 +104,10 @@ public abstract class VMPlacementPolicyGreedy extends VMPlacementPolicy {
 			 }
 		}
 		
-		return submitVM(vmAllocationRequest, allocatedHost);
+		if (allocatedHost != null)
+			return submitVM(vmAllocationRequest, allocatedHost);
+		else
+			return false;
 	}
 
 	/**
