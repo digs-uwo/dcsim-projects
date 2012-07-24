@@ -45,16 +45,12 @@ public abstract class VMRelocationPolicyGreedy implements Daemon {
 		
 		this.classifyHosts(stressed, partiallyUtilized, underUtilized, empty);
 				
-		//sort stressed list
-		Collections.sort(stressed, new HostStubCpuInUseComparator());
-		Collections.reverse(stressed);
-		
-		//create source and target lists
-		ArrayList<HostStub> sources = stressed;
+		// Create source and target lists.
+		ArrayList<HostStub> sources = orderSourceHosts(stressed);
 		ArrayList<HostStub> targets = orderTargetHosts(partiallyUtilized, underUtilized, empty);
 		ArrayList<MigrationAction> migrations = new ArrayList<MigrationAction>();
 		
-		//iterate through source hosts
+		// Iterate through source hosts.
 		boolean found;
 		for (HostStub source : sources) {
 			
@@ -81,7 +77,7 @@ public abstract class VMRelocationPolicyGreedy implements Daemon {
 			}
 		}
 		
-		//trigger migrations
+		// Trigger migrations.
 		for (MigrationAction migration : migrations) {
 			migration.execute(simulation, this);
 		}
@@ -148,6 +144,19 @@ public abstract class VMRelocationPolicyGreedy implements Daemon {
 		}
 	}
 	
+	/**
+	 * Sorts Stressed hosts in decreasing order by CPU load (CPU in use).
+	 */
+	protected ArrayList<HostStub> orderSourceHosts(ArrayList<HostStub> stressed) {
+		ArrayList<HostStub> sorted = new ArrayList<HostStub>(stressed);
+		
+		// Sort stressed hosts in decreasing order by CPU load.
+		Collections.sort(sorted, HostStubComparator.getComparator(HostStubComparator.CPU_IN_USE));
+		Collections.reverse(sorted);
+		
+		return sorted;
+	}
+
 	@Override
 	public void start(Simulation simulation) {
 
