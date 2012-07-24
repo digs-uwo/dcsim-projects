@@ -3,7 +3,6 @@ package edu.uwo.csd.dcsim.extras.experiments;
 import java.util.ArrayList;
 import java.util.Collection;
 
-import org.apache.commons.math3.distribution.NormalDistribution;
 import org.apache.log4j.Logger;
 
 import edu.uwo.csd.dcsim.*;
@@ -122,12 +121,12 @@ public class IM2012TestEnvironment {
 		//serviceRates.add(new Tuple<Long, Double>(14400000l, 30d));
 		//serviceRates.add(new Tuple<Long, Double>(28800000l, 5d));
 		//serviceRates.add(new Tuple<Long, Double>(43200000l, 5d));
-		serviceRates.add(new Tuple<Long, Double>(1000l, 50d));
+		serviceRates.add(new Tuple<Long, Double>(1000l, 60d));
 		serviceRates.add(new Tuple<Long, Double>(72000000l, 0d));	// 20 hours
 		serviceRates.add(new Tuple<Long, Double>(864000000l, 0d));	// 10 days
 		
 		// Create the ServiceProducer.
-		ServiceProducer serviceProducer = new ServiceProducer(simulation, dc, new NormalDistribution(1000000000, 1), serviceRates) {
+		ServiceProducer serviceProducer = new ServiceProducer(simulation, dc, null, serviceRates) {
 			
 			private int counter = 0;
 			
