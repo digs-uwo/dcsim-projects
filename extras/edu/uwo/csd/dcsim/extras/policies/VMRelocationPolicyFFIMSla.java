@@ -143,7 +143,8 @@ public class VMRelocationPolicyFFIMSla extends VMRelocationPolicyGreedy {
 				
 				boolean stress = true;
 				for (int i = 1; i <= n; i++) {
-					stress = stress && hostUtilValues.get(size - i) > upperThreshold;
+					double cpuUtil = Utility.roundDouble(hostUtilValues.get(size - i) / host.getCpuManager().getTotalCpu());
+					stress = stress && cpuUtil > upperThreshold;
 				}
 				if (stress) {
 					stressed.add(new HostStub(host));
