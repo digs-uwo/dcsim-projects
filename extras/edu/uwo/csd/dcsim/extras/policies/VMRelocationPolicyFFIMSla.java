@@ -26,20 +26,6 @@ import edu.uwo.csd.dcsim.management.stub.*;
  *   CPU load monitoring window exceeding _upperThreshold_ is considered 
  *   Stressed. These hosts are sorted in decreasing order by CPU utilization.
  * 
- * 
- * 
- * 
- * 
- *        #################################################
- * 
- *         SOURCE HOSTS SHOULD BE ORDER BY CPU UTILIZATION
- * 
- *        #################################################
- * 
- * 
- * 
- * 
- * 
  * @author Gaston Keller
  *
  */
@@ -50,6 +36,20 @@ public class VMRelocationPolicyFFIMSla extends VMRelocationPolicyGreedy {
 	 */
 	public VMRelocationPolicyFFIMSla(DataCentre dc, DCUtilizationMonitor utilizationMonitor, double lowerThreshold, double upperThreshold, double targetUtilization) {
 		super(dc, utilizationMonitor, lowerThreshold, upperThreshold, targetUtilization);
+	}
+	
+	/**
+	 * Sorts Stressed hosts in decreasing order by CPU utilization.
+	 */
+	@Override
+	protected ArrayList<HostStub> orderSourceHosts(ArrayList<HostStub> stressed) {
+		ArrayList<HostStub> sorted = new ArrayList<HostStub>(stressed);
+		
+		// Sort Stressed hosts in decreasing order by CPU utilization.
+		Collections.sort(sorted, HostStubComparator.getComparator(HostStubComparator.CPU_UTIL));
+		Collections.reverse(sorted);
+		
+		return sorted;
 	}
 	
 	/**
@@ -96,7 +96,7 @@ public class VMRelocationPolicyFFIMSla extends VMRelocationPolicyGreedy {
 	protected ArrayList<HostStub> orderTargetHosts(ArrayList<HostStub> partiallyUtilized, ArrayList<HostStub> underUtilized, ArrayList<HostStub> empty) {
 		ArrayList<HostStub> targets = new ArrayList<HostStub>();
 		
-		// Sort Partially-utilized in increasing order by CPU utilization.
+		// Sort Partially-utilized hosts in increasing order by CPU utilization.
 		Collections.sort(partiallyUtilized, HostStubComparator.getComparator(HostStubComparator.CPU_UTIL));
 		
 		// Sort Underutilized hosts in decreasing order by CPU utilization.
