@@ -31,16 +31,19 @@ public class GreenStrategy extends DCSimulationTask {
 		SimulationExecutor<DCSimulationTask> executor = new SimulationExecutor<DCSimulationTask>();
 		
 		executor.addTask(new GreenStrategy("green-1", 6198910678692541341l));
-		executor.addTask(new GreenStrategy("green-2", 5646441053220106016l));
-		executor.addTask(new GreenStrategy("green-3", -5705302823151233610l));
-		executor.addTask(new GreenStrategy("green-4", 8289672009575825404l));
-		executor.addTask(new GreenStrategy("green-5", -4637549055860880177l));
+//		executor.addTask(new GreenStrategy("green-2", 5646441053220106016l));
+//		executor.addTask(new GreenStrategy("green-3", -5705302823151233610l));
+//		executor.addTask(new GreenStrategy("green-4", 8289672009575825404l));
+//		executor.addTask(new GreenStrategy("green-5", -4637549055860880177l));
 		
 		completedTasks = executor.execute();
 		
-		for(SimulationTask task : completedTasks) {
+		for(DCSimulationTask task : completedTasks) {
 			logger.info(task.getName());
 			IM2012TestEnvironment.printMetrics(task.getResults());
+			
+			DCSimulationTraceWriter traceWriter = new DCSimulationTraceWriter(task);
+			traceWriter.writeTrace();
 		}
 
 	}
