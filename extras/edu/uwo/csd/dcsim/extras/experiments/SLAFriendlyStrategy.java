@@ -27,8 +27,8 @@ public class SLAFriendlyStrategy extends DCSimulationTask {
 		
 		Simulation.initializeLogging();
 		
-		Collection<SimulationTask> completedTasks;
-		SimulationExecutor executor = new SimulationExecutor();
+		Collection<DCSimulationTask> completedTasks;
+		SimulationExecutor<DCSimulationTask> executor = new SimulationExecutor<DCSimulationTask>();
 		
 		executor.addTask(new SLAFriendlyStrategy("sla-friendly-1", 6198910678692541341l));
 		executor.addTask(new SLAFriendlyStrategy("sla-friendly-2", 5646441053220106016l));
