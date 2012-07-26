@@ -10,10 +10,7 @@ import edu.uwo.csd.dcsim.management.VMPlacementPolicy;
 public class SlaVsPowerStrategySwitchPolicy implements Daemon {
 
 	//metric names
-	public static final String POWER_POLICY_EXEC_METRIC = "powerPolicyExecs";
-	public static final String SLA_POLICY_EXEC_METRIC = "slaPolicyExec";
 	public static final String POLICY_SWITCH = "policySwitch";
-	public static final String POLICY_SWITCH_EVAL = "policySwitchEval";
 	
 	DataCentre dc;								//the data centre this policy is operating on
 	DCUtilizationMonitor dcMon; 				//monitor to get datacentre metrics

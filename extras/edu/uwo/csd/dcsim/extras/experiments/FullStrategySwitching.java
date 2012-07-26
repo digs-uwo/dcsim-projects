@@ -10,14 +10,9 @@ import edu.uwo.csd.dcsim.extras.policies.*;
 import edu.uwo.csd.dcsim.management.VMPlacementPolicy;
 
 /**
- * This class serves to test the set of policies that conform the Green 
- * Strategy:
+ * This simulation switching strategies between a power-friendly and SLA-friendly strategy.
  * 
- * + VMPlacementPolicyFFDGreen
- * + VMRelocationPolicyFFIDGreen
- * + VMConsolidationPolicyFFDDIGreen
- *   
- * @author Gaston Keller
+ * @author Michael Tighe
  *
  */
 public class FullStrategySwitching extends DCSimulationTask {
@@ -31,11 +26,11 @@ public class FullStrategySwitching extends DCSimulationTask {
 		Collection<DCSimulationTask> completedTasks;
 		SimulationExecutor<DCSimulationTask> executor = new SimulationExecutor<DCSimulationTask>();
 		
-		executor.addTask(new FullStrategySwitching("green-1", 6198910678692541341l));
-//		executor.addTask(new GreenStrategy("green-2", 5646441053220106016l));
-//		executor.addTask(new GreenStrategy("green-3", -5705302823151233610l));
-//		executor.addTask(new GreenStrategy("green-4", 8289672009575825404l));
-//		executor.addTask(new GreenStrategy("green-5", -4637549055860880177l));
+		executor.addTask(new FullStrategySwitching("strat-switching-1", 6198910678692541341l));
+//		executor.addTask(new FullStrategySwitching("strat-switching-2", 5646441053220106016l));
+//		executor.addTask(new FullStrategySwitching("strat-switching-3", -5705302823151233610l));
+//		executor.addTask(new FullStrategySwitching("strat-switching-4", 8289672009575825404l));
+//		executor.addTask(new FullStrategySwitching("strat-switching-5", -4637549055860880177l));
 		
 		completedTasks = executor.execute();
 		
