@@ -14,7 +14,7 @@ import edu.uwo.csd.dcsim.management.stub.*;
  * - source hosts: only those hosts whose CPU utilization has remained above 
  *   the _upperThreshold_ *all the time* over the last CPU load monitoring 
  *   window are considered Stressed. These hosts are sorted in decreasing 
- *   order by CPU load;
+ *   order by CPU utilization;
  * - relocation candidates: VMs with less CPU load than the CPU load by which 
  *   the host is stressed are ignored. The rest of the VMs are sorted in 
  *   increasing order by CPU load;
@@ -35,6 +35,20 @@ public class VMRelocationPolicyFFIDGreen extends VMRelocationPolicyGreedy {
 	 */
 	public VMRelocationPolicyFFIDGreen(DataCentre dc, DCUtilizationMonitor utilizationMonitor, double lowerThreshold, double upperThreshold, double targetUtilization) {
 		super(dc, utilizationMonitor, lowerThreshold, upperThreshold, targetUtilization);
+	}
+	
+	/**
+	 * Sorts Stressed hosts in decreasing order by CPU utilization.
+	 */
+	@Override
+	protected ArrayList<HostStub> orderSourceHosts(ArrayList<HostStub> stressed) {
+		ArrayList<HostStub> sorted = new ArrayList<HostStub>(stressed);
+		
+		// Sort Stressed hosts in decreasing order by CPU utilization.
+		Collections.sort(sorted, HostStubComparator.getComparator(HostStubComparator.CPU_UTIL));
+		Collections.reverse(sorted);
+		
+		return sorted;
 	}
 	
 	/**
