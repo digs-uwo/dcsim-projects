@@ -3,7 +3,7 @@ package edu.uwo.csd.dcsim.core;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 
-import edu.uwo.csd.dcsim.core.metrics.Metric;
+import edu.uwo.csd.dcsim.core.metrics.*;
 import edu.uwo.csd.dcsim.logging.*;
 
 import java.util.*;
@@ -22,6 +22,7 @@ public abstract class Simulation implements SimulationEventListener {
 	private static String homeDirectory = null;
 	private static String LOG_DIRECTORY = "/log";
 	private static String CONFIG_DIRECTORY = "/config";
+	private static String OUTPUT_DIRECTORY = "/output";
 	
 	private static Properties loggerProperties;
 	
@@ -36,7 +37,7 @@ public abstract class Simulation implements SimulationEventListener {
 	private long metricRecordStart;
 	private boolean recordingMetrics;
 	private long eventSendCount = 0;
-	private Map<String, Metric> metrics = new HashMap<String, Metric>();
+	protected Map<String, Metric> metrics = new HashMap<String, Metric>();
 	
 	private Vector<Monitor> monitors = new Vector<Monitor>();
 	
@@ -201,6 +202,7 @@ public abstract class Simulation implements SimulationEventListener {
 		
 		//wrap result in new Collection so that Collection is modifyable, as modifying the values() collection of a HashMap directly breaks things.
 		Vector<Metric> result = new Vector<Metric>(metrics.values());
+		Collections.sort(result, new MetricAlphaComparator());
 		
 		return result;
 	}
@@ -360,6 +362,19 @@ public abstract class Simulation implements SimulationEventListener {
 	 */
 	public static final String getConfigDirectory() {
 		return getHomeDirectory() + CONFIG_DIRECTORY;
+	}
+	
+	/**
+	 * Get the directory that contains simulation trace files
+	 * @return The directory that contains configuration files.
+	 */
+	public static final String getOutputDirectory() {
+		//ensure directory exists
+		File file = new File(getHomeDirectory() + OUTPUT_DIRECTORY);
+		if (!file.exists())
+			file.mkdir();
+		
+		return getHomeDirectory() + OUTPUT_DIRECTORY;
 	}
 	
 	public static final boolean hasProperty(String name) {

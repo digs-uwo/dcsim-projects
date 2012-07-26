@@ -94,7 +94,7 @@ public class SlaVsPowerSwitchingPolicy implements Daemon {
 	}
 	
 	@Override
-	public void start(Simulation simulation) {
+	public void onStart(Simulation simulation) {
 		currentPolicy = slaPolicy; //set the current policy to the SLA policy by default
 	}
 
@@ -170,7 +170,7 @@ public class SlaVsPowerSwitchingPolicy implements Daemon {
 	}
 
 	@Override
-	public void stop(Simulation simulation) {
+	public void onStop(Simulation simulation) {
 		
 	}
 
