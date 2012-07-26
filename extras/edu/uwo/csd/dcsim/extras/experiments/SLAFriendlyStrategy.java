@@ -49,8 +49,8 @@ public class SLAFriendlyStrategy extends DCSimulationTask {
 	}
 
 	public SLAFriendlyStrategy(String name, long randomSeed) {
-		super(name, 864000000);
-		this.setMetricRecordStart(86400000);
+		super(name, 864000000);					// 10-day simulation
+		this.setMetricRecordStart(259200000);	// 4th day of simulation
 		this.setRandomSeed(randomSeed);
 	}
 
@@ -59,7 +59,7 @@ public class SLAFriendlyStrategy extends DCSimulationTask {
 		// Set utilization thresholds.
 		double lower = 0.6;
 		double upper = 0.85;
-		double target = 0.85;
+		double target = 0.8;
 		
 		// Create data centre (with default VM Placement policy).
 		DataCentre dc = IM2012TestEnvironment.createDataCentre(simulation);
