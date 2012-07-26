@@ -49,8 +49,8 @@ public class GreenStrategy extends DCSimulationTask {
 	}
 
 	public GreenStrategy(String name, long randomSeed) {
-		super(name, 864000000);
-		this.setMetricRecordStart(86400000);
+		super(name, 864000000);					// 10-day simulation
+		this.setMetricRecordStart(259200000);	// 4th day of simulation
 		this.setRandomSeed(randomSeed);
 	}
 

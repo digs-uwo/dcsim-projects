@@ -32,10 +32,11 @@ public class IM2012TestEnvironment {
 	//public static final int N_VMS = 600; // 20000
 	
 	public static final int CPU_OVERHEAD = 200;
-	public static final int[] VM_SIZES = {1500, 2500, 3000, 3000};
-	public static final int[] VM_CORES = {1, 1, 1, 2};
-	public static final int[] VM_RAM = {512, 1024, 1024, 1024};
-	public static final int N_VM_SIZES = 4;
+//	public static final int[] VM_SIZES = {1500, 2500, 3000, 3000};
+	public static final int[] VM_SIZES = {1500, 2500, 2500};
+	public static final int[] VM_CORES = {1, 1, 2};
+	public static final int[] VM_RAM = {512, 1024, 1024};
+	public static final int N_VM_SIZES = 3;
 	
 	public static final int N_TRACES = 5; 
 	public static final String[] TRACES = {"traces/clarknet", 
@@ -83,7 +84,7 @@ public class IM2012TestEnvironment {
 		for (int i = 0; i < N_HOSTS; ++i) {
 			Host host;
 			
-			Host.Builder proLiantDL360G5E5450 = HostModels.ProLiantDL360G5E5450(simulation).privCpu(500).privBandwidth(131072)
+			Host.Builder proLiantDL380G5QuadCore = HostModels.ProLiantDL380G5QuadCore(simulation).privCpu(500).privBandwidth(131072)
 					.cpuManagerFactory(new OversubscribingCpuManagerFactory())
 					.memoryManagerFactory(new SimpleMemoryManagerFactory())
 					.bandwidthManagerFactory(new SimpleBandwidthManagerFactory())
@@ -98,7 +99,7 @@ public class IM2012TestEnvironment {
 					.cpuSchedulerFactory(new FairShareCpuSchedulerFactory(simulation));
 			
 			if (i % 2 == 1) {
-				host = proLiantDL360G5E5450.build();
+				host = proLiantDL380G5QuadCore.build();
 			} else {
 				host = proLiantDL160G5E5420.build();
 			}
@@ -117,12 +118,10 @@ public class IM2012TestEnvironment {
 	public static ServiceProducer createServiceProducer(DataCentreSimulation simulation, DataCentre dc) {
 		// Create a service rate _trace_ for the ServiceProducer.
 		ArrayList<Tuple<Long, Double>> serviceRates = new ArrayList<Tuple<Long, Double>>();
-		//serviceRates.add(new Tuple<Long, Double>(1000l, 10d));
-		//serviceRates.add(new Tuple<Long, Double>(14400000l, 30d));
-		//serviceRates.add(new Tuple<Long, Double>(28800000l, 5d));
-		//serviceRates.add(new Tuple<Long, Double>(43200000l, 5d));
-		serviceRates.add(new Tuple<Long, Double>(1000l, 60d));
-		serviceRates.add(new Tuple<Long, Double>(72000000l, 0d));	// 20 hours
+		serviceRates.add(new Tuple<Long, Double>(1000l, 10d));		// Create ~400 VMs.
+//		serviceRates.add(new Tuple<Long, Double>(1000l, 30d));		// Create ~1200 VMs.
+//		serviceRates.add(new Tuple<Long, Double>(1000l, 40d));		// Create ~1600 VMs.
+		serviceRates.add(new Tuple<Long, Double>(144000000l, 0d));	// 40 hours
 		serviceRates.add(new Tuple<Long, Double>(864000000l, 0d));	// 10 days
 		
 		// Create the ServiceProducer.
