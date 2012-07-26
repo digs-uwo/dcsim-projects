@@ -88,7 +88,7 @@ public class GreenStrategy extends DCSimulationTask {
 		 */
 		VMConsolidationPolicyFFDDIGreen vmConsolidationPolicy = new VMConsolidationPolicyFFDDIGreen(dc, dcMon, lower, upper, target);
 		
-		DaemonScheduler consolidationPolicyDaemon = new FixedIntervalDaemonScheduler(simulation, 14400000, vmConsolidationPolicy);
+		DaemonScheduler consolidationPolicyDaemon = new FixedIntervalDaemonScheduler(simulation, 3600000, vmConsolidationPolicy);
 		consolidationPolicyDaemon.start(3601000);		//  1 hour
 		//consolidationPolicyDaemon.start(14401000);	//  4 hours
 		//consolidationPolicyDaemon.start(86401000);	// 24 hours
