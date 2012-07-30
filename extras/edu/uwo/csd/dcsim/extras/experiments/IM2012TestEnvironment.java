@@ -62,7 +62,7 @@ public class IM2012TestEnvironment {
 	 */
 	public static DataCentre createDataCentre(DataCentreSimulation simulation) {
 		// Create data centre with default VM Placement policy.
-		DataCentre dc = new DataCentre(new VMPlacementPolicyFFD(simulation));
+		DataCentre dc = new DataCentre(simulation, new VMPlacementPolicyFFD(simulation));
 		
 		// Create hosts and add to data centre.
 		dc.addHosts(createHosts(simulation));

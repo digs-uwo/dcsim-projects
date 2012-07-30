@@ -148,7 +148,7 @@ public class SlaVsPowerStrategySwitchPolicy implements Daemon {
 				dc.setVMPlacementPolicy(powerPlacementPolicy);
 				
 				if (simulation.isRecordingMetrics())
-					AggregateMetric.getSimulationMetric(simulation, POLICY_SWITCH).addValue(1);
+					AggregateMetric.getMetric(simulation, POLICY_SWITCH).addValue(1);
 			}
 			
 			//if power exceeds powerHigh but SLA is still above slaNormal, remain on SLA policy to continue to reduce SLA
@@ -166,7 +166,7 @@ public class SlaVsPowerStrategySwitchPolicy implements Daemon {
 				dc.setVMPlacementPolicy(slaPlacementPolicy);
 				
 				if (simulation.isRecordingMetrics())
-					AggregateMetric.getSimulationMetric(simulation, POLICY_SWITCH).addValue(1);
+					AggregateMetric.getMetric(simulation, POLICY_SWITCH).addValue(1);
 			}
 			
 			//if SLA exceeds slaHigh but power is still above powerNormal, remain on power policy to continue to reduce power 
