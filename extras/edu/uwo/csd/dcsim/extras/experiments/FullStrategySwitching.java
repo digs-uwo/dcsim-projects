@@ -5,6 +5,7 @@ import java.util.Collection;
 import org.apache.log4j.*;
 
 import edu.uwo.csd.dcsim.*;
+import edu.uwo.csd.dcsim.common.SimTime;
 import edu.uwo.csd.dcsim.core.*;
 import edu.uwo.csd.dcsim.extras.policies.*;
 import edu.uwo.csd.dcsim.management.VMPlacementPolicy;
@@ -45,8 +46,8 @@ public class FullStrategySwitching extends DCSimulationTask {
 	}
 
 	public FullStrategySwitching(String name, long randomSeed) {
-		super(name, 864000000);					// 10-day simulation
-		this.setMetricRecordStart(259200000);	// 4th day of simulation
+		super(name, SimTime.days(10));					// 10-day simulation
+		this.setMetricRecordStart(SimTime.days(2));	// start on 3rd day (i.e. after 2 days)
 		this.setRandomSeed(randomSeed);
 	}
 
@@ -63,8 +64,8 @@ public class FullStrategySwitching extends DCSimulationTask {
 		
 
 		// Create and start ServiceProducer.
-		IM2012TestEnvironment.createServiceProducer(simulation, dc).start();
-		
+		IM2012TestEnvironment.configureStaticServices(simulation, dc);
+//		IM2012TestEnvironment.configureDynamicServices(simulation, dc);
 		
 		
 		/*
