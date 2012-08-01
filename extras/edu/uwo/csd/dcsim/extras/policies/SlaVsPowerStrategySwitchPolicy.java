@@ -1,10 +1,14 @@
 package edu.uwo.csd.dcsim.extras.policies;
 
-import edu.uwo.csd.dcsim.DCUtilizationMonitor;
-import edu.uwo.csd.dcsim.DataCentre;
+import java.util.ArrayList;
+import java.util.Collections;
+
+import edu.uwo.csd.dcsim.*;
 import edu.uwo.csd.dcsim.common.ObjectBuilder;
 import edu.uwo.csd.dcsim.core.*;
 import edu.uwo.csd.dcsim.core.metrics.AggregateMetric;
+import edu.uwo.csd.dcsim.host.Host;
+import edu.uwo.csd.dcsim.host.comparator.HostComparator;
 import edu.uwo.csd.dcsim.management.VMPlacementPolicy;
 
 public class SlaVsPowerStrategySwitchPolicy implements Daemon {
@@ -26,7 +30,6 @@ public class SlaVsPowerStrategySwitchPolicy implements Daemon {
 	double slaNormal;							//normal SLA values fall below this threshold
 	double powerHigh;							//a threshold indicating high power values
 	double powerNormal;							//normal power values fall below this threshold
-	double optimalPowerPerCpu;					//the optimal power-per-cpu, used as a goal for power consumption
 	double optimalCpuPerPower;					//the optimal cpu-per-power, used as a goal for power consumption
 	double lastSlavWork = 0;					//the total SLA violated work at the last check
 	double lastWork = 0;						//the total incoming work at the last check
@@ -43,7 +46,6 @@ public class SlaVsPowerStrategySwitchPolicy implements Daemon {
 		this.slaNormal = builder.slaNormal;
 		this.powerHigh = builder.powerHigh;
 		this.powerNormal = builder.powerNormal;
-		this.optimalPowerPerCpu = builder.optimalPowerPerCpu;
 		this.optimalCpuPerPower = builder.optimalCpuPerPower;
 		this.currentPolicy = builder.startingPolicy;
 	}
@@ -61,7 +63,6 @@ public class SlaVsPowerStrategySwitchPolicy implements Daemon {
 		double slaNormal = Double.MIN_VALUE;
 		double powerHigh = Double.MAX_VALUE;
 		double powerNormal =  Double.MIN_VALUE;
-		double optimalPowerPerCpu = Double.MAX_VALUE;
 		double optimalCpuPerPower = Double.MIN_VALUE;
 		
 		
@@ -76,7 +77,6 @@ public class SlaVsPowerStrategySwitchPolicy implements Daemon {
 		public Builder slaNormal(double slaNormal) { this.slaNormal = slaNormal; return this; }
 		public Builder powerHigh(double powerHigh) { this.powerHigh = powerHigh; return this; }
 		public Builder powerNormal(double powerNormal) { this.powerNormal = powerNormal; return this; }
-		public Builder optimalPowerPerCpu(double optimalPowerPerCpu) { this.optimalPowerPerCpu = optimalPowerPerCpu; return this; }
 		public Builder optimalCpuPerPower(double optimalCpuPerPower) { this.optimalCpuPerPower = optimalCpuPerPower; return this; }
 		public Builder startingPolicy(DaemonScheduler startingPolicy) { this.startingPolicy = startingPolicy; return this; }
 		
@@ -100,8 +100,6 @@ public class SlaVsPowerStrategySwitchPolicy implements Daemon {
 				throw new IllegalStateException("Must specify an powerHigh threshold");
 			if (powerNormal == Double.MIN_VALUE)
 				throw new IllegalStateException("Must specify an powerNormal threshold");
-			if (optimalPowerPerCpu == Double.MAX_VALUE)
-				throw new IllegalStateException("Must specify an optimalPowerPerCpu value");
 			if (optimalCpuPerPower == Double.MIN_VALUE)
 				throw new IllegalStateException("Must specify an optimalCpuPerPower value");
 			
@@ -143,6 +141,65 @@ public class SlaVsPowerStrategySwitchPolicy implements Daemon {
 		dc.setVMPlacementPolicy(powerPlacementPolicy);
 	}
 	
+	private double calculateOptimalCpuPerPower() {
+		
+		//create new list of all of the Hosts in the datacentre. We create a new list as we are going to resort it
+		ArrayList<Host> hosts = new ArrayList<Host>(dc.getHosts());
+		
+		//sort hosts by power efficiency, descending
+		Collections.sort(hosts, HostComparator.EFFICIENCY);
+		Collections.reverse(hosts);
+		
+		
+		/*
+		 * Calculate the theoretical optimal power consumption give the current workload.
+		 * 
+		 * To calculate this, we first consider the total of all CPU shares currently in use in the datacentre as a single
+		 * value that can be divided arbitrarily among hosts. We set 'cpuRemaining' to this value.
+		 * 
+		 * We then sort all Hosts in the data centre by power efficiency, starting with the most efficient host. We remove 
+		 * the number of CPU shares that the most efficient host possesses from cpuRemaining, and add the power that the host
+		 * would consume given 100% load to the optimal power consumption. We then move on to the next most efficient host
+		 * until cpuRemaining = 0 (all cpu has been assigned to a host).
+		 * 
+		 * The final host will probably not be entirely filled by the cpuRemaining still left to assign. If this is the case,
+		 * we calculate what the CPU utilization of the host would be given that all of cpuRemaining is placed on the host, and use
+		 * this value to calculate the host's power consumption. This power consumption is then added to the optimal power consumption. 
+		 * 
+		 */
+		double optimalPowerConsumption = 0; //the optimal total power consumption given the current load
+		double cpuRemaining = dcMon.getDCInUse().getFirst(); //the amount of CPU still to be allocated to a host
+		
+		int i = 0; //current position in host list
+		while (cpuRemaining > 0) {
+			
+			//if there is more CPU left than available in the host
+			if (cpuRemaining >= hosts.get(i).getTotalCpu()) {
+				
+				//remove the full capacity of the host from the remaining CPU
+				cpuRemaining -= hosts.get(i).getTotalCpu();
+				
+				//add the host power consumption at 100% to the optimalPowerConsumption
+				optimalPowerConsumption += hosts.get(i).getPowerModel().getPowerConsumption(1);
+			} 
+			//else if the host has enough capacity to satisfy all remaining CPU
+			else {
+				
+				//calculate the host utilization
+				double util = cpuRemaining / hosts.get(i).getTotalCpu();
+				cpuRemaining = 0;
+				
+				//add the power consumption of the host at the calculated utilization level
+				optimalPowerConsumption += hosts.get(i).getPowerModel().getPowerConsumption(util);
+			}
+			
+			++i; //move to next host
+		}
+		
+		//optimal cpu-per-power is (current CPU in use / optimal power consumption)
+		return dcMon.getDCInUse().getFirst() / optimalPowerConsumption;
+	}
+	
 	@Override
 	public void run(Simulation simulation) {
 			
@@ -160,13 +217,13 @@ public class SlaVsPowerStrategySwitchPolicy implements Daemon {
 		
 		
 		/* 
-		 * Calculate the power metric. The power metric used is the ratio of the current power-per-cpu-share to the optimal power-per-cpu-share. 
-		 * The optimal value is currently a static value that should be set as the power-per-cpu-share of the most energy efficient host in the
+		 * Calculate the power metric. The power metric used is the ratio of the current cpu-shares-per-watt to the optimal cpu-shares-per-watt. 
+		 * The optimal value is currently a static value that should be set as the cpu-shares-per-watt of the most energy efficient host in the
 		 * data centre when fully utilized. Note that this is not a perfect metric in a heterogeneous data centre: as load increases, the optimal
-		 * power-per-cpu-share will go up as the load exceeds the capacity of the set of most energy efficient servers. Therefore, the optimal
+		 * cpu-shares-per-watt will go up as the load exceeds the capacity of the set of most energy efficient servers. Therefore, the optimal
 		 * value should actually change dynamically with total load.
 		 */
-		//double power = (dcMon.getDCPower().getFirst() / dcMon.getDCInUse().getFirst()) / optimalPowerPerCpu;
+		optimalCpuPerPower = calculateOptimalCpuPerPower();
 		double power = optimalCpuPerPower / (dcMon.getDCInUse().getFirst() / dcMon.getDCPower().getFirst());
 		
 		if (currentPolicy == slaPolicy) {

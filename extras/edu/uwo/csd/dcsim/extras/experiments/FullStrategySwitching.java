@@ -57,8 +57,8 @@ public class FullStrategySwitching extends DCSimulationTask {
 		this.setMetricRecordStart(SimTime.days(2));	// start on 3rd day (i.e. after 2 days)
 		this.setRandomSeed(randomSeed);
 		this.slaHigh = 0.003;
-		this.slaNormal = 0.01;
-		this.powerHigh = 1.5;
+		this.slaNormal = 0.001;
+		this.powerHigh = 1.4;
 		this.powerNormal = 1.3;
 	}
 	
@@ -161,7 +161,6 @@ public class FullStrategySwitching extends DCSimulationTask {
 			.slaNormal(slaNormal)
 			.powerHigh(powerHigh)
 			.powerNormal(powerNormal)
-			.optimalPowerPerCpu(0.01165)
 			.optimalCpuPerPower(85.8369098712)
 			.build();
 		
