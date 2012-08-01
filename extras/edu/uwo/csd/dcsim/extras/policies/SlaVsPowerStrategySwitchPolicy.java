@@ -27,6 +27,7 @@ public class SlaVsPowerStrategySwitchPolicy implements Daemon {
 	double powerHigh;							//a threshold indicating high power values
 	double powerNormal;							//normal power values fall below this threshold
 	double optimalPowerPerCpu;					//the optimal power-per-cpu, used as a goal for power consumption
+	double optimalCpuPerPower;					//the optimal cpu-per-power, used as a goal for power consumption
 	double lastSlavWork = 0;					//the total SLA violated work at the last check
 	double lastWork = 0;						//the total incoming work at the last check
 	double lastPower = 0;						//the total power consumption at the last check
@@ -43,6 +44,7 @@ public class SlaVsPowerStrategySwitchPolicy implements Daemon {
 		this.powerHigh = builder.powerHigh;
 		this.powerNormal = builder.powerNormal;
 		this.optimalPowerPerCpu = builder.optimalPowerPerCpu;
+		this.optimalCpuPerPower = builder.optimalCpuPerPower;
 		this.currentPolicy = builder.startingPolicy;
 	}
 
@@ -60,6 +62,7 @@ public class SlaVsPowerStrategySwitchPolicy implements Daemon {
 		double powerHigh = Double.MAX_VALUE;
 		double powerNormal =  Double.MIN_VALUE;
 		double optimalPowerPerCpu = Double.MAX_VALUE;
+		double optimalCpuPerPower = Double.MIN_VALUE;
 		
 		
 		public Builder(DataCentre dc, DCUtilizationMonitor dcMon) {
@@ -74,6 +77,7 @@ public class SlaVsPowerStrategySwitchPolicy implements Daemon {
 		public Builder powerHigh(double powerHigh) { this.powerHigh = powerHigh; return this; }
 		public Builder powerNormal(double powerNormal) { this.powerNormal = powerNormal; return this; }
 		public Builder optimalPowerPerCpu(double optimalPowerPerCpu) { this.optimalPowerPerCpu = optimalPowerPerCpu; return this; }
+		public Builder optimalCpuPerPower(double optimalCpuPerPower) { this.optimalCpuPerPower = optimalCpuPerPower; return this; }
 		public Builder startingPolicy(DaemonScheduler startingPolicy) { this.startingPolicy = startingPolicy; return this; }
 		
 		@Override
@@ -98,6 +102,8 @@ public class SlaVsPowerStrategySwitchPolicy implements Daemon {
 				throw new IllegalStateException("Must specify an powerNormal threshold");
 			if (optimalPowerPerCpu == Double.MAX_VALUE)
 				throw new IllegalStateException("Must specify an optimalPowerPerCpu value");
+			if (optimalCpuPerPower == Double.MIN_VALUE)
+				throw new IllegalStateException("Must specify an optimalCpuPerPower value");
 			
 			return new SlaVsPowerStrategySwitchPolicy(this);
 		}
@@ -160,7 +166,8 @@ public class SlaVsPowerStrategySwitchPolicy implements Daemon {
 		 * power-per-cpu-share will go up as the load exceeds the capacity of the set of most energy efficient servers. Therefore, the optimal
 		 * value should actually change dynamically with total load.
 		 */
-		double power = (dcMon.getDCPower().getFirst() / dcMon.getDCInUse().getFirst()) / optimalPowerPerCpu;
+		//double power = (dcMon.getDCPower().getFirst() / dcMon.getDCInUse().getFirst()) / optimalPowerPerCpu;
+		double power = optimalCpuPerPower / (dcMon.getDCInUse().getFirst() / dcMon.getDCPower().getFirst());
 		
 		if (currentPolicy == slaPolicy) {
 			//We are current running an SLA friendly policy. The goal of the SLA policy is to keep SLA below the slaNormal threshold.
