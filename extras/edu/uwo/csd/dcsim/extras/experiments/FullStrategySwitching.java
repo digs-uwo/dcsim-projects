@@ -129,7 +129,7 @@ public class FullStrategySwitching extends DCSimulationTask {
 			.startingPolicy(powerDaemonGroup)
 			.slaHigh(0.004)
 			.slaNormal(0.003)
-			.powerHigh(1.5)
+			.powerHigh(1.6)
 			.powerNormal(1.35)
 			.optimalPowerPerCpu(0.01165)
 			.build();
