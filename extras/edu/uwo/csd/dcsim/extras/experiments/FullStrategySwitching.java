@@ -64,8 +64,8 @@ public class FullStrategySwitching extends DCSimulationTask {
 		
 
 		// Create and start ServiceProducer.
-		IM2012TestEnvironment.configureStaticServices(simulation, dc);
-//		IM2012TestEnvironment.configureDynamicServices(simulation, dc);
+//		IM2012TestEnvironment.configureStaticServices(simulation, dc);
+		IM2012TestEnvironment.configureDynamicServices(simulation, dc);
 		
 		
 		/*
@@ -122,18 +122,19 @@ public class FullStrategySwitching extends DCSimulationTask {
 		 * Configure strategy switching
 		 */
 		
+		//currently configured so that only SLA value is used 
 		SlaVsPowerStrategySwitchPolicy switchingPolicy = new SlaVsPowerStrategySwitchPolicy.Builder(dc, dcMon)
 			.slaPolicy(slaDaemonGroup, slaVMPlacementPolicy)
 			.powerPolicy(greenDaemonGroup, greenVMPlacementPolicy)
-			.slaHigh(0.005)
-			.slaNormal(0.003)
-			.powerHigh(1.2)
-			.powerNormal(1.2)
+			.slaHigh(0.006)
+			.slaNormal(0.006)
+			.powerHigh(0) //will always be considered high
+			.powerNormal(1000) //will always be considered normal
 			.optimalPowerPerCpu(0.01165)
 			.build();
 		
-		DaemonScheduler policyDaemon = new FixedIntervalDaemonScheduler(simulation, 3600000, switchingPolicy);
-		policyDaemon.start(3599000); //schedule 1 second before 1 hour mark
+		DaemonScheduler policyDaemon = new FixedIntervalDaemonScheduler(simulation, SimTime.hours(6), switchingPolicy);
+		policyDaemon.start(SimTime.hours(12) - SimTime.seconds(1)); 
 	}
 
 }

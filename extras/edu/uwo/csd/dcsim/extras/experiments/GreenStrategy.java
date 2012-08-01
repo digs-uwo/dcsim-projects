@@ -74,8 +74,8 @@ public class GreenStrategy extends DCSimulationTask {
 		dc.setVMPlacementPolicy(new VMPlacementPolicyFFDGreen(simulation, dc, dcMon, lower, upper, target));
 		
 		// Create and start ServiceProducer.
-		IM2012TestEnvironment.configureStaticServices(simulation, dc);
-//		IM2012TestEnvironment.configureDynamicServices(simulation, dc);
+//		IM2012TestEnvironment.configureStaticServices(simulation, dc);
+		IM2012TestEnvironment.configureDynamicServices(simulation, dc);
 		
 		/*
 		 * Relocation policies.
