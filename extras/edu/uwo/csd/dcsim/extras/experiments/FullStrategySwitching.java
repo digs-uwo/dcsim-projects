@@ -20,6 +20,8 @@ public class FullStrategySwitching extends DCSimulationTask {
 
 	private static Logger logger = Logger.getLogger(FullStrategySwitching.class);
 	
+	private double slaHigh, slaNormal, powerHigh, powerNormal;
+	
 	public static void main(String args[]) {
 		
 		Simulation.initializeLogging();
@@ -45,10 +47,38 @@ public class FullStrategySwitching extends DCSimulationTask {
 
 	}
 
+	/**
+	 * Constructs a Strategy Switching task with default thresholds
+	 * @param name
+	 * @param randomSeed
+	 */
 	public FullStrategySwitching(String name, long randomSeed) {
 		super(name, SimTime.days(10));					// 10-day simulation
 		this.setMetricRecordStart(SimTime.days(2));	// start on 3rd day (i.e. after 2 days)
 		this.setRandomSeed(randomSeed);
+		this.slaHigh = 0.004;
+		this.slaNormal = 0.003;
+		this.powerHigh = 1.6;
+		this.powerNormal = 1.35;
+	}
+	
+	/**
+	 * Constructs a Strategy Switching task with supplied thresholds
+	 * @param name
+	 * @param randomSeed
+	 * @param slaHigh
+	 * @param slaNormal
+	 * @param powerHigh
+	 * @param powerNormal
+	 */
+	public FullStrategySwitching(String name, long randomSeed, double slaHigh, double slaNormal, double powerHigh, double powerNormal){
+		super(name, SimTime.days(10));					// 10-day simulation
+		this.setMetricRecordStart(SimTime.days(2));	// start on 3rd day (i.e. after 2 days)
+		this.setRandomSeed(randomSeed);
+		this.slaHigh = slaHigh;
+		this.slaNormal = slaNormal;
+		this.powerHigh = powerHigh;
+		this.powerNormal = powerNormal;
 	}
 
 	@Override
@@ -127,11 +157,12 @@ public class FullStrategySwitching extends DCSimulationTask {
 			.slaPolicy(slaDaemonGroup, slaVMPlacementPolicy)
 			.powerPolicy(powerDaemonGroup, powerVMPlacementPolicy)
 			.startingPolicy(powerDaemonGroup)
-			.slaHigh(0.004)
-			.slaNormal(0.003)
-			.powerHigh(1.6)
-			.powerNormal(1.35)
+			.slaHigh(slaHigh)
+			.slaNormal(slaNormal)
+			.powerHigh(powerHigh)
+			.powerNormal(powerNormal)
 			.optimalPowerPerCpu(0.01165)
+			.optimalCpuPerPower(85.8369098712)
 			.build();
 		
 		DaemonScheduler policyDaemon = new FixedIntervalDaemonScheduler(simulation, SimTime.hours(1), switchingPolicy);
