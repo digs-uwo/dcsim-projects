@@ -62,6 +62,11 @@ public abstract class VMConsolidationPolicyGreedy implements Daemon {
 		
 		this.classifyHosts(stressed, partiallyUtilized, underUtilized, empty);
 		
+		// Shut down Empty hosts.
+		for (HostStub host : empty) {
+			simulation.sendEvent(new Event(Host.HOST_POWER_OFF_EVENT, simulation.getSimulationTime(), this,host.getHost()));
+		}
+		
 		// Create (sorted) source and target lists.
 		ArrayList<HostStub> sources = this.orderSourceHosts(underUtilized);
 		ArrayList<HostStub> targets = this.orderTargetHosts(partiallyUtilized, underUtilized);

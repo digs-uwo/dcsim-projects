@@ -11,9 +11,9 @@ import edu.uwo.csd.dcsim.host.comparator.HostComparator;
 /**
  * Implements a First Fit algorithm for an SLA-friendly Strategy, where the 
  * target hosts are sorted as follows: Partially-utilized hosts in increasing 
- * order by CPU utilization, followed by Underutilized hosts in decreasing 
- * order by CPU utilization, and finally Empty hosts in decreasing order by 
- * power state.
+ * order by <CPU utilization>, followed by Underutilized hosts in decreasing 
+ * order by <CPU utilization>, and finally Empty hosts in decreasing order by 
+ * <power efficiency, power state>.
  * 
  * @author Gaston Keller
  *
@@ -30,7 +30,7 @@ public class VMPlacementPolicyFFMSla extends VMPlacementPolicyGreedy {
 	/**
 	 * Sorts Partially-utilized hosts in increasing order by CPU utilization, 
 	 * Underutilized hosts in decreasing order by CPU utilization, and Empty 
-	 * hosts in decreasing order by power state.
+	 * hosts in decreasing order by <power efficiency, power state>.
 	 * 
 	 * Returns Partially-utilized, Underutilized and Empty hosts in that order.
 	 */
@@ -45,7 +45,8 @@ public class VMPlacementPolicyFFMSla extends VMPlacementPolicyGreedy {
 		Collections.sort(underUtilized, HostComparator.getComparator(HostComparator.CPU_UTIL));
 		Collections.reverse(underUtilized);
 		
-		// Sort Empty hosts in decreasing order by power state.
+		// Sort Empty hosts in decreasing order by <power efficiency, 
+		// power state>.
 		Collections.sort(empty, HostComparator.getComparator(HostComparator.EFFICIENCY, HostComparator.PWR_STATE));
 		Collections.reverse(empty);
 		
