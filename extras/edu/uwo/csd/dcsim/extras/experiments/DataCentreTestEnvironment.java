@@ -62,7 +62,7 @@ public class DataCentreTestEnvironment {
 	 */
 	public static DataCentre createDataCentre(Simulation simulation) {
 		VMPlacementPolicy vmPlacementPolicy = new VMPlacementPolicyFFD(simulation);
-		DataCentre dc = new DataCentre(vmPlacementPolicy);
+		DataCentre dc = new DataCentre(simulation, vmPlacementPolicy);
 		dc.addHosts(createHosts(simulation));
 		return dc;
 	}

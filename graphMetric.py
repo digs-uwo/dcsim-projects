@@ -23,4 +23,5 @@ for row in traceReader:
 			currentValue = currentValue + float(row[2])
 
 plt.plot(times, values)
+plt.suptitle(sys.argv[2])
 plt.show()

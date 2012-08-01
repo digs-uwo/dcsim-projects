@@ -6,8 +6,8 @@ public class ValueMetric extends Metric {
 
 	private double value = 0;
 	
-	public ValueMetric(String name) {
-		super(name);
+	public ValueMetric(Simulation simulation, String name) {
+		super(simulation, name);
 	}
 
 	public void setValue(double value) {
@@ -15,30 +15,41 @@ public class ValueMetric extends Metric {
 	}
 	
 	@Override
+	public String toString() {
+		return Double.toString(Simulation.roundToMetricPrecision(getValue()));
+	}
+
+	@Override
 	public double getValue() {
 		return value;
 	}
 
 	@Override
 	public double getCurrentValue() {
-		return value; //'current' value is the same as regular value
+		return value;
 	}
 
 	@Override
-	public void resetCurrentValue() {
+	public void onStartTimeInterval() {
+		//nothing to do
+	}
+
+	@Override
+	public void onCompleteTimeInterval() {
 		//nothing to do
 	}
 	
-	public static ValueMetric getSimulationMetric(Simulation simulation, String name) {
+	public static ValueMetric getMetric(Simulation simulation, String name) {
 		ValueMetric metric;
 		if (simulation.hasMetric(name)) {
 			metric = (ValueMetric)simulation.getMetric(name);
 		}
 		else {
-			metric = new ValueMetric(name);
+			metric = new ValueMetric(simulation, name);
 			simulation.addMetric(metric);
 		}
 		return metric;	
 	}
+
 
 }

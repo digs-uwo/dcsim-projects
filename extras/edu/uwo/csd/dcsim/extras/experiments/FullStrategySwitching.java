@@ -5,6 +5,7 @@ import java.util.Collection;
 import org.apache.log4j.*;
 
 import edu.uwo.csd.dcsim.*;
+import edu.uwo.csd.dcsim.common.SimTime;
 import edu.uwo.csd.dcsim.core.*;
 import edu.uwo.csd.dcsim.extras.policies.*;
 import edu.uwo.csd.dcsim.management.VMPlacementPolicy;
@@ -45,8 +46,8 @@ public class FullStrategySwitching extends DCSimulationTask {
 	}
 
 	public FullStrategySwitching(String name, long randomSeed) {
-		super(name, 864000000);
-		this.setMetricRecordStart(86400000);
+		super(name, SimTime.days(10));					// 10-day simulation
+		this.setMetricRecordStart(SimTime.days(2));	// start on 3rd day (i.e. after 2 days)
 		this.setRandomSeed(randomSeed);
 	}
 
@@ -63,38 +64,38 @@ public class FullStrategySwitching extends DCSimulationTask {
 		
 
 		// Create and start ServiceProducer.
-		IM2012TestEnvironment.createServiceProducer(simulation, dc).start();
-		
+//		IM2012TestEnvironment.configureStaticServices(simulation, dc);
+		IM2012TestEnvironment.configureDynamicServices(simulation, dc);
 		
 		
 		/*
-		 * Create Green Strategy
+		 * Create Power-friendly Strategy
 		 */
 		
 		// Set utilization thresholds.
-		double greenLower = 0.6;
-		double greenUpper = 0.95;	// 0.90
-		double greenTarget = 0.90;	// 0.85
+		double powerLower = 0.6;
+		double powerUpper = 0.95;	// 0.90
+		double powerTarget = 0.90;	// 0.85
 		
 		// Create and set desired VM Placement policy for the data centre.
-		VMPlacementPolicy greenVMPlacementPolicy = new VMPlacementPolicyFFDGreen(simulation, dc, dcMon, greenLower, greenUpper, greenTarget);
+		VMPlacementPolicy powerVMPlacementPolicy = new VMPlacementPolicyFFDGreen(simulation, dc, dcMon, powerLower, powerUpper, powerTarget);
 		
 		// Relocation policy
-		VMRelocationPolicyFFIDGreen greenRelocationPolicy = new VMRelocationPolicyFFIDGreen(dc, dcMon, greenLower, greenUpper, greenTarget);
-		DaemonScheduler greenRelocationPolicyDaemon = new FixedIntervalDaemonScheduler(simulation, 600000, greenRelocationPolicy);
+		VMRelocationPolicyFFIDGreen powerRelocationPolicy = new VMRelocationPolicyFFIDGreen(dc, dcMon, powerLower, powerUpper, powerTarget);
+		DaemonScheduler powerRelocationPolicyDaemon = new FixedIntervalDaemonScheduler(simulation, 600000, powerRelocationPolicy);
 		
 		// Consolidation policy
-		VMConsolidationPolicyFFDDIGreen greenConsolidationPolicy = new VMConsolidationPolicyFFDDIGreen(dc, dcMon, greenLower, greenUpper, greenTarget);
-		DaemonScheduler greenConsolidationPolicyDaemon = new FixedIntervalDaemonScheduler(simulation, 3600000, greenConsolidationPolicy);
+		VMConsolidationPolicyFFDDIGreen powerConsolidationPolicy = new VMConsolidationPolicyFFDDIGreen(dc, dcMon, powerLower, powerUpper, powerTarget);
+		DaemonScheduler powerConsolidationPolicyDaemon = new FixedIntervalDaemonScheduler(simulation, 3600000, powerConsolidationPolicy);
 
-		DaemonSchedulerGroup greenDaemonGroup = new DaemonSchedulerGroup(simulation);
-		greenDaemonGroup.addDaemon(greenRelocationPolicyDaemon, 600000);
-		greenDaemonGroup.addDaemon(greenConsolidationPolicyDaemon, 3601000);
+		DaemonSchedulerGroup powerDaemonGroup = new DaemonSchedulerGroup(simulation);
+		powerDaemonGroup.addDaemon(powerRelocationPolicyDaemon, 600000);
+		powerDaemonGroup.addDaemon(powerConsolidationPolicyDaemon, 3601000);
 		
 		
 		
 		/*
-		 * Create SLA Strategy
+		 * Create SLA-friendly Strategy
 		 */
 		
 		// Set utilization thresholds.
@@ -121,18 +122,20 @@ public class FullStrategySwitching extends DCSimulationTask {
 		 * Configure strategy switching
 		 */
 		
+		//currently configured so that only SLA value is used 
 		SlaVsPowerStrategySwitchPolicy switchingPolicy = new SlaVsPowerStrategySwitchPolicy.Builder(dc, dcMon)
 			.slaPolicy(slaDaemonGroup, slaVMPlacementPolicy)
-			.powerPolicy(greenDaemonGroup, greenVMPlacementPolicy)
-			.slaHigh(0.005)
-			.slaNormal(0.005)
-			.powerHigh(1.389)
-			.powerNormal(1.265)
+			.powerPolicy(powerDaemonGroup, powerVMPlacementPolicy)
+			.startingPolicy(powerDaemonGroup)
+			.slaHigh(0.004)
+			.slaNormal(0.003)
+			.powerHigh(1.6)
+			.powerNormal(1.35)
 			.optimalPowerPerCpu(0.01165)
 			.build();
 		
-		DaemonScheduler policyDaemon = new FixedIntervalDaemonScheduler(simulation, 3600000, switchingPolicy);
-		policyDaemon.start(3599000); //schedule 1 second before 1 hour mark
+		DaemonScheduler policyDaemon = new FixedIntervalDaemonScheduler(simulation, SimTime.hours(1), switchingPolicy);
+		policyDaemon.start(SimTime.hours(1) - SimTime.seconds(1)); 
 	}
 
 }

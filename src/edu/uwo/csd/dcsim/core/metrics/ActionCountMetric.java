@@ -2,17 +2,18 @@ package edu.uwo.csd.dcsim.core.metrics;
 
 import edu.uwo.csd.dcsim.core.Simulation;
 
-public class MinMetric extends Metric {
+public class ActionCountMetric extends Metric {
 
-	private double min = Double.MAX_VALUE;
-	private double count = 0;
+	private double total = 0;
+	private double current = 0;
 	
-	public MinMetric(Simulation simulation, String name) {
+	public ActionCountMetric(Simulation simulation, String name) {
 		super(simulation, name);
 	}
 
 	public void incrementCount() {
-		++count;
+		++total;
+		++current;
 	}
 	
 	@Override
@@ -22,36 +23,34 @@ public class MinMetric extends Metric {
 
 	@Override
 	public double getValue() {
-		return min;
+		return total;
 	}
 
 	@Override
 	public double getCurrentValue() {
-		return count;
+		return current;
 	}
 
 	@Override
 	public void onStartTimeInterval() {
-		count = 0;
+		current = 0;
 	}
 
 	@Override
 	public void onCompleteTimeInterval() {
-		if (count < min)
-			min = count;
+		//nothing to do
 	}
 	
-	public static MinMetric getMetric(Simulation simulation, String name) {
-		MinMetric metric;
+	public static ActionCountMetric getMetric(Simulation simulation, String name) {
+		ActionCountMetric metric;
 		if (simulation.hasMetric(name)) {
-			metric = (MinMetric)simulation.getMetric(name);
+			metric = (ActionCountMetric)simulation.getMetric(name);
 		}
 		else {
-			metric = new MinMetric(simulation, name);
+			metric = new ActionCountMetric(simulation, name);
 			simulation.addMetric(metric);
 		}
 		return metric;	
 	}
-	
 
 }

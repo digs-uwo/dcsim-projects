@@ -2,13 +2,16 @@ package edu.uwo.csd.dcsim.extras.experiments;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 
+import org.apache.commons.math3.distribution.NormalDistribution;
+import org.apache.commons.math3.distribution.RealDistribution;
 import org.apache.log4j.Logger;
 
 import edu.uwo.csd.dcsim.*;
 import edu.uwo.csd.dcsim.application.*;
 import edu.uwo.csd.dcsim.application.workload.*;
-import edu.uwo.csd.dcsim.common.Tuple;
+import edu.uwo.csd.dcsim.common.*;
 import edu.uwo.csd.dcsim.core.Simulation;
 import edu.uwo.csd.dcsim.core.metrics.Metric;
 import edu.uwo.csd.dcsim.host.*;
@@ -62,7 +65,7 @@ public class IM2012TestEnvironment {
 	 */
 	public static DataCentre createDataCentre(DataCentreSimulation simulation) {
 		// Create data centre with default VM Placement policy.
-		DataCentre dc = new DataCentre(new VMPlacementPolicyFFD(simulation));
+		DataCentre dc = new DataCentre(simulation, new VMPlacementPolicyFFD(simulation));
 		
 		// Create hosts and add to data centre.
 		dc.addHosts(createHosts(simulation));
@@ -115,7 +118,7 @@ public class IM2012TestEnvironment {
 	 * populate the data centre. The services respond to the single-tier 
 	 * interactive service model.
 	 */
-	public static ServiceProducer createServiceProducer(DataCentreSimulation simulation, DataCentre dc) {
+	public static void configureStaticServices(DataCentreSimulation simulation, DataCentre dc) {
 		// Create a service rate _trace_ for the ServiceProducer.
 		ArrayList<Tuple<Long, Double>> serviceRates = new ArrayList<Tuple<Long, Double>>();
 		serviceRates.add(new Tuple<Long, Double>(1000l, 10d));		// Create ~400 VMs.
@@ -124,35 +127,73 @@ public class IM2012TestEnvironment {
 		serviceRates.add(new Tuple<Long, Double>(144000000l, 0d));	// 40 hours
 		serviceRates.add(new Tuple<Long, Double>(864000000l, 0d));	// 10 days
 		
-		// Create the ServiceProducer.
-		ServiceProducer serviceProducer = new ServiceProducer(simulation, dc, null, serviceRates) {
-			
-			private int counter = 0;
-			
-			@Override
-			public Service buildService() {
-				
-				++counter;
-				
-				String trace = TRACES[counter % N_TRACES];
-				long offset = (int)(simulation.getRandom().nextDouble() * OFFSET_MAX[counter % N_TRACES]);
-				
-				int cores = VM_CORES[counter % N_VM_SIZES];
-				int coreCapacity = VM_SIZES[counter % N_VM_SIZES];
-				int memory = VM_RAM[counter % N_VM_SIZES];
-				int bandwidth = 12800;	// 100 Mb/s
-				long storage = 1024;	// 1 GB
-				
-				// Create workload (external) for the service.
-				Workload workload = new TraceWorkload(simulation, trace, (coreCapacity * cores) - CPU_OVERHEAD, offset); //scale to n replicas
-				simulation.addWorkload(workload);
-				
-				return Services.singleTierInteractiveService(workload, cores, coreCapacity, memory, bandwidth, storage, 1, 0, CPU_OVERHEAD, 1, Integer.MAX_VALUE);
-			}
-			
-		};
+		ServiceProducer serviceProducer = new IMServiceProducer(simulation, dc, null, serviceRates);
+		serviceProducer.start();
+	}
+	
+	/**
+	 * Creates Service Producers to spawn services over time in such a manner as to dynamically
+	 * vary the number of services within the simulation over time, according to a fixed plan
+	 * @param simulation
+	 * @param dc
+	 */
+	public static void configureDynamicServices(DataCentreSimulation simulation, DataCentre dc) {
 		
-		return serviceProducer;
+		/*
+		 * 1. Create 600 Services (VMs) over first 40 hours. These Services to not terminate.
+		 * 2. Simulation recording starts after 2 days
+		 * 3. Hold on 600 Services for day 3
+		 * 4. Increase from 600 to 1200 throughout day 4
+		 * 5. Hold on 1200 for day 5
+		 * 6. Decrease from 1200 to 800 throughout day 6
+		 * 7. Hold on 800 for day 7
+		 * 8. Increase from 800 to 1600 throughout day 8
+		 * 9. Hold on 1600 for day 9
+		 * 10. Decrease from 1600 to 600 for day 10
+		 * 11. Complete 8 days of recorded simulation
+		 */
+		
+		/*
+		 * Configure and start the base 600 services which do not terminate
+		 */
+		ArrayList<Tuple<Long, Double>> serviceRates = new ArrayList<Tuple<Long, Double>>();
+		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), 15d));		// Create ~600 VMs.
+		serviceRates.add(new Tuple<Long, Double>(SimTime.hours(40), 0d));		// over 40 hours
+		serviceRates.add(new Tuple<Long, Double>(SimTime.days(10), 0d));		// 10 days
+		
+		ServiceProducer serviceProducer = new IMServiceProducer(simulation, dc, null, serviceRates);
+		serviceProducer.start();
+
+		/*
+		 * Create time varying service levels. Each service has a lifespan of ~2 days, normally distributed with a std. dev. of 2 hours
+		 */
+		serviceRates = new ArrayList<Tuple<Long, Double>>();
+		
+		//Day 4: Create 600 new services throughout the day
+		serviceRates.add(new Tuple<Long, Double>(SimTime.days(3), 25d));
+		
+		//Day 5: Hold at 1200
+		serviceRates.add(new Tuple<Long, Double>(SimTime.days(4), 0d));
+
+		//Day 6: Create 200 new services, which combined with the termination of previous will bring us down to 800
+		serviceRates.add(new Tuple<Long, Double>(SimTime.days(5), 8.3d));
+		
+		//Day 7: Hold at 800
+		serviceRates.add(new Tuple<Long, Double>(SimTime.days(6), 0d));
+		
+		//Day 8: Create 1000 new services throughout the day
+		serviceRates.add(new Tuple<Long, Double>(SimTime.days(7), 41.6d));
+		
+		//Day 9: Hold at 1600
+		serviceRates.add(new Tuple<Long, Double>(SimTime.days(8), 0d));
+		
+		//Day 10: Let servers terminate until left with base 600
+		serviceRates.add(new Tuple<Long, Double>(SimTime.days(10), 0d));
+		
+		serviceProducer = new IMServiceProducer(simulation, dc, new NormalDistribution(SimTime.days(2), SimTime.hours(2)), serviceRates);
+		serviceProducer.start();
+
+		
 	}
 	
 	/**
@@ -166,6 +207,44 @@ public class IM2012TestEnvironment {
 					" = " +
 					metric.toString());
 		}
+	}
+	
+	/**
+	 * Creates services for the IM2012 Test Environment
+	 * @author Michael Tighe
+	 *
+	 */
+	public static class IMServiceProducer extends ServiceProducer {
+
+		private int counter = 0;
+		
+		public IMServiceProducer(DataCentreSimulation simulation,
+				DataCentre dcTarget, RealDistribution lifespanDist,
+				List<Tuple<Long, Double>> servicesPerHour) {
+			super(simulation, dcTarget, lifespanDist, servicesPerHour);
+
+		}
+
+		@Override
+		public Service buildService() {
+			++counter;
+			
+			String trace = TRACES[counter % N_TRACES];
+			long offset = (int)(simulation.getRandom().nextDouble() * OFFSET_MAX[counter % N_TRACES]);
+			
+			int cores = VM_CORES[counter % N_VM_SIZES];
+			int coreCapacity = VM_SIZES[counter % N_VM_SIZES];
+			int memory = VM_RAM[counter % N_VM_SIZES];
+			int bandwidth = 12800;	// 100 Mb/s
+			long storage = 1024;	// 1 GB
+			
+			// Create workload (external) for the service.
+			Workload workload = new TraceWorkload(simulation, trace, (coreCapacity * cores) - CPU_OVERHEAD, offset); //scale to n replicas
+			simulation.addWorkload(workload);
+			
+			return Services.singleTierInteractiveService(workload, cores, coreCapacity, memory, bandwidth, storage, 1, 0, CPU_OVERHEAD, 1, Integer.MAX_VALUE);
+		}
+		
 	}
 	
 }

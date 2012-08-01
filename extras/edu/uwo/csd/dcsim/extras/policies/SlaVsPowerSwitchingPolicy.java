@@ -104,7 +104,7 @@ public class SlaVsPowerSwitchingPolicy implements Daemon {
 			lastSwitch = simulation.getSimulationTime();
 			
 			if (simulation.isRecordingMetrics())
-				AggregateMetric.getSimulationMetric(simulation, POLICY_SWITCH_EVAL).addValue(1);
+				AggregateMetric.getMetric(simulation, POLICY_SWITCH_EVAL).addValue(1);
 			
 			/*
 			 * Perform hard-coded checks to switch policies. For a true strategy-tree implementation, this block should be replaced by the strategy-tree code.
@@ -137,7 +137,7 @@ public class SlaVsPowerSwitchingPolicy implements Daemon {
 					//switch to power policy to attempt to reduce power to normal level
 					currentPolicy = powerPolicy;
 					if (simulation.isRecordingMetrics())
-						AggregateMetric.getSimulationMetric(simulation, POLICY_SWITCH).addValue(1);
+						AggregateMetric.getMetric(simulation, POLICY_SWITCH).addValue(1);
 				}
 				
 				//if power exceeds powerHigh but SLA is still above slaNormal, remain on SLA policy to continue to reduce SLA
@@ -152,7 +152,7 @@ public class SlaVsPowerSwitchingPolicy implements Daemon {
 					currentPolicy = slaPolicy;
 					
 					if (simulation.isRecordingMetrics())
-						AggregateMetric.getSimulationMetric(simulation, POLICY_SWITCH).addValue(1);
+						AggregateMetric.getMetric(simulation, POLICY_SWITCH).addValue(1);
 				}
 				
 				//if SLA exceeds slaHigh but power is still above powerNormal, remain on power policy to continue to reduce power 
@@ -160,9 +160,9 @@ public class SlaVsPowerSwitchingPolicy implements Daemon {
 		}
 		
 		if (currentPolicy == powerPolicy && simulation.isRecordingMetrics())
-			AggregateMetric.getSimulationMetric(simulation, POWER_POLICY_EXEC_METRIC).addValue(1);
+			AggregateMetric.getMetric(simulation, POWER_POLICY_EXEC_METRIC).addValue(1);
 		else if (currentPolicy == slaPolicy && simulation.isRecordingMetrics())
-			AggregateMetric.getSimulationMetric(simulation, SLA_POLICY_EXEC_METRIC).addValue(1);
+			AggregateMetric.getMetric(simulation, SLA_POLICY_EXEC_METRIC).addValue(1);
 		
 		//run the current policy
 		if (currentPolicy != null)

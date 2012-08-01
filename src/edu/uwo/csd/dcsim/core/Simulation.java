@@ -3,6 +3,7 @@ package edu.uwo.csd.dcsim.core;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 
+import edu.uwo.csd.dcsim.common.Utility;
 import edu.uwo.csd.dcsim.core.metrics.*;
 import edu.uwo.csd.dcsim.logging.*;
 
@@ -23,6 +24,8 @@ public abstract class Simulation implements SimulationEventListener {
 	private static String LOG_DIRECTORY = "/log";
 	private static String CONFIG_DIRECTORY = "/config";
 	private static String OUTPUT_DIRECTORY = "/output";
+	
+	private static String METRIC_PRECISION_PROP = "metricPrecision";
 	
 	private static Properties loggerProperties;
 	
@@ -169,8 +172,20 @@ public abstract class Simulation implements SimulationEventListener {
 
 				//check if simulationTime is advancing
 				if (simulationTime != e.getTime()) {
+					
+					if (simulationTime != 0) {
+						//inform metrics that this time interval update is complete
+						for (Metric metric : this.metrics.values()) {
+							metric.completeTimeInterval();
+						}
+					}
+					
 					lastUpdate = simulationTime;
 					simulationTime = e.getTime();
+					
+					//inform metrics that we are starting a new time interval
+					for (Metric metric : this.metrics.values())
+						metric.startTimeInterval();
 					
 					//update the simulation
 					updateSimulation(simulationTime);
@@ -192,6 +207,11 @@ public abstract class Simulation implements SimulationEventListener {
 			} else {
 				throw new RuntimeException("Encountered event (" + e.getType() + ") with time < current simulation time from class " + e.getSource().getClass().toString());
 			}
+		}
+		
+		//inform metrics that this time interval update is complete
+		for (Metric metric : this.metrics.values()) {
+			metric.completeTimeInterval();
 		}
 		
 		completeSimulation(duration);
@@ -403,5 +423,35 @@ public abstract class Simulation implements SimulationEventListener {
 		return prop;
 	}
 
+	/**
+	 * Determine if the property specifying the precision that metrics should be reported with has been set
+	 * @return True, if metric precision has been set
+	 */
+	public static final boolean isMetricPrecisionSet() {
+		return hasProperty(METRIC_PRECISION_PROP);
+	}
+	
+	/**
+	 * Get the precision that metrics should be reported with
+	 * @return The precision of metrics, or -1 if none has been set
+	 */
+	public static final int getMetricPrecision() {
+		if (isMetricPrecisionSet()) {
+			return Integer.parseInt(getProperty(METRIC_PRECISION_PROP));
+		}
+		return -1;
+	}
+	
+	/**
+	 * Round double values to the specified metric precision
+	 * @param value
+	 * @return
+	 */
+	public static final double roundToMetricPrecision(double value) {
+		if (isMetricPrecisionSet()) {
+			return Utility.roundDouble(value, getMetricPrecision());
+		}
+		return value;
+	}
 	
 }

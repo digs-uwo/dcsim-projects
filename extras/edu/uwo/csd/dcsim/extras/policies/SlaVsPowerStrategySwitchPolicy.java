@@ -41,6 +41,7 @@ public class SlaVsPowerStrategySwitchPolicy implements Daemon {
 		this.powerHigh = builder.powerHigh;
 		this.powerNormal = builder.powerNormal;
 		this.optimalPowerPerCpu = builder.optimalPowerPerCpu;
+		this.currentPolicy = builder.startingPolicy;
 	}
 
 	public static class Builder implements ObjectBuilder<SlaVsPowerStrategySwitchPolicy> {
@@ -49,6 +50,7 @@ public class SlaVsPowerStrategySwitchPolicy implements Daemon {
 		private DCUtilizationMonitor dcMon;
 		private DaemonScheduler slaPolicy;
 		private DaemonScheduler powerPolicy;
+		private DaemonScheduler startingPolicy =  null;
 		private VMPlacementPolicy slaPlacementPolicy;
 		private VMPlacementPolicy powerPlacementPolicy;
 		double slaHigh = Double.MAX_VALUE;
@@ -70,6 +72,7 @@ public class SlaVsPowerStrategySwitchPolicy implements Daemon {
 		public Builder powerHigh(double powerHigh) { this.powerHigh = powerHigh; return this; }
 		public Builder powerNormal(double powerNormal) { this.powerNormal = powerNormal; return this; }
 		public Builder optimalPowerPerCpu(double optimalPowerPerCpu) { this.optimalPowerPerCpu = optimalPowerPerCpu; return this; }
+		public Builder startingPolicy(DaemonScheduler startingPolicy) { this.startingPolicy = startingPolicy; return this; }
 		
 		@Override
 		public SlaVsPowerStrategySwitchPolicy build() {
@@ -102,14 +105,36 @@ public class SlaVsPowerStrategySwitchPolicy implements Daemon {
 	@Override
 	public void onStart(Simulation simulation) {
 		
-		//set the current policy to the SLA policy by default
-		currentPolicy = slaPolicy; 
+		//ensure that the policies are running
 		if (!slaPolicy.isRunning()) slaPolicy.start();
 		if (!powerPolicy.isRunning()) powerPolicy.start();
+		
+		//if the current policy has not be set, set it to SLA by default
+		if (currentPolicy == null)
+			currentPolicy = slaPolicy;
+		
+		//enable current policy
+		if (currentPolicy == slaPolicy)
+			enableSlaPolicy();
+		else
+			enablePowerPolicy();
+		
+	}
+	
+	private void enableSlaPolicy() {
+		currentPolicy = slaPolicy;
 		powerPolicy.setEnabled(false);
-		dc.setVMPlacementPolicy(slaPlacementPolicy);
+		slaPolicy.setEnabled(true);
+		dc.setVMPlacementPolicy(slaPlacementPolicy);	
 	}
 
+	private void enablePowerPolicy() {
+		currentPolicy = powerPolicy;
+		slaPolicy.setEnabled(false);
+		powerPolicy.setEnabled(true);
+		dc.setVMPlacementPolicy(powerPlacementPolicy);
+	}
+	
 	@Override
 	public void run(Simulation simulation) {
 			
@@ -145,13 +170,10 @@ public class SlaVsPowerStrategySwitchPolicy implements Daemon {
 					System.out.println("SWITCHING TO POWER");
 			
 				//switch to power policy to attempt to reduce power to normal level
-				currentPolicy = powerPolicy;
-				slaPolicy.setEnabled(false);
-				powerPolicy.setEnabled(true);
-				dc.setVMPlacementPolicy(powerPlacementPolicy);
+				enablePowerPolicy();
 				
 				if (simulation.isRecordingMetrics())
-					AggregateMetric.getSimulationMetric(simulation, POLICY_SWITCH).addValue(1);
+					AggregateMetric.getMetric(simulation, POLICY_SWITCH).addValue(1);
 			}
 			
 			//if power exceeds powerHigh but SLA is still above slaNormal, remain on SLA policy to continue to reduce SLA
@@ -165,13 +187,10 @@ public class SlaVsPowerStrategySwitchPolicy implements Daemon {
 					System.out.println("SWITCHING TO SLA");
 			
 				//switch to SLA policy to attempt to reduce SLA to normal level
-				currentPolicy = slaPolicy;
-				powerPolicy.setEnabled(false);
-				slaPolicy.setEnabled(true);
-				dc.setVMPlacementPolicy(slaPlacementPolicy);
+				enableSlaPolicy();
 				
 				if (simulation.isRecordingMetrics())
-					AggregateMetric.getSimulationMetric(simulation, POLICY_SWITCH).addValue(1);
+					AggregateMetric.getMetric(simulation, POLICY_SWITCH).addValue(1);
 			}
 			
 			//if SLA exceeds slaHigh but power is still above powerNormal, remain on power policy to continue to reduce power 
