@@ -46,7 +46,7 @@ public class VMPlacementPolicyFFMSla extends VMPlacementPolicyGreedy {
 		Collections.reverse(underUtilized);
 		
 		// Sort Empty hosts in decreasing order by power state.
-		Collections.sort(empty, HostComparator.getComparator(HostComparator.PWR_STATE));
+		Collections.sort(empty, HostComparator.getComparator(HostComparator.EFFICIENCY, HostComparator.PWR_STATE));
 		Collections.reverse(empty);
 		
 		targets.addAll(partiallyUtilized);

@@ -129,13 +129,13 @@ public class FullStrategySwitching extends DCSimulationTask {
 			.startingPolicy(powerDaemonGroup)
 			.slaHigh(0.004)
 			.slaNormal(0.003)
-			.powerHigh(1.6) //will always be considered high
-			.powerNormal(1.35) //will always be considered normal
+			.powerHigh(1.5)
+			.powerNormal(1.35)
 			.optimalPowerPerCpu(0.01165)
 			.build();
 		
-		DaemonScheduler policyDaemon = new FixedIntervalDaemonScheduler(simulation, SimTime.hours(6), switchingPolicy);
-		policyDaemon.start(SimTime.hours(6) - SimTime.seconds(1)); 
+		DaemonScheduler policyDaemon = new FixedIntervalDaemonScheduler(simulation, SimTime.hours(1), switchingPolicy);
+		policyDaemon.start(SimTime.hours(1) - SimTime.seconds(1)); 
 	}
 
 }
