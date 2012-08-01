@@ -19,8 +19,9 @@ import edu.uwo.csd.dcsim.management.stub.*;
  *   increasing order by CPU load;
  * - target hosts: sort Partially-utilized hosts in increasing order by CPU 
  *   utilization, Underutilized hosts in decreasing order by CPU utilization, 
- *   and Empty hosts in decreasing order by power state. Return the hosts in the 
- *   following order: Partially-utilized, Underutilized, and Empty;
+ *   and Empty hosts in decreasing order by <power efficiency, power state>. 
+ *   Return the hosts in the following order: Partially-utilized, 
+ *   Underutilized, and Empty;
  * - source hosts: any host with its *two* last load monitoring measures 
  *   exceeding _upperThreshold_ or its average CPU utilization over the last 
  *   CPU load monitoring window exceeding _upperThreshold_ is considered 
@@ -87,7 +88,7 @@ public class VMRelocationPolicyFFIMSla extends VMRelocationPolicyGreedy {
 	/**
 	 * Sorts Partially-utilized hosts in increasing order by CPU utilization, 
 	 * Underutilized hosts in decreasing order by CPU utilization, and Empty 
-	 * hosts in decreasing order by power state.
+	 * hosts in decreasing order by <power efficiency, power state>.
 	 * 
 	 * Returns Partially-utilized, Underutilized, and Empty hosts, in that 
 	 * order.
@@ -103,8 +104,9 @@ public class VMRelocationPolicyFFIMSla extends VMRelocationPolicyGreedy {
 		Collections.sort(underUtilized, HostStubComparator.getComparator(HostStubComparator.CPU_UTIL));
 		Collections.reverse(underUtilized);
 		
-		// Sort Empty hosts in decreasing order by power state.
-		Collections.sort(empty, HostStubComparator.getComparator(HostStubComparator.PWR_STATE));
+		// Sort Empty hosts in decreasing order by <power efficiency, 
+		// power state>.
+		Collections.sort(empty, HostStubComparator.getComparator(HostStubComparator.EFFICIENCY, HostStubComparator.PWR_STATE));
 		Collections.reverse(empty);
 		
 		targets.addAll(partiallyUtilized);

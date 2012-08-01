@@ -10,7 +10,9 @@ import edu.uwo.csd.dcsim.management.VMPlacementPolicy;
 public class SlaVsPowerStrategySwitchPolicy implements Daemon {
 
 	//metric names
-	public static final String POLICY_SWITCH = "policySwitch";
+	public static final String STRAT_SWITCH = "stratSwitch";
+	public static final String STRAT_SLA_ENABLE = "stratSlaEnable";
+	public static final String STRAT_POWER_ENABLE = "stratPowerEnable";
 	
 	DataCentre dc;								//the data centre this policy is operating on
 	DCUtilizationMonitor dcMon; 				//monitor to get datacentre metrics
@@ -166,11 +168,15 @@ public class SlaVsPowerStrategySwitchPolicy implements Daemon {
 			//if power exceeds powerHigh and SLA is below slaNormal, switch
 			if (power > powerHigh && sla < slaNormal) {
 			
+				System.out.println(simulation.getSimulationTime() + " - switch to Power");
+				
 				//switch to power policy to attempt to reduce power to normal level
 				enablePowerPolicy();
 				
-				if (simulation.isRecordingMetrics())
-					AggregateMetric.getMetric(simulation, POLICY_SWITCH).addValue(1);
+				if (simulation.isRecordingMetrics()) {
+					AggregateMetric.getMetric(simulation, STRAT_SWITCH).addValue(1);
+					AggregateMetric.getMetric(simulation, STRAT_POWER_ENABLE).addValue(1);
+				}
 			}
 			
 			//if power exceeds powerHigh but SLA is still above slaNormal, remain on SLA policy to continue to reduce SLA
@@ -181,11 +187,15 @@ public class SlaVsPowerStrategySwitchPolicy implements Daemon {
 			//if SLA exceeds slaHigh and power is below powerNormal, switch
 			if (sla > slaHigh && power < powerNormal) {
 			
+				System.out.println(simulation.getSimulationTime() + " - switch to SLA");
+				
 				//switch to SLA policy to attempt to reduce SLA to normal level
 				enableSlaPolicy();
 				
-				if (simulation.isRecordingMetrics())
-					AggregateMetric.getMetric(simulation, POLICY_SWITCH).addValue(1);
+				if (simulation.isRecordingMetrics()) {
+					AggregateMetric.getMetric(simulation, STRAT_SWITCH).addValue(1);
+					AggregateMetric.getMetric(simulation, STRAT_SLA_ENABLE).addValue(1);
+				}
 			}
 			
 			//if SLA exceeds slaHigh but power is still above powerNormal, remain on power policy to continue to reduce power 
