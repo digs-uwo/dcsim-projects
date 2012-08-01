@@ -69,33 +69,33 @@ public class FullStrategySwitching extends DCSimulationTask {
 		
 		
 		/*
-		 * Create Green Strategy
+		 * Create Power-friendly Strategy
 		 */
 		
 		// Set utilization thresholds.
-		double greenLower = 0.6;
-		double greenUpper = 0.95;	// 0.90
-		double greenTarget = 0.90;	// 0.85
+		double powerLower = 0.6;
+		double powerUpper = 0.95;	// 0.90
+		double powerTarget = 0.90;	// 0.85
 		
 		// Create and set desired VM Placement policy for the data centre.
-		VMPlacementPolicy greenVMPlacementPolicy = new VMPlacementPolicyFFDGreen(simulation, dc, dcMon, greenLower, greenUpper, greenTarget);
+		VMPlacementPolicy powerVMPlacementPolicy = new VMPlacementPolicyFFDGreen(simulation, dc, dcMon, powerLower, powerUpper, powerTarget);
 		
 		// Relocation policy
-		VMRelocationPolicyFFIDGreen greenRelocationPolicy = new VMRelocationPolicyFFIDGreen(dc, dcMon, greenLower, greenUpper, greenTarget);
-		DaemonScheduler greenRelocationPolicyDaemon = new FixedIntervalDaemonScheduler(simulation, 600000, greenRelocationPolicy);
+		VMRelocationPolicyFFIDGreen powerRelocationPolicy = new VMRelocationPolicyFFIDGreen(dc, dcMon, powerLower, powerUpper, powerTarget);
+		DaemonScheduler powerRelocationPolicyDaemon = new FixedIntervalDaemonScheduler(simulation, 600000, powerRelocationPolicy);
 		
 		// Consolidation policy
-		VMConsolidationPolicyFFDDIGreen greenConsolidationPolicy = new VMConsolidationPolicyFFDDIGreen(dc, dcMon, greenLower, greenUpper, greenTarget);
-		DaemonScheduler greenConsolidationPolicyDaemon = new FixedIntervalDaemonScheduler(simulation, 3600000, greenConsolidationPolicy);
+		VMConsolidationPolicyFFDDIGreen powerConsolidationPolicy = new VMConsolidationPolicyFFDDIGreen(dc, dcMon, powerLower, powerUpper, powerTarget);
+		DaemonScheduler powerConsolidationPolicyDaemon = new FixedIntervalDaemonScheduler(simulation, 3600000, powerConsolidationPolicy);
 
-		DaemonSchedulerGroup greenDaemonGroup = new DaemonSchedulerGroup(simulation);
-		greenDaemonGroup.addDaemon(greenRelocationPolicyDaemon, 600000);
-		greenDaemonGroup.addDaemon(greenConsolidationPolicyDaemon, 3601000);
+		DaemonSchedulerGroup powerDaemonGroup = new DaemonSchedulerGroup(simulation);
+		powerDaemonGroup.addDaemon(powerRelocationPolicyDaemon, 600000);
+		powerDaemonGroup.addDaemon(powerConsolidationPolicyDaemon, 3601000);
 		
 		
 		
 		/*
-		 * Create SLA Strategy
+		 * Create SLA-friendly Strategy
 		 */
 		
 		// Set utilization thresholds.
@@ -125,16 +125,17 @@ public class FullStrategySwitching extends DCSimulationTask {
 		//currently configured so that only SLA value is used 
 		SlaVsPowerStrategySwitchPolicy switchingPolicy = new SlaVsPowerStrategySwitchPolicy.Builder(dc, dcMon)
 			.slaPolicy(slaDaemonGroup, slaVMPlacementPolicy)
-			.powerPolicy(greenDaemonGroup, greenVMPlacementPolicy)
-			.slaHigh(0.006)
-			.slaNormal(0.006)
-			.powerHigh(0) //will always be considered high
-			.powerNormal(1000) //will always be considered normal
+			.powerPolicy(powerDaemonGroup, powerVMPlacementPolicy)
+			.startingPolicy(powerDaemonGroup)
+			.slaHigh(0.004)
+			.slaNormal(0.003)
+			.powerHigh(1.6) //will always be considered high
+			.powerNormal(1.35) //will always be considered normal
 			.optimalPowerPerCpu(0.01165)
 			.build();
 		
 		DaemonScheduler policyDaemon = new FixedIntervalDaemonScheduler(simulation, SimTime.hours(6), switchingPolicy);
-		policyDaemon.start(SimTime.hours(12) - SimTime.seconds(1)); 
+		policyDaemon.start(SimTime.hours(6) - SimTime.seconds(1)); 
 	}
 
 }
