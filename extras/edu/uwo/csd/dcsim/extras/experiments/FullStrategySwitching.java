@@ -45,8 +45,8 @@ public class FullStrategySwitching extends DCSimulationTask {
 	}
 
 	public FullStrategySwitching(String name, long randomSeed) {
-		super(name, 864000000);					// 10-day simulation
-		this.setMetricRecordStart(259200000);	// 4th day of simulation
+		super(name, 864000000);
+		this.setMetricRecordStart(86400000);
 		this.setRandomSeed(randomSeed);
 	}
 
@@ -100,7 +100,7 @@ public class FullStrategySwitching extends DCSimulationTask {
 		// Set utilization thresholds.
 		double slaLower = 0.6;
 		double slaUpper = 0.85;
-		double slaTarget = 0.80;
+		double slaTarget = 0.8;
 		
 		// Create and set desired VM Placement policy for the data centre.
 		VMPlacementPolicy slaVMPlacementPolicy = new VMPlacementPolicyFFMSla(simulation, dc, dcMon, slaLower, slaUpper, slaTarget);
@@ -125,9 +125,9 @@ public class FullStrategySwitching extends DCSimulationTask {
 			.slaPolicy(slaDaemonGroup, slaVMPlacementPolicy)
 			.powerPolicy(greenDaemonGroup, greenVMPlacementPolicy)
 			.slaHigh(0.005)
-			.slaNormal(0.003)
-			.powerHigh(1.2)
-			.powerNormal(1.2)
+			.slaNormal(0.005)
+			.powerHigh(1.389)
+			.powerNormal(1.265)
 			.optimalPowerPerCpu(0.01165)
 			.build();
 		

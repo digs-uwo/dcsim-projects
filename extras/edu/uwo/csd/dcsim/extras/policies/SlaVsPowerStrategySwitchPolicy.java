@@ -140,6 +140,9 @@ public class SlaVsPowerStrategySwitchPolicy implements Daemon {
 
 			//if power exceeds powerHigh and SLA is below slaNormal, switch
 			if (power > powerHigh && sla < slaNormal) {
+
+				if (simulation.isRecordingMetrics())
+					System.out.println("SWITCHING TO POWER");
 			
 				//switch to power policy to attempt to reduce power to normal level
 				currentPolicy = powerPolicy;
@@ -158,6 +161,8 @@ public class SlaVsPowerStrategySwitchPolicy implements Daemon {
 			
 			//if SLA exceeds slaHigh and power is below powerNormal, switch
 			if (sla > slaHigh && power < powerNormal) {
+				if (simulation.isRecordingMetrics())
+					System.out.println("SWITCHING TO SLA");
 			
 				//switch to SLA policy to attempt to reduce SLA to normal level
 				currentPolicy = slaPolicy;
