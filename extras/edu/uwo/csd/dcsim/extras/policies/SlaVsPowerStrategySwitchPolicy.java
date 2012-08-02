@@ -18,6 +18,8 @@ public class SlaVsPowerStrategySwitchPolicy implements Daemon {
 	public static final String STRAT_SLA_ENABLE = "stratSlaEnable";
 	public static final String STRAT_POWER_ENABLE = "stratPowerEnable";
 	
+	public static final int WINDOW_SIZE = 10;
+	
 	DataCentre dc;								//the data centre this policy is operating on
 	DCUtilizationMonitor dcMon; 				//monitor to get datacentre metrics
 	DaemonScheduler slaPolicy; 					//an SLA friendly policy
@@ -34,6 +36,8 @@ public class SlaVsPowerStrategySwitchPolicy implements Daemon {
 	double lastSlavWork = 0;					//the total SLA violated work at the last check
 	double lastWork = 0;						//the total incoming work at the last check
 	double lastPower = 0;						//the total power consumption at the last check
+	
+	private ArrayList<Double> utilList = new ArrayList<Double>();
 	
 	public SlaVsPowerStrategySwitchPolicy(Builder builder) {
 		this.dc = builder.dc;
@@ -215,6 +219,15 @@ public class SlaVsPowerStrategySwitchPolicy implements Daemon {
 		lastSlavWork = dcMon.getTotalSlavWork();
 		lastWork = dcMon.getTotalWork();
 		
+		/*
+		 * Calculate the slope of the slope of the datacentre utilization line over the last
+		 * WINDOW_SIZE measurements
+		 */
+		double utilSlope = 0;
+		utilList.add(dcMon.getDCInUse().getFirst());
+		if(utilList.size() >= WINDOW_SIZE){
+			utilSlope = getSlope(utilList);
+		}
 		
 		/* 
 		 * Calculate the power metric. The power metric used is the ratio of the current cpu-shares-per-watt to the optimal cpu-shares-per-watt. 
@@ -233,9 +246,10 @@ public class SlaVsPowerStrategySwitchPolicy implements Daemon {
 
 			//if power exceeds powerHigh and SLA is below slaNormal, switch
 			//if (power > powerHigh && sla < slaNormal) {
-			if((time > 350000000 && time < 607000000) || (time > 690000000)){
+			//if((time > 350000000 && time < 607000000) || (time > 690000000)){
+			if(utilSlope < 20000){
 			
-				System.out.println(simulation.getSimulationTime() + " - switch to Power");
+				//System.out.println(simulation.getSimulationTime() + " - switch to Power");
 				
 				//switch to power policy to attempt to reduce power to normal level
 				enablePowerPolicy();
@@ -253,9 +267,10 @@ public class SlaVsPowerStrategySwitchPolicy implements Daemon {
 			
 			//if SLA exceeds slaHigh and power is below powerNormal, switch
 			//if (sla > slaHigh && power < powerNormal) {
-			if((time > 260000000 && time < 350000000) || (time > 607000000 && time < 690000000)){
+			//if((time > 260000000 && time < 350000000) || (time > 607000000 && time < 690000000)){
+			if(utilSlope > 20000){
 			
-				System.out.println(simulation.getSimulationTime() + " - switch to SLA");
+				//System.out.println(simulation.getSimulationTime() + " - switch to SLA");
 				
 				//switch to SLA policy to attempt to reduce SLA to normal level
 				enableSlaPolicy();
@@ -268,6 +283,23 @@ public class SlaVsPowerStrategySwitchPolicy implements Daemon {
 			
 			//if SLA exceeds slaHigh but power is still above powerNormal, remain on power policy to continue to reduce power 
 		}
+	}
+	
+	private double getSlope(ArrayList<Double> list){
+		double sumx = 0;
+		double sumy = 0;
+		double sumx2 = 0;
+		double sumxy = 0;
+		int startIndex = list.size() - WINDOW_SIZE;
+		for(int i=0; i<WINDOW_SIZE; i++){
+			sumx += i;
+			sumx2 += i*i;
+			sumy += list.get(startIndex+i);
+			sumxy += i * list.get(startIndex+i);
+		}
+		int n = WINDOW_SIZE;
+		double slope = ((n * sumxy) - (sumx * sumy)) / ((n * sumx2) - (sumx * sumx));
+		return slope;
 	}
 
 	@Override
