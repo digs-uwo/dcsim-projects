@@ -56,10 +56,10 @@ public class FullStrategySwitching extends DCSimulationTask {
 		super(name, SimTime.days(10));					// 10-day simulation
 		this.setMetricRecordStart(SimTime.days(2));	// start on 3rd day (i.e. after 2 days)
 		this.setRandomSeed(randomSeed);
-		this.slaHigh = 0.003;
-		this.slaNormal = 0.001;
-		this.powerHigh = 1.4;
-		this.powerNormal = 1.3;
+		this.slaHigh = 0.015;
+		this.slaNormal = 0.008;
+		this.powerHigh = 1.35;
+		this.powerNormal = 1.2;
 	}
 	
 	/**
