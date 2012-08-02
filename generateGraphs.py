@@ -17,8 +17,8 @@ def main():
 	plt.plot(times, scale(values, 50), 'y-', label="slaV")
 
 	#plot power efficiency
-	times, values = getValues("powerEfficiency", trace)
-	plt.plot(times, scale(values, 0.01), 'm-', label="power-e")
+	times, values = getValues("optimalPowerEfficiencyRatio", trace)
+	plt.plot(times, scale(values, 0.5), 'm-', label="power-e")
 
 	#plot strategy switches
 	times, values = getValues("stratSlaEnable", trace)

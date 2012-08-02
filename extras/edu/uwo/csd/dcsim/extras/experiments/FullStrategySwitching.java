@@ -161,7 +161,6 @@ public class FullStrategySwitching extends DCSimulationTask {
 			.slaNormal(slaNormal)
 			.powerHigh(powerHigh)
 			.powerNormal(powerNormal)
-			.optimalCpuPerPower(85.8369098712)
 			.build();
 		
 		DaemonScheduler policyDaemon = new FixedIntervalDaemonScheduler(simulation, SimTime.hours(1), switchingPolicy);
