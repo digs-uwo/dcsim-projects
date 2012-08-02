@@ -29,6 +29,10 @@ public class IM2012StratSwitching {
 	private static FileWriter out;
 	
 	public static void main(String args[]) {
+		try{
+		outputFile = new File("results.csv");
+		out = new FileWriter(outputFile);
+		}catch(IOException e){}
 		
 		Simulation.initializeLogging();
 		
@@ -36,13 +40,13 @@ public class IM2012StratSwitching {
 		generateBaseline(6198910678692541341l);
 		
 		//run a lot of experiments
-		runThresholdSearch(6198910678692541341l);
+		//runThresholdSearch(6198910678692541341l);
 		
 		//run 1 experiment
-		//runOnce(new FullStrategySwitching("strat-switching-1", 6198910678692541341l));
+		runOnce(new FullStrategySwitching("strat-switching-1", 6198910678692541341l,0.0540942629,0.0540942629,1.5074632681,1.2612604587));
 		
 		//run balanced strategy
-		/*
+		
 		DCSimulationTask task = new BalancedStrategy("balanced", 6198910678692541341l);
 		
 		task.run();
@@ -57,7 +61,7 @@ public class IM2012StratSwitching {
 		
 		DCSimulationTraceWriter traceWriter = new DCSimulationTraceWriter(task);
 		traceWriter.writeTrace();
-		*/
+		
 	}
 	
 	/**
@@ -148,9 +152,9 @@ public class IM2012StratSwitching {
 	private static void runOnce(DCSimulationTask task){
 		task.run();
 		
-		double power = extractPowerEff(task.getResults());
+		double powerEff = extractPowerEff(task.getResults());
 		double sla = extractSLA(task.getResults());
-		double score = getScore(power,sla);
+		double score = getScore(powerEff,sla);
 		
 		IM2012TestEnvironment.printMetrics(task.getResults());
 		
@@ -161,8 +165,8 @@ public class IM2012StratSwitching {
 	}
 	
 	private static void runThresholdSearch(long randomSeed){		
-		int numSlaSteps = 2;
-		int numPowerSteps = 2;
+		int numSlaSteps = 8;
+		int numPowerSteps = 8;
 		
 		double powerStart = 1.2612604587;
 		double powerEnd = 1.5484970697;
@@ -233,10 +237,6 @@ public class IM2012StratSwitching {
 	
 	private static void addToFile(String message){
 		try{
-		if(outputFile == null){
-			outputFile = new File("results.csv");
-			out = new FileWriter(outputFile);
-		}
 		out.write(message);
 		out.flush();
 		}catch(IOException e){}

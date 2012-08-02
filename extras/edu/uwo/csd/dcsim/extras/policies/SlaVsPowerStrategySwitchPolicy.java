@@ -169,11 +169,14 @@ public class SlaVsPowerStrategySwitchPolicy implements Daemon {
 		//double power = (dcMon.getDCPower().getFirst() / dcMon.getDCInUse().getFirst()) / optimalPowerPerCpu;
 		double power = optimalCpuPerPower / (dcMon.getDCInUse().getFirst() / dcMon.getDCPower().getFirst());
 		
+		long time = simulation.getSimulationTime();
+		
 		if (currentPolicy == slaPolicy) {
 			//We are current running an SLA friendly policy. The goal of the SLA policy is to keep SLA below the slaNormal threshold.
 
 			//if power exceeds powerHigh and SLA is below slaNormal, switch
-			if (power > powerHigh && sla < slaNormal) {
+			//if (power > powerHigh && sla < slaNormal) {
+			if((time > 350000000 && time < 607000000) || (time > 690000000)){
 			
 				System.out.println(simulation.getSimulationTime() + " - switch to Power");
 				
@@ -192,7 +195,8 @@ public class SlaVsPowerStrategySwitchPolicy implements Daemon {
 			//We are currently running a power friendly policy. The goal of the power policy is to keep power below the powerNormal threshold.
 			
 			//if SLA exceeds slaHigh and power is below powerNormal, switch
-			if (sla > slaHigh && power < powerNormal) {
+			//if (sla > slaHigh && power < powerNormal) {
+			if((time > 260000000 && time < 350000000) || (time > 607000000 && time < 690000000)){
 			
 				System.out.println(simulation.getSimulationTime() + " - switch to SLA");
 				
