@@ -35,6 +35,8 @@ public class SlaVsPowerStrategySwitchPolicy implements Daemon {
 	double lastSlavWork = 0;					//the total SLA violated work at the last check
 	double lastWork = 0;						//the total incoming work at the last check
 	double lastPower = 0;						//the total power consumption at the last check
+	double toPowerThreshold;					//the threshold of the utilization slope that would cause a switch to the power policy
+	double toSlaThreshold;						//the threshold of the utilization slope that would cause a switch to the sla policy
 	
 	private ArrayList<Double> utilList = new ArrayList<Double>();
 	
@@ -50,6 +52,8 @@ public class SlaVsPowerStrategySwitchPolicy implements Daemon {
 		this.powerHigh = builder.powerHigh;
 		this.powerNormal = builder.powerNormal;
 		this.currentPolicy = builder.startingPolicy;
+		this.toPowerThreshold = builder.toPowerThreshold;
+		this.toSlaThreshold = builder.toSlaThreshold;
 	}
 
 	public static class Builder implements ObjectBuilder<SlaVsPowerStrategySwitchPolicy> {
@@ -65,6 +69,8 @@ public class SlaVsPowerStrategySwitchPolicy implements Daemon {
 		double slaNormal = Double.MIN_VALUE;
 		double powerHigh = Double.MAX_VALUE;
 		double powerNormal =  Double.MIN_VALUE;
+		double toPowerThreshold = Double.MIN_VALUE;
+		double toSlaThreshold = Double.MAX_VALUE;
 		
 		
 		public Builder(DataCentre dc, DCUtilizationMonitor dcMon) {
@@ -79,6 +85,8 @@ public class SlaVsPowerStrategySwitchPolicy implements Daemon {
 		public Builder powerHigh(double powerHigh) { this.powerHigh = powerHigh; return this; }
 		public Builder powerNormal(double powerNormal) { this.powerNormal = powerNormal; return this; }
 		public Builder startingPolicy(DaemonScheduler startingPolicy) { this.startingPolicy = startingPolicy; return this; }
+		public Builder toPowerThreshold(double toPowerThreshold) { this.toPowerThreshold = toPowerThreshold; return this; }
+		public Builder toSlaThreshold(double toSlaThreshold) { this.toSlaThreshold = toSlaThreshold; return this; }
 		
 		@Override
 		public SlaVsPowerStrategySwitchPolicy build() {
@@ -100,6 +108,10 @@ public class SlaVsPowerStrategySwitchPolicy implements Daemon {
 				throw new IllegalStateException("Must specify an powerHigh threshold");
 			if (powerNormal == Double.MIN_VALUE)
 				throw new IllegalStateException("Must specify an powerNormal threshold");
+			if (toPowerThreshold == Double.MIN_VALUE)
+				throw new IllegalStateException("Must specify a toPowerThreshold threshold");
+			if (toSlaThreshold == Double.MAX_VALUE)
+				throw new IllegalStateException("Must specify a toSlaThreshold threshold");
 			
 			return new SlaVsPowerStrategySwitchPolicy(this);
 		}
@@ -214,7 +226,7 @@ public class SlaVsPowerStrategySwitchPolicy implements Daemon {
 		lastWork = dcMon.getTotalWork();
 		
 		/*
-		 * Calculate the slope of the slope of the datacentre utilization line over the last
+		 * Calculate the slope of the slope of the datacentre workload line over the last
 		 * WINDOW_SIZE measurements
 		 */
 		double utilSlope = 0;
@@ -241,7 +253,7 @@ public class SlaVsPowerStrategySwitchPolicy implements Daemon {
 			//if power exceeds powerHigh and SLA is below slaNormal, switch
 			//if (power > powerHigh && sla < slaNormal) {
 			//if((time > 350000000 && time < 607000000) || (time > 690000000)){
-			if(utilSlope < 20000){
+			if(utilSlope < toPowerThreshold){
 			
 				//System.out.println(simulation.getSimulationTime() + " - switch to Power");
 				
@@ -262,7 +274,7 @@ public class SlaVsPowerStrategySwitchPolicy implements Daemon {
 			//if SLA exceeds slaHigh and power is below powerNormal, switch
 			//if (sla > slaHigh && power < powerNormal) {
 			//if((time > 260000000 && time < 350000000) || (time > 607000000 && time < 690000000)){
-			if(utilSlope > 20000){
+			if(utilSlope > toSlaThreshold){
 			
 				//System.out.println(simulation.getSimulationTime() + " - switch to SLA");
 				

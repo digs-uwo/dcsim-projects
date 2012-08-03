@@ -39,11 +39,14 @@ public class IM2012StratSwitching {
 		//generate power and sla-focused baseline measurements
 		generateBaseline(6198910678692541341l);
 		
-		//run a lot of experiments
-		//runThresholdSearch(6198910678692541341l);
+		//run a lot of experiments searching for sla/power thresholds
+		//runSlaPowerThresholdSearch(6198910678692541341l);
+		
+		//run a lot of experiments searching for datacenter utilization switching thresholds
+		//runUtilizationThresholdSearch(6198910678692541341l);
 		
 		//run 1 experiment
-		runOnce(new FullStrategySwitching("strat-switching-1", 6198910678692541341l,0.0540942629,0.0540942629,1.5074632681,1.2612604587));
+		runOnce(new FullStrategySwitching("strat-switching-1", 6198910678692541341l, 8163.2653061225, 4897.9591836735));
 		
 		//run balanced strategy
 		
@@ -164,7 +167,7 @@ public class IM2012StratSwitching {
 		traceWriter.writeTrace();
 	}
 	
-	private static void runThresholdSearch(long randomSeed){		
+	private static void runSlaPowerThresholdSearch(long randomSeed){		
 		int numSlaSteps = 8;
 		int numPowerSteps = 8;
 		
@@ -179,15 +182,11 @@ public class IM2012StratSwitching {
 
 		executor = new SimulationExecutor<DCSimulationTask>();
 		
-		int runCount = 0;
-		
 		//create tasks
 		for(double powerNorm = powerStart; powerNorm <= powerEnd; powerNorm += powerStep){
 			for(double powerHigh = powerNorm; powerHigh <= powerEnd; powerHigh += powerStep){
 				for(double slaNorm = slaStart; slaNorm <= slaEnd; slaNorm += slaStep){
 					for(double slaHigh = slaNorm; slaHigh <= slaEnd; slaHigh += slaStep){
-						
-						runCount++;
 						
 						runTask(new FullStrategySwitching("StratSwitching,"+slaHigh+","+slaNorm+","+powerHigh+","+powerNorm+",", randomSeed, slaHigh, slaNorm, powerHigh, powerNorm));
 						
@@ -196,6 +195,39 @@ public class IM2012StratSwitching {
 			}
 		}
 
+		Collection<DCSimulationTask> completedTasks = executor.execute();
+		
+		for(DCSimulationTask task : completedTasks){
+			double power = extractPowerEff(task.getResults());
+			double sla = extractSLA(task.getResults());
+			double score = getScore(power,sla);
+			
+			IM2012TestEnvironment.printMetrics(task.getResults());
+			
+			addToFile(task.getName() + " scored: " + score + "\n");
+			logger.info(task.getName() + " scored: " + score);
+		}
+		
+		executor = new SimulationExecutor<DCSimulationTask>();
+	}
+	
+	private static void runUtilizationThresholdSearch(long randomSeed){
+		int numSteps = 50;
+		double start = -80000;
+		double end = 80000;
+		
+		//divide by steps-1 to include the end value as well
+		double step = (end - start) / (numSteps-1);
+
+		executor = new SimulationExecutor<DCSimulationTask>();
+		
+		//create tasks
+		for(double toPower = start; toPower <= end; toPower += step){
+			for(double toSla = start; toSla <= end; toSla += step){
+				runTask(new FullStrategySwitching("StratSwitching,"+toPower+","+toSla+",",randomSeed,toPower,toSla));
+			}
+		}
+		
 		Collection<DCSimulationTask> completedTasks = executor.execute();
 		
 		for(DCSimulationTask task : completedTasks){

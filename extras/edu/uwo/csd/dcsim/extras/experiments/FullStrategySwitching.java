@@ -21,6 +21,7 @@ public class FullStrategySwitching extends DCSimulationTask {
 	private static Logger logger = Logger.getLogger(FullStrategySwitching.class);
 	
 	private double slaHigh, slaNormal, powerHigh, powerNormal;
+	private double toPowerThreshold, toSlaThreshold;
 	
 	public static void main(String args[]) {
 		
@@ -60,10 +61,12 @@ public class FullStrategySwitching extends DCSimulationTask {
 		this.slaNormal = 0.001;
 		this.powerHigh = 1.4;
 		this.powerNormal = 1.3;
+		this.toPowerThreshold = 0;
+		this.toSlaThreshold = 0;
 	}
 	
 	/**
-	 * Constructs a Strategy Switching task with supplied thresholds
+	 * Constructs a Strategy Switching task with supplied thresholds for switching on sla violations and power efficiency
 	 * @param name
 	 * @param randomSeed
 	 * @param slaHigh
@@ -79,7 +82,29 @@ public class FullStrategySwitching extends DCSimulationTask {
 		this.slaNormal = slaNormal;
 		this.powerHigh = powerHigh;
 		this.powerNormal = powerNormal;
+		this.toPowerThreshold = 0;
+		this.toSlaThreshold = 0;
 	}
+	
+	/**
+	 * Constructs a Strategy Switching task with supplied thresholds for switching on utilization slope
+	 * @param name
+	 * @param randomSeed
+	 * @param toPowerThreshold threshold which would cause a switch to the power strategy
+	 * @param toSlaThreshold threshold which would case a switch to the sla strategy
+	 */
+	public FullStrategySwitching(String name, long randomSeed, double toPowerThreshold, double toSlaThreshold){
+		super(name, SimTime.days(10));					// 10-day simulation
+		this.setMetricRecordStart(SimTime.days(2));	// start on 3rd day (i.e. after 2 days)
+		this.setRandomSeed(randomSeed);
+		this.slaHigh = 0.003;
+		this.slaNormal = 0.001;
+		this.powerHigh = 1.4;
+		this.powerNormal = 1.3;
+		this.toPowerThreshold = toPowerThreshold;
+		this.toSlaThreshold = toSlaThreshold;
+	}
+	 
 
 	@Override
 	public void setup(DataCentreSimulation simulation) {
@@ -161,6 +186,8 @@ public class FullStrategySwitching extends DCSimulationTask {
 			.slaNormal(slaNormal)
 			.powerHigh(powerHigh)
 			.powerNormal(powerNormal)
+			.toPowerThreshold(toPowerThreshold)
+			.toSlaThreshold(toSlaThreshold)
 			.build();
 		
 		DaemonScheduler policyDaemon = new FixedIntervalDaemonScheduler(simulation, SimTime.hours(1), switchingPolicy);
