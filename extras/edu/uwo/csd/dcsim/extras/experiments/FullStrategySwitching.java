@@ -56,8 +56,8 @@ public class FullStrategySwitching extends DCSimulationTask {
 		super(name, SimTime.days(10));					// 10-day simulation
 		this.setMetricRecordStart(SimTime.days(2));	// start on 3rd day (i.e. after 2 days)
 		this.setRandomSeed(randomSeed);
-		this.slaHigh = 0.015;
-		this.slaNormal = 0.008;
+		this.slaHigh = 0.008;
+		this.slaNormal = 0.002;
 		this.powerHigh = 1.35;
 		this.powerNormal = 1.2;
 	}
@@ -163,7 +163,7 @@ public class FullStrategySwitching extends DCSimulationTask {
 			.powerNormal(powerNormal)
 			.build();
 		
-		DaemonScheduler policyDaemon = new FixedIntervalDaemonScheduler(simulation, SimTime.hours(1), switchingPolicy);
+		DaemonScheduler policyDaemon = new FixedIntervalDaemonScheduler(simulation, SimTime.hours(4), switchingPolicy);
 		policyDaemon.start(SimTime.hours(1) - SimTime.seconds(1)); 
 	}
 
