@@ -96,15 +96,18 @@ public class VMRelocationPolicyFFIMSla extends VMRelocationPolicyGreedy {
 	protected ArrayList<HostStub> orderTargetHosts(ArrayList<HostStub> partiallyUtilized, ArrayList<HostStub> underUtilized, ArrayList<HostStub> empty) {
 		ArrayList<HostStub> targets = new ArrayList<HostStub>();
 		
-		// Sort Partially-utilized hosts in increasing order by CPU utilization.
-		Collections.sort(partiallyUtilized, HostStubComparator.getComparator(HostStubComparator.CPU_UTIL));
+		// Sort Partially-utilized hosts in increasing order by 
+		// <CPU utilization, power efficiency>.
+		Collections.sort(partiallyUtilized, HostStubComparator.getComparator(HostStubComparator.CPU_UTIL, HostStubComparator.EFFICIENCY));
 		
-		// Sort Underutilized hosts in decreasing order by CPU utilization.
-		Collections.sort(underUtilized, HostStubComparator.getComparator(HostStubComparator.CPU_UTIL));
+		// Sort Underutilized hosts in decreasing order by <CPU utilization, 
+		// power efficiency>.
+		Collections.sort(underUtilized, HostStubComparator.getComparator(HostStubComparator.CPU_UTIL, HostStubComparator.EFFICIENCY));
 		Collections.reverse(underUtilized);
 		
-		// Sort Empty hosts in decreasing order by power state.
-		Collections.sort(empty, HostStubComparator.getComparator(HostStubComparator.PWR_STATE));
+		// Sort Empty hosts in decreasing order by <power efficiency, 
+		// power state>.
+		Collections.sort(empty, HostStubComparator.getComparator(HostStubComparator.EFFICIENCY, HostStubComparator.PWR_STATE));
 		Collections.reverse(empty);
 		
 		targets.addAll(partiallyUtilized);
