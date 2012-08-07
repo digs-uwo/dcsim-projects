@@ -10,9 +10,9 @@ import edu.uwo.csd.dcsim.host.comparator.HostComparator;
 
 /**
  * Implements a First Fit Decreasing algorithm for a Green Strategy, where it 
- * is the target hosts that are sorted in decreasing order by power efficiency 
- * (first factor) and CPU load (second factor), and by power efficiency (first 
- * factor) and power state (second factor) if the hosts are empty.
+ * is the target hosts that are sorted in decreasing order by 
+ * <power efficiency, CPU utilization>, and by <power efficiency, power state> 
+ * if the hosts are empty.
  * 
  * @author Gaston Keller
  *
@@ -28,9 +28,8 @@ public class VMPlacementPolicyFFDGreen extends VMPlacementPolicyGreedy {
 
 	/**
 	 * Sorts the target hosts (Partially-utilized, Underutilized and Empty) in 
-	 * decreasing order by power efficiency (first factor) and CPU load 
-	 * (second factor), and by power efficiency (first factor) and power state 
-	 * (second factor) if the hosts are empty.
+	 * decreasing order by <power efficiency, CPU utilization>, and by 
+	 * <power efficiency, power state> if the hosts are empty.
 	 * 
 	 * Returns Partially-utilized and Underutilized hosts first, followed by 
 	 * Empty hosts.
@@ -40,14 +39,14 @@ public class VMPlacementPolicyFFDGreen extends VMPlacementPolicyGreedy {
 		ArrayList<Host> targets = new ArrayList<Host>();
 		
 		// Sort Partially-utilized and Underutilized hosts in decreasing order 
-		// by power efficiency and CPU load.
+		// by <power efficiency, CPU utilization>.
 		targets.addAll(partiallyUtilized);
 		targets.addAll(underUtilized);
-		Collections.sort(targets, HostComparator.getComparator(HostComparator.EFFICIENCY, HostComparator.CPU_IN_USE));
+		Collections.sort(targets, HostComparator.getComparator(HostComparator.EFFICIENCY, HostComparator.CPU_UTIL));
 		Collections.reverse(targets);
 		
-		// Sort Empty hosts in decreasing order by power efficiency and power 
-		// state (on, suspended, off).
+		// Sort Empty hosts in decreasing order by <power efficiency, 
+		// power state>.
 		Collections.sort(empty, HostComparator.getComparator(HostComparator.EFFICIENCY, HostComparator.PWR_STATE));
 		Collections.reverse(empty);
 		
