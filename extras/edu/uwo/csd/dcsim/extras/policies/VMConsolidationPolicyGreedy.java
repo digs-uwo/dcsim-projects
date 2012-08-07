@@ -9,6 +9,7 @@ import edu.uwo.csd.dcsim.DataCentre;
 import edu.uwo.csd.dcsim.common.Utility;
 import edu.uwo.csd.dcsim.core.*;
 import edu.uwo.csd.dcsim.host.Host;
+import edu.uwo.csd.dcsim.host.Host.HostState;
 import edu.uwo.csd.dcsim.management.action.MigrationAction;
 import edu.uwo.csd.dcsim.management.stub.*;
 
@@ -64,11 +65,20 @@ public abstract class VMConsolidationPolicyGreedy implements Daemon {
 		
 		// Shut down Empty hosts.
 		for (HostStub host : empty) {
-			simulation.sendEvent(new Event(Host.HOST_POWER_OFF_EVENT, simulation.getSimulationTime(), this,host.getHost()));
+			//ensure that the host is not involved in any migrations and is not powering on
+			if (host.getIncomingMigrationCount() == 0 && host.getOutgoingMigrationCount() == 0 && host.getHost().getState() != HostState.POWERING_ON)
+				simulation.sendEvent(new Event(Host.HOST_POWER_OFF_EVENT, simulation.getSimulationTime(), this,host.getHost()));
+		}
+		
+		//filter out potential source hosts that have incoming migrations
+		ArrayList<HostStub> unsortedSources = new ArrayList<HostStub>();
+		for (HostStub host : underUtilized) {
+			if (host.getIncomingMigrationCount() == 0)
+				unsortedSources.add(host);
 		}
 		
 		// Create (sorted) source and target lists.
-		ArrayList<HostStub> sources = this.orderSourceHosts(underUtilized);
+		ArrayList<HostStub> sources = this.orderSourceHosts(unsortedSources);
 		ArrayList<HostStub> targets = this.orderTargetHosts(partiallyUtilized, underUtilized);
 		
 		HashSet<HostStub> usedSources = new HashSet<HostStub>();
