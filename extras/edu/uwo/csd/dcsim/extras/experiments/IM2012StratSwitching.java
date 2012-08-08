@@ -45,26 +45,85 @@ public class IM2012StratSwitching {
 		//run a lot of experiments searching for datacenter utilization switching thresholds
 		//runUtilizationThresholdSearch(6198910678692541341l);
 		
+		double power, sla, score;
+		
 		//run 1 experiment
 		runOnce(new FullStrategySwitching("strat-switching-1", 6198910678692541341l, 8163.2653061225, 4897.9591836735));
+		runOnce(new BalancedStrategy("balanced", 6198910678692541341l));
+		/*DCSimulationTask task = new BalancedStrategy("balanced", 6198910678692541341l);
+		task.run();
+		
+		IM2012TestEnvironment.printMetrics(task.getResults());
+		
+		power = extractPowerEff(task.getResults());
+		sla = extractSLA(task.getResults());
+		score = getScore(power,sla);
+		
+		logger.info(task.getName() + " scored: " + score);
+		*/
+		
+		/*generateBaseline(5646441053220106016l);
+		runOnce(new FullStrategySwitching("strat-switching-1", 5646441053220106016l, 8163.2653061225, 4897.9591836735));
+		task = new BalancedStrategy("balanced", 5646441053220106016l);
+		task.run();
+		
+		IM2012TestEnvironment.printMetrics(task.getResults());
+		
+		power = extractPowerEff(task.getResults());
+		sla = extractSLA(task.getResults());
+		score = getScore(power,sla);
+		
+		logger.info(task.getName() + " scored: " + score);
+		generateBaseline(-5705302823151233610l);
+		runOnce(new FullStrategySwitching("strat-switching-1", -5705302823151233610l, 8163.2653061225, 4897.9591836735));
+		task = new BalancedStrategy("balanced", -5705302823151233610l);
+		task.run();
+		
+		IM2012TestEnvironment.printMetrics(task.getResults());
+		
+		power = extractPowerEff(task.getResults());
+		sla = extractSLA(task.getResults());
+		score = getScore(power,sla);
+		
+		logger.info(task.getName() + " scored: " + score);
+		generateBaseline(8289672009575825404l);
+		runOnce(new FullStrategySwitching("strat-switching-1", 8289672009575825404l, 8163.2653061225, 4897.9591836735));
+		task = new BalancedStrategy("balanced", 8289672009575825404l);
+		task.run();
+		
+		IM2012TestEnvironment.printMetrics(task.getResults());
+		
+		power = extractPowerEff(task.getResults());
+		sla = extractSLA(task.getResults());
+		score = getScore(power,sla);
+		
+		logger.info(task.getName() + " scored: " + score);
+		generateBaseline(-4637549055860880177l);
+		runOnce(new FullStrategySwitching("strat-switching-1", -4637549055860880177l, 8163.2653061225, 4897.9591836735));
+//		executor.addTask(new FullStrategySwitching("strat-switching-1", 6198910678692541341l));
+//		executor.addTask(new FullStrategySwitching("strat-switching-2", 5646441053220106016l));
+//		executor.addTask(new FullStrategySwitching("strat-switching-3", -5705302823151233610l));
+//		executor.addTask(new FullStrategySwitching("strat-switching-4", 8289672009575825404l));
+//		executor.addTask(new FullStrategySwitching("strat-switching-5", -4637549055860880177l));
 		
 		//run balanced strategy
 		
-		DCSimulationTask task = new BalancedStrategy("balanced", 6198910678692541341l);
+		task = new BalancedStrategy("balanced", -4637549055860880177l);
 		
 		task.run();
 		
 		IM2012TestEnvironment.printMetrics(task.getResults());
 		
-		double power = extractPowerEff(task.getResults());
-		double sla = extractSLA(task.getResults());
-		double score = getScore(power,sla);
+		power = extractPowerEff(task.getResults());
+		sla = extractSLA(task.getResults());
+		score = getScore(power,sla);
 		
 		logger.info(task.getName() + " scored: " + score);
 		
+		
 		DCSimulationTraceWriter traceWriter = new DCSimulationTraceWriter(task);
 		traceWriter.writeTrace();
-		
+		*/
 	}
 	
 	/**

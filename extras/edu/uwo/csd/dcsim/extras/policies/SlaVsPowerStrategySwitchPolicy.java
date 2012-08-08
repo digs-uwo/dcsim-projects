@@ -1,6 +1,7 @@
 package edu.uwo.csd.dcsim.extras.policies;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 
 import edu.uwo.csd.dcsim.*;
@@ -37,6 +38,7 @@ public class SlaVsPowerStrategySwitchPolicy implements Daemon {
 	double lastPower = 0;						//the total power consumption at the last check
 	double toPowerThreshold;					//the threshold of the utilization slope that would cause a switch to the power policy
 	double toSlaThreshold;						//the threshold of the utilization slope that would cause a switch to the sla policy
+	double dcCapacity = 0;
 	
 	private ArrayList<Double> utilList = new ArrayList<Double>();
 	
@@ -135,6 +137,12 @@ public class SlaVsPowerStrategySwitchPolicy implements Daemon {
 		else
 			enablePowerPolicy();
 		
+		//calculate the total capacity of the datacenter in cpu units
+		Collection<Host> hosts = dc.getHosts();
+		for(Host host : hosts){
+			dcCapacity += (host.getCpuCount() * host.getCoreCount() * host.getCoreCapacity());
+		}
+		
 	}
 	
 	private void enableSlaPolicy() {
@@ -230,7 +238,9 @@ public class SlaVsPowerStrategySwitchPolicy implements Daemon {
 		 * WINDOW_SIZE measurements
 		 */
 		double utilSlope = 0;
-		utilList.add(dcMon.getDCInUse().getFirst());
+		utilList.add(dcMon.getDCInUse().getFirst());	//Add current datacentre workload measured in cpu units
+		//utilList.add(dcMon.getDCInUse().getFirst() / dcCapacity);
+		System.out.println(dcMon.getDCInUse().getFirst() / dcCapacity);
 		if(utilList.size() >= WINDOW_SIZE){
 			utilSlope = getSlope(utilList);
 		}

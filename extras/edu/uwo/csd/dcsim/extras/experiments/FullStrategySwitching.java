@@ -190,8 +190,8 @@ public class FullStrategySwitching extends DCSimulationTask {
 			.toSlaThreshold(toSlaThreshold)
 			.build();
 		
-		DaemonScheduler policyDaemon = new FixedIntervalDaemonScheduler(simulation, SimTime.hours(1), switchingPolicy);
-		policyDaemon.start(SimTime.hours(1) - SimTime.seconds(1)); 
+		DaemonScheduler policyDaemon = new FixedIntervalDaemonScheduler(simulation, SimTime.minutes(30), switchingPolicy);
+		policyDaemon.start(SimTime.minutes(30) - SimTime.seconds(1)); 
 	}
 
 }
