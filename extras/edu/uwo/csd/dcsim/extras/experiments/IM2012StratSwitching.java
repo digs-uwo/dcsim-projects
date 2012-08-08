@@ -46,7 +46,7 @@ public class IM2012StratSwitching {
 		//runUtilizationThresholdSearch(6198910678692541341l);
 		
 		//run 1 experiment
-		runOnce(new FullStrategySwitching("strat-switching-1", 6198910678692541341l, 8163.2653061225, 4897.9591836735));
+		runOnce(new UtilStrategySwitching("strat-switching-1", 6198910678692541341l, 8163.2653061225, 4897.9591836735));
 		runOnce(new BalancedStrategy("balanced", 6198910678692541341l));
 	}
 	
@@ -207,7 +207,7 @@ public class IM2012StratSwitching {
 		//create tasks
 		for(double toPower = start; toPower <= end; toPower += step){
 			for(double toSla = start; toSla <= end; toSla += step){
-				runTask(new FullStrategySwitching("StratSwitching,"+toPower+","+toSla+",",randomSeed,toPower,toSla));
+				runTask(new UtilStrategySwitching("StratSwitching,"+toPower+","+toSla+",",randomSeed,toPower,toSla));
 			}
 		}
 		
