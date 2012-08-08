@@ -10,14 +10,14 @@ import edu.uwo.csd.dcsim.management.stub.*;
 /**
  * Implements the following VM consolidation policy:
  * 
- * - relocation candidates: sort VMs in decreasing order by overall capacity 
- *   (first factor) and CPU in use (second factor);
- * - target hosts: sort Partially-utilized hosts in increasing order by CPU 
- *   utilization, and Underutilized hosts in decreasing order by CPU 
- *   utilization. Return Partially-utilized hosts, followed by Underutilized 
- *   hosts;
- * - source hosts: sort Underutilized hosts in increasing order by CPU 
- *   utilization.
+ * - relocation candidates: sort VMs in decreasing order by <overall capacity, 
+ *   CPU load>;
+ * - target hosts: sort Partially-utilized hosts in increasing order by 
+ *   <CPU utilization, power efficiency> and Underutilized hosts in decreasing 
+ *   order by <CPU utilization, power efficiency>. Return Partially-utilized 
+ *   hosts, followed by Underutilized hosts;
+ * - source hosts: sort Underutilized hosts in increasing order by 
+ *   <CPU utilization>.
  * 
  * @author Gaston Keller
  *
@@ -32,8 +32,8 @@ public class VMConsolidationPolicyFFDMISla extends VMConsolidationPolicyGreedy {
 	}
 	
 	/**
-	 * Sorts VMs in decreasing order by overall capacity (first factor) and 
-	 * CPU in use (second factor), so as to place the _biggest_ VMs first.
+	 * Sorts VMs in decreasing order by <overall capacity, CPU load>, so as to 
+	 * place the _biggest_ VMs first.
 	 * 
 	 * (Note: since CPU can be oversubscribed, but memory can't, memory takes 
 	 * priority over CPU when comparing VMs by _size_ (capacity).)
@@ -42,8 +42,7 @@ public class VMConsolidationPolicyFFDMISla extends VMConsolidationPolicyGreedy {
 	protected ArrayList<VmStub> orderSourceVms(ArrayList<VmStub> sourceVms) {
 		ArrayList<VmStub> sources = new ArrayList<VmStub>(sourceVms);
 		
-		// Sort VMs in decreasing order by overall capacity (first factor) and 
-		// CPU in use (second factor).
+		// Sort VMs in decreasing order by <overall capacity, CPU load>.
 		// (Note: since CPU can be oversubscribed, but memory can't, memory 
 		// takes priority over CPU when comparing VMs by _size_ (capacity).)
 		Collections.sort(sources, VmStubComparator.getComparator(VmStubComparator.MEMORY, 
@@ -56,21 +55,22 @@ public class VMConsolidationPolicyFFDMISla extends VMConsolidationPolicyGreedy {
 	}
 
 	/**
-	 * Sorts Underutilized hosts in increasing order by CPU utilization.
+	 * Sorts Underutilized hosts in increasing order by <CPU utilization>.
 	 */
 	@Override
 	protected ArrayList<HostStub> orderSourceHosts(ArrayList<HostStub> underUtilized) {
 		ArrayList<HostStub> sources = new ArrayList<HostStub>(underUtilized);
 		
-		// Sort Underutilized hosts in increasing order by CPU utilization.
+		// Sort Underutilized hosts in increasing order by <CPU utilization>.
 		Collections.sort(sources, HostStubComparator.getComparator(HostStubComparator.CPU_UTIL));
 		
 		return sources;
 	}
 
 	/**
-	 * Sorts Partially-utilized hosts in increasing order by CPU utilization, 
-	 * and Underutilized hosts in decreasing order by CPU utilization.
+	 * Sorts Partially-utilized hosts in increasing order by <CPU utilization, 
+	 * power efficiency> and Underutilized hosts in decreasing order by 
+	 * <CPU utilization, power efficiency>.
 	 * 
 	 * Returns Partially-utilized hosts, followed by Underutilized hosts.
 	 */
@@ -78,11 +78,13 @@ public class VMConsolidationPolicyFFDMISla extends VMConsolidationPolicyGreedy {
 	protected ArrayList<HostStub> orderTargetHosts(ArrayList<HostStub> partiallyUtilized, ArrayList<HostStub> underUtilized) {
 		ArrayList<HostStub> targets = new ArrayList<HostStub>();
 		
-		// Sort Partially-utilized in increasing order by CPU utilization.
-		Collections.sort(partiallyUtilized, HostStubComparator.getComparator(HostStubComparator.CPU_UTIL));
+		// Sort Partially-utilized in increasing order by <CPU utilization, 
+		// power efficiency>.
+		Collections.sort(partiallyUtilized, HostStubComparator.getComparator(HostStubComparator.CPU_UTIL, HostStubComparator.EFFICIENCY));
 		
-		// Sort Underutilized hosts in decreasing order by CPU utilization.
-		Collections.sort(underUtilized, HostStubComparator.getComparator(HostStubComparator.CPU_UTIL));
+		// Sort Underutilized hosts in decreasing order by CPU utilization, 
+		// power efficiency>.
+		Collections.sort(underUtilized, HostStubComparator.getComparator(HostStubComparator.CPU_UTIL, HostStubComparator.EFFICIENCY));
 		Collections.reverse(underUtilized);
 		
 		targets.addAll(partiallyUtilized);

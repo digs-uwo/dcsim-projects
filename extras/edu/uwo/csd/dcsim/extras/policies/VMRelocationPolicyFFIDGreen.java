@@ -19,10 +19,9 @@ import edu.uwo.csd.dcsim.management.stub.*;
  *   the host is stressed are ignored. The rest of the VMs are sorted in 
  *   increasing order by CPU load;
  * - target hosts: sort Partially-utilized and Underutilized hosts in 
- *   decreasing order by power efficiency (first factor) and CPU load (second 
- *   factor), and Empty hosts in decreasing order by power efficiency (first 
- *   factor) and power state (second factor). Return the hosts in the 
- *   following order: Partially-utilized and Underutilized hosts first, 
+ *   decreasing order by <power efficiency, CPU utilization>, and Empty hosts 
+ *   in decreasing order by <power efficiency, power state>. Return the hosts 
+ *   in the following order: Partially-utilized and Underutilized hosts first, 
  *   followed by Empty hosts.
  * 
  * @author Gaston Keller
@@ -85,9 +84,8 @@ public class VMRelocationPolicyFFIDGreen extends VMRelocationPolicyGreedy {
 	
 	/**
 	 * Sorts Partially-utilized and Underutilized hosts in decreasing order by 
-	 * power efficiency (first factor) and CPU load (second factor), and Empty 
-	 * hosts in decreasing order by power efficiency (first factor) and power 
-	 * state (second factor).
+	 * <power efficiency, CPU utilization>, and Empty hosts in decreasing 
+	 * order by <power efficiency, power state>.
 	 * 
 	 * Returns Partially-utilized and Underutilized hosts first, followed by 
 	 * Empty hosts.
@@ -100,14 +98,14 @@ public class VMRelocationPolicyFFIDGreen extends VMRelocationPolicyGreedy {
 		ArrayList<HostStub> targets = new ArrayList<HostStub>();
 		
 		// Sort Partially-utilized and Underutilized hosts in decreasing order 
-		// by power efficiency and CPU load.
+		// by <power efficiency, CPU utilization>.
 		targets.addAll(partiallyUtilized);
 		targets.addAll(underUtilized);
-		Collections.sort(targets, HostStubComparator.getComparator(HostStubComparator.EFFICIENCY, HostStubComparator.CPU_IN_USE));
+		Collections.sort(targets, HostStubComparator.getComparator(HostStubComparator.EFFICIENCY, HostStubComparator.CPU_UTIL));
 		Collections.reverse(targets);
 		
-		// Sort Empty hosts in decreasing order by power efficiency and power 
-		// state (on, suspended, off).
+		// Sort Empty hosts in decreasing order by <power efficiency, 
+		// power state>.
 		Collections.sort(empty, HostStubComparator.getComparator(HostStubComparator.EFFICIENCY, HostStubComparator.PWR_STATE));
 		Collections.reverse(empty);
 		
