@@ -10,7 +10,7 @@ import edu.uwo.csd.dcsim.core.*;
 import edu.uwo.csd.dcsim.core.metrics.AggregateMetric;
 import edu.uwo.csd.dcsim.management.VMPlacementPolicy;
 
-public class SlaVsPowerStrategySwitchPolicy implements Daemon {
+public class UtilStrategySwitchPolicy implements Daemon {
 
 	//metric names
 	public static final String STRAT_SWITCH = "stratSwitch";
@@ -27,36 +27,25 @@ public class SlaVsPowerStrategySwitchPolicy implements Daemon {
 	VMPlacementPolicy powerPlacementPolicy; 	//a power friendly placement policy
 	long lastSwitch = Long.MIN_VALUE;			//the last time a policy switch was considered
 	DaemonScheduler currentPolicy;				//the current policy being enforced
-	double slaHigh;								//a threshold indicating high SLA values
-	double slaNormal;							//normal SLA values fall below this threshold
-	double powerHigh;							//a threshold indicating high power values
-	double powerNormal;							//normal power values fall below this threshold
-	double lastSlavWork = 0;					//the total SLA violated work at the last check
-	double lastWork = 0;						//the total incoming work at the last check
-	double lastPower = 0;						//the total power consumption at the last check
 	double toPowerThreshold;					//the threshold of the utilization slope that would cause a switch to the power policy
 	double toSlaThreshold;						//the threshold of the utilization slope that would cause a switch to the sla policy
 	double dcCapacity = 0;
 	
 	private ArrayList<Double> utilList = new ArrayList<Double>();
 	
-	public SlaVsPowerStrategySwitchPolicy(Builder builder) {
+	public UtilStrategySwitchPolicy(Builder builder) {
 		this.dc = builder.dc;
 		this.dcMon = builder.dcMon;
 		this.slaPolicy = builder.slaPolicy;
 		this.slaPlacementPolicy = builder.slaPlacementPolicy;
 		this.powerPolicy = builder.powerPolicy;
 		this.powerPlacementPolicy = builder.powerPlacementPolicy;
-		this.slaHigh = builder.slaHigh;
-		this.slaNormal = builder.slaNormal;
-		this.powerHigh = builder.powerHigh;
-		this.powerNormal = builder.powerNormal;
 		this.currentPolicy = builder.startingPolicy;
 		this.toPowerThreshold = builder.toPowerThreshold;
 		this.toSlaThreshold = builder.toSlaThreshold;
 	}
 
-	public static class Builder implements ObjectBuilder<SlaVsPowerStrategySwitchPolicy> {
+	public static class Builder implements ObjectBuilder<UtilStrategySwitchPolicy> {
 
 		private DataCentre dc;
 		private DCUtilizationMonitor dcMon;
@@ -65,10 +54,6 @@ public class SlaVsPowerStrategySwitchPolicy implements Daemon {
 		private DaemonScheduler startingPolicy =  null;
 		private VMPlacementPolicy slaPlacementPolicy;
 		private VMPlacementPolicy powerPlacementPolicy;
-		double slaHigh = Double.MAX_VALUE;
-		double slaNormal = Double.MIN_VALUE;
-		double powerHigh = Double.MAX_VALUE;
-		double powerNormal =  Double.MIN_VALUE;
 		double toPowerThreshold = Double.MIN_VALUE;
 		double toSlaThreshold = Double.MAX_VALUE;
 		
@@ -80,16 +65,12 @@ public class SlaVsPowerStrategySwitchPolicy implements Daemon {
 		
 		public Builder slaPolicy(DaemonScheduler slaPolicy, VMPlacementPolicy slaPlacementPolicy) { this.slaPolicy = slaPolicy; this.slaPlacementPolicy = slaPlacementPolicy; return this; }
 		public Builder powerPolicy(DaemonScheduler powerPolicy, VMPlacementPolicy powerPlacementPolicy) { this.powerPolicy = powerPolicy; this.powerPlacementPolicy = powerPlacementPolicy; return this; }
-		public Builder slaHigh(double slaHigh) { this.slaHigh = slaHigh; return this; }
-		public Builder slaNormal(double slaNormal) { this.slaNormal = slaNormal; return this; }
-		public Builder powerHigh(double powerHigh) { this.powerHigh = powerHigh; return this; }
-		public Builder powerNormal(double powerNormal) { this.powerNormal = powerNormal; return this; }
 		public Builder startingPolicy(DaemonScheduler startingPolicy) { this.startingPolicy = startingPolicy; return this; }
 		public Builder toPowerThreshold(double toPowerThreshold) { this.toPowerThreshold = toPowerThreshold; return this; }
 		public Builder toSlaThreshold(double toSlaThreshold) { this.toSlaThreshold = toSlaThreshold; return this; }
 		
 		@Override
-		public SlaVsPowerStrategySwitchPolicy build() {
+		public UtilStrategySwitchPolicy build() {
 			
 			//verify that all parameters have been given
 			if (slaPolicy == null)
@@ -100,20 +81,12 @@ public class SlaVsPowerStrategySwitchPolicy implements Daemon {
 				throw new IllegalStateException("Must specify a power friendly policy");
 			if (powerPlacementPolicy == null)
 				throw new IllegalStateException("Must specifiy an power friendly placement policy");
-			if (slaHigh == Double.MAX_VALUE)
-				throw new IllegalStateException("Must specify an slaHigh threshold");
-			if (slaNormal == Double.MIN_VALUE)
-				throw new IllegalStateException("Must specify an slaNormal threshold");
-			if (powerHigh == Double.MAX_VALUE)
-				throw new IllegalStateException("Must specify an powerHigh threshold");
-			if (powerNormal == Double.MIN_VALUE)
-				throw new IllegalStateException("Must specify an powerNormal threshold");
 			if (toPowerThreshold == Double.MIN_VALUE)
 				throw new IllegalStateException("Must specify a toPowerThreshold threshold");
 			if (toSlaThreshold == Double.MAX_VALUE)
 				throw new IllegalStateException("Must specify a toSlaThreshold threshold");
 			
-			return new SlaVsPowerStrategySwitchPolicy(this);
+			return new UtilStrategySwitchPolicy(this);
 		}
 		
 	}
@@ -164,50 +137,24 @@ public class SlaVsPowerStrategySwitchPolicy implements Daemon {
 		 * Perform hard-coded checks to switch policies. For a true strategy-tree implementation, this block should be replaced by the strategy-tree code.
 		 */
 		
-		/* 
-		 * Calculate the SLA metric. Values from the DC monitor are averaged over the window size. 
-		 */
-		double sla = 0;
-		
 		/*
-		 * Calculate the slope of the slope of the datacentre workload line over the last
+		 * Calculate the slope of the slope of the datacenter workload line over the last
 		 * WINDOW_SIZE measurements
 		 */
 		double utilSlope = 0;
-		utilList.add(dcMon.getDCInUse().getFirst());				//Add current datacentre workload measured in cpu units
-		//utilList.add(dcMon.getDCInUse().getFirst() / dcCapacity);	//Add current datacentre workload measured in percentage utilization
+		utilList.add(dcMon.getDCInUse().getFirst());				//Add current datacenter workload measured in cpu units
+		//utilList.add(dcMon.getDCInUse().getFirst() / dcCapacity);	//Add current datacenter workload measured in percentage utilization
 		if(utilList.size() >= WINDOW_SIZE){
 			utilSlope = getSlope(utilList);
 		}
 		
-		//calculate average over window
-		for (Double val : dcMon.getDCsla())
-			sla += val;
-		sla = sla / dcMon.getDCsla().size();
-		
-		
-		/*
-		 * Calculate optimal power ratio metric. Values from the DC monitor are averaged over the window size.
-		 */
-		double power = 0;
-		
-		for (Double val : dcMon.getDCOptimalPowerRatio())
-			power += val;
-		power = power / dcMon.getDCOptimalPowerRatio().size();
-		
-		long time = simulation.getSimulationTime();
-		
 		if (currentPolicy == slaPolicy) {
-			//We are current running an SLA friendly policy. The goal of the SLA policy is to keep SLA below the slaNormal threshold.
+			//We are current running an SLA friendly policy. The goal of the SLA policy is to minimise sla violations.
 
-			//if power exceeds powerHigh and SLA is below slaNormal, switch
-			//if (power > powerHigh && sla < slaNormal) {
-			//if((time > 350000000 && time < 607000000) || (time > 690000000)){
+			//if workload change slows down to a rate less than toPowerThreshold switch to power policy
 			if(utilSlope < toPowerThreshold){
-			
-				//System.out.println(simulation.getSimulationTime() + " - switch to Power");
 				
-				//switch to power policy to attempt to reduce power to normal level
+				//switch to power policy to attempt to improve power efficiency
 				enablePowerPolicy();
 				
 				if (simulation.isRecordingMetrics()) {
@@ -216,19 +163,15 @@ public class SlaVsPowerStrategySwitchPolicy implements Daemon {
 				}
 			}
 			
-			//if power exceeds powerHigh but SLA is still above slaNormal, remain on SLA policy to continue to reduce SLA
+			//if workload is still increasing quickly (greater than toPowerThreshold) continue to focus on minimising sla violations
 			
 		} else {
-			//We are currently running a power friendly policy. The goal of the power policy is to keep power below the powerNormal threshold.
+			//We are currently running a power friendly policy. The goal of the power policy is to improve power efficiency.
 			
-			//if SLA exceeds slaHigh and power is below powerNormal, switch
-			//if (sla > slaHigh && power < powerNormal) {
-			//if((time > 260000000 && time < 350000000) || (time > 607000000 && time < 690000000)){
+			//if workload is increasing faster than toSlaThreshold, switch to sla
 			if(utilSlope > toSlaThreshold){
-			
-				//System.out.println(simulation.getSimulationTime() + " - switch to SLA");
 				
-				//switch to SLA policy to attempt to reduce SLA to normal level
+				//switch to SLA policy to attempt to minimise SLA
 				enableSlaPolicy();
 				
 				if (simulation.isRecordingMetrics()) {
@@ -237,7 +180,7 @@ public class SlaVsPowerStrategySwitchPolicy implements Daemon {
 				}
 			}
 			
-			//if SLA exceeds slaHigh but power is still above powerNormal, remain on power policy to continue to reduce power 
+			//if workload is not increasing too quickly (higher than toSlaThreshold) continue to focus on improving power efficiency
 		}
 	}
 	

@@ -13,14 +13,13 @@ import edu.uwo.csd.dcsim.management.VMPlacementPolicy;
 /**
  * This simulation switching strategies between a power-friendly and SLA-friendly strategy.
  * 
- * @author Michael Tighe
+ * @author Michael Tighe and Graham Foster
  *
  */
-public class FullStrategySwitching extends DCSimulationTask {
+public class UtilStrategySwitching extends DCSimulationTask {
 
 	private static Logger logger = Logger.getLogger(FullStrategySwitching.class);
 	
-	private double slaHigh, slaNormal, powerHigh, powerNormal;
 	private double toPowerThreshold, toSlaThreshold;
 	
 	public static void main(String args[]) {
@@ -30,11 +29,11 @@ public class FullStrategySwitching extends DCSimulationTask {
 		Collection<DCSimulationTask> completedTasks;
 		SimulationExecutor<DCSimulationTask> executor = new SimulationExecutor<DCSimulationTask>();
 		
-		executor.addTask(new FullStrategySwitching("strat-switching-1", 6198910678692541341l));
-//		executor.addTask(new FullStrategySwitching("strat-switching-2", 5646441053220106016l));
-//		executor.addTask(new FullStrategySwitching("strat-switching-3", -5705302823151233610l));
-//		executor.addTask(new FullStrategySwitching("strat-switching-4", 8289672009575825404l));
-//		executor.addTask(new FullStrategySwitching("strat-switching-5", -4637549055860880177l));
+		executor.addTask(new UtilStrategySwitching("strat-switching-1", 6198910678692541341l));
+//		executor.addTask(new UtilStrategySwitching("strat-switching-2", 5646441053220106016l));
+//		executor.addTask(new UtilStrategySwitching("strat-switching-3", -5705302823151233610l));
+//		executor.addTask(new UtilStrategySwitching("strat-switching-4", 8289672009575825404l));
+//		executor.addTask(new UtilStrategySwitching("strat-switching-5", -4637549055860880177l));
 		
 		completedTasks = executor.execute();
 		
@@ -53,35 +52,10 @@ public class FullStrategySwitching extends DCSimulationTask {
 	 * @param name
 	 * @param randomSeed
 	 */
-	public FullStrategySwitching(String name, long randomSeed) {
+	public UtilStrategySwitching(String name, long randomSeed) {
 		super(name, SimTime.days(10));					// 10-day simulation
 		this.setMetricRecordStart(SimTime.days(2));	// start on 3rd day (i.e. after 2 days)
 		this.setRandomSeed(randomSeed);
-		this.slaHigh = 0.003;
-		this.slaNormal = 0.001;
-		this.powerHigh = 1.4;
-		this.powerNormal = 1.3;
-		this.toPowerThreshold = 0;
-		this.toSlaThreshold = 0;
-	}
-	
-	/**
-	 * Constructs a Strategy Switching task with supplied thresholds for switching on sla violations and power efficiency
-	 * @param name
-	 * @param randomSeed
-	 * @param slaHigh
-	 * @param slaNormal
-	 * @param powerHigh
-	 * @param powerNormal
-	 */
-	public FullStrategySwitching(String name, long randomSeed, double slaHigh, double slaNormal, double powerHigh, double powerNormal){
-		super(name, SimTime.days(10));					// 10-day simulation
-		this.setMetricRecordStart(SimTime.days(2));	// start on 3rd day (i.e. after 2 days)
-		this.setRandomSeed(randomSeed);
-		this.slaHigh = slaHigh;
-		this.slaNormal = slaNormal;
-		this.powerHigh = powerHigh;
-		this.powerNormal = powerNormal;
 		this.toPowerThreshold = 0;
 		this.toSlaThreshold = 0;
 	}
@@ -93,14 +67,10 @@ public class FullStrategySwitching extends DCSimulationTask {
 	 * @param toPowerThreshold threshold which would cause a switch to the power strategy
 	 * @param toSlaThreshold threshold which would case a switch to the sla strategy
 	 */
-	public FullStrategySwitching(String name, long randomSeed, double toPowerThreshold, double toSlaThreshold){
+	public UtilStrategySwitching(String name, long randomSeed, double toPowerThreshold, double toSlaThreshold){
 		super(name, SimTime.days(10));					// 10-day simulation
 		this.setMetricRecordStart(SimTime.days(2));	// start on 3rd day (i.e. after 2 days)
 		this.setRandomSeed(randomSeed);
-		this.slaHigh = 0.003;
-		this.slaNormal = 0.001;
-		this.powerHigh = 1.4;
-		this.powerNormal = 1.3;
 		this.toPowerThreshold = toPowerThreshold;
 		this.toSlaThreshold = toSlaThreshold;
 	}
@@ -176,16 +146,10 @@ public class FullStrategySwitching extends DCSimulationTask {
 		/*
 		 * Configure strategy switching
 		 */
-		
-		//currently configured so that only SLA value is used 
-		SlaVsPowerStrategySwitchPolicy switchingPolicy = new SlaVsPowerStrategySwitchPolicy.Builder(dc, dcMon)
+		UtilStrategySwitchPolicy switchingPolicy = new UtilStrategySwitchPolicy.Builder(dc, dcMon)
 			.slaPolicy(slaDaemonGroup, slaVMPlacementPolicy)
 			.powerPolicy(powerDaemonGroup, powerVMPlacementPolicy)
 			.startingPolicy(powerDaemonGroup)
-			.slaHigh(slaHigh)
-			.slaNormal(slaNormal)
-			.powerHigh(powerHigh)
-			.powerNormal(powerNormal)
 			.toPowerThreshold(toPowerThreshold)
 			.toSlaThreshold(toSlaThreshold)
 			.build();
