@@ -140,22 +140,12 @@ public class SlaVsPowerStrategySwitchPolicy implements Daemon {
 		/* 
 		 * Calculate the SLA metric. Values from the DC monitor are averaged over the window size. 
 		 */
-		double sla = 0;
-		
-		//calculate average over window
-		for (Double val : dcMon.getDCsla())
-			sla += val;
-		sla = sla / dcMon.getDCsla().size();
-		
+		double sla = dcMon.getDCsla().getMean();
 		
 		/*
 		 * Calculate optimal power ratio metric. Values from the DC monitor are averaged over the window size.
 		 */
-		double power = 0;
-		
-		for (Double val : dcMon.getDCOptimalPowerRatio())
-			power += val;
-		power = power / dcMon.getDCOptimalPowerRatio().size();
+		double power = dcMon.getDCOptimalPowerRatio().getMean();
 		
 		if (currentPolicy == slaPolicy) {
 			//We are current running an SLA friendly policy. The goal of the SLA policy is to keep SLA below the slaNormal threshold.

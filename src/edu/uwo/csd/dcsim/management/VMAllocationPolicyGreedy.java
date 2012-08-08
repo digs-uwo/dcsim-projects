@@ -15,7 +15,6 @@ public class VMAllocationPolicyGreedy implements Daemon {
 	double lowerThreshold;
 	double targetThreshold;
 	double upperThreshold;
-	private static int numRuns = 0;
 	
 	public VMAllocationPolicyGreedy(DataCentre dc,
 			double lowerThreshold,
@@ -31,10 +30,7 @@ public class VMAllocationPolicyGreedy implements Daemon {
 
 	@Override
 	public void run(Simulation simulation) {
-		
-		numRuns++;
-		//System.out.println("Executing run#: " + numRuns);
-		
+
 		ArrayList<HostStub> hostList = HostStub.createHostStubList(dc.getHosts());
 		ArrayList<MigrationAction> migrationList = new ArrayList<MigrationAction>();
 		

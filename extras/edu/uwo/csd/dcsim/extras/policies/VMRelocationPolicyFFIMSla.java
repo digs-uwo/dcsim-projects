@@ -2,7 +2,6 @@ package edu.uwo.csd.dcsim.extras.policies;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedList;
 
 import edu.uwo.csd.dcsim.DCUtilizationMonitor;
 import edu.uwo.csd.dcsim.DataCentre;
@@ -142,12 +141,12 @@ public class VMRelocationPolicyFFIMSla extends VMRelocationPolicyGreedy {
 				empty.add(new HostStub(host));
 			}
 			else {
-				LinkedList<Double> hostUtilValues = this.utilizationMonitor.getHostInUse(host);
-				int size = hostUtilValues.size();
+				double hostUtilValues[] = this.utilizationMonitor.getHostInUse(host).getValues();
+				int size = hostUtilValues.length;
 				
 				boolean stress = true;
 				for (int i = 1; i <= n; i++) {
-					double cpuUtil = Utility.roundDouble(hostUtilValues.get(size - i) / host.getCpuManager().getTotalCpu());
+					double cpuUtil = Utility.roundDouble(hostUtilValues[size - i] / host.getCpuManager().getTotalCpu());
 					stress = stress && cpuUtil > upperThreshold;
 				}
 				if (stress) {

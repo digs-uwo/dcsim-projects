@@ -1,7 +1,6 @@
 package edu.uwo.csd.dcsim.extras.policies;
 
 import java.util.ArrayList;
-import java.util.LinkedList;
 
 import edu.uwo.csd.dcsim.*;
 import edu.uwo.csd.dcsim.common.Utility;
@@ -58,7 +57,7 @@ public abstract class VMPlacementPolicyGreedy extends VMPlacementPolicy {
 		
 		for (Host host : hostList) {
 			// Calculate host's avg CPU utilization in the last window of time.
-			LinkedList<Double> hostUtilValues = this.utilizationMonitor.getHostInUse(host);
+			double hostUtilValues[] = this.utilizationMonitor.getHostInUse(host).getValues();
 			double avgCpuInUse = 0;
 			for (Double x : hostUtilValues) {
 				avgCpuInUse += x;

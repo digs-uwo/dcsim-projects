@@ -2,7 +2,6 @@ package edu.uwo.csd.dcsim.extras.policies;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedList;
 
 import edu.uwo.csd.dcsim.*;
 import edu.uwo.csd.dcsim.management.VMRelocationPolicyGreedy;
@@ -137,7 +136,7 @@ public class VMRelocationPolicyFFIDGreen extends VMRelocationPolicyGreedy {
 		// stressed *all the time* over the last CPU load monitoring window 
 		// remain in the Stressed category.
 		for (HostStub stub : stressed) {
-			LinkedList<Double> hostUtilValues = this.utilizationMonitor.getHostInUse(stub.getHost());
+			double hostUtilValues[] = this.utilizationMonitor.getHostInUse(stub.getHost()).getValues();
 			boolean stressedAllTime = true;
 			for (Double x : hostUtilValues) {
 				stressedAllTime = stressedAllTime && x > upperThreshold;
