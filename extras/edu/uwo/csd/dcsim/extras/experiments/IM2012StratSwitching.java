@@ -50,10 +50,10 @@ public class IM2012StratSwitching {
 		 * run single experiments
 		 */
 		runSingleTrial(6198910678692541341l, 1, 0.011, 0.001);
-		runSingleTrial(5646441053220106016l, 2, 0.011, 0.001);
-		runSingleTrial(-5705302823151233610l, 3, 0.011, 0.001);
-		runSingleTrial(8289672009575825404l, 4, 0.011, 0.001);
-		runSingleTrial(-4637549055860880177l, 5, 0.011, 0.001);
+//		runSingleTrial(5646441053220106016l, 2, 0.011, 0.001);
+//		runSingleTrial(-5705302823151233610l, 3, 0.011, 0.001);
+//		runSingleTrial(8289672009575825404l, 4, 0.011, 0.001);
+//		runSingleTrial(-4637549055860880177l, 5, 0.011, 0.001);
 	}
 	
 	/**
