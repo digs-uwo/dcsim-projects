@@ -1,10 +1,6 @@
 package edu.uwo.csd.dcsim.extras.policies;
 
-import java.util.ArrayList;
-import java.util.Collection;
-
 import edu.uwo.csd.dcsim.*;
-import edu.uwo.csd.dcsim.host.*;
 import edu.uwo.csd.dcsim.common.ObjectBuilder;
 import edu.uwo.csd.dcsim.core.*;
 import edu.uwo.csd.dcsim.core.metrics.AggregateMetric;
@@ -16,8 +12,6 @@ public class SlaVsPowerStrategySwitchPolicy implements Daemon {
 	public static final String STRAT_SWITCH = "stratSwitch";
 	public static final String STRAT_SLA_ENABLE = "stratSlaEnable";
 	public static final String STRAT_POWER_ENABLE = "stratPowerEnable";
-	
-	public static final int WINDOW_SIZE = 10;
 	
 	DataCentre dc;								//the data centre this policy is operating on
 	DCUtilizationMonitor dcMon; 				//monitor to get datacentre metrics
@@ -34,11 +28,6 @@ public class SlaVsPowerStrategySwitchPolicy implements Daemon {
 	double lastSlavWork = 0;					//the total SLA violated work at the last check
 	double lastWork = 0;						//the total incoming work at the last check
 	double lastPower = 0;						//the total power consumption at the last check
-	double toPowerThreshold;					//the threshold of the utilization slope that would cause a switch to the power policy
-	double toSlaThreshold;						//the threshold of the utilization slope that would cause a switch to the sla policy
-	double dcCapacity = 0;
-	
-	private ArrayList<Double> utilList = new ArrayList<Double>();
 	
 	public SlaVsPowerStrategySwitchPolicy(Builder builder) {
 		this.dc = builder.dc;
@@ -52,8 +41,6 @@ public class SlaVsPowerStrategySwitchPolicy implements Daemon {
 		this.powerHigh = builder.powerHigh;
 		this.powerNormal = builder.powerNormal;
 		this.currentPolicy = builder.startingPolicy;
-		this.toPowerThreshold = builder.toPowerThreshold;
-		this.toSlaThreshold = builder.toSlaThreshold;
 	}
 
 	public static class Builder implements ObjectBuilder<SlaVsPowerStrategySwitchPolicy> {
@@ -69,8 +56,6 @@ public class SlaVsPowerStrategySwitchPolicy implements Daemon {
 		double slaNormal = Double.MIN_VALUE;
 		double powerHigh = Double.MAX_VALUE;
 		double powerNormal =  Double.MIN_VALUE;
-		double toPowerThreshold = Double.MIN_VALUE;
-		double toSlaThreshold = Double.MAX_VALUE;
 		
 		
 		public Builder(DataCentre dc, DCUtilizationMonitor dcMon) {
@@ -85,8 +70,6 @@ public class SlaVsPowerStrategySwitchPolicy implements Daemon {
 		public Builder powerHigh(double powerHigh) { this.powerHigh = powerHigh; return this; }
 		public Builder powerNormal(double powerNormal) { this.powerNormal = powerNormal; return this; }
 		public Builder startingPolicy(DaemonScheduler startingPolicy) { this.startingPolicy = startingPolicy; return this; }
-		public Builder toPowerThreshold(double toPowerThreshold) { this.toPowerThreshold = toPowerThreshold; return this; }
-		public Builder toSlaThreshold(double toSlaThreshold) { this.toSlaThreshold = toSlaThreshold; return this; }
 		
 		@Override
 		public SlaVsPowerStrategySwitchPolicy build() {
@@ -108,10 +91,6 @@ public class SlaVsPowerStrategySwitchPolicy implements Daemon {
 				throw new IllegalStateException("Must specify an powerHigh threshold");
 			if (powerNormal == Double.MIN_VALUE)
 				throw new IllegalStateException("Must specify an powerNormal threshold");
-			if (toPowerThreshold == Double.MIN_VALUE)
-				throw new IllegalStateException("Must specify a toPowerThreshold threshold");
-			if (toSlaThreshold == Double.MAX_VALUE)
-				throw new IllegalStateException("Must specify a toSlaThreshold threshold");
 			
 			return new SlaVsPowerStrategySwitchPolicy(this);
 		}
@@ -134,12 +113,6 @@ public class SlaVsPowerStrategySwitchPolicy implements Daemon {
 			enableSlaPolicy();
 		else
 			enablePowerPolicy();
-		
-		//calculate the total capacity of the datacenter in cpu units
-		Collection<Host> hosts = dc.getHosts();
-		for(Host host : hosts){
-			dcCapacity += (host.getCpuCount() * host.getCoreCount() * host.getCoreCapacity());
-		}
 		
 	}
 	
@@ -180,7 +153,7 @@ public class SlaVsPowerStrategySwitchPolicy implements Daemon {
 			//if power exceeds powerHigh and SLA is below slaNormal, switch
 			if (power > powerHigh && sla < slaNormal) {
 			
-				//System.out.println(simulation.getSimulationTime() + " - switch to Power");
+				System.out.println(simulation.getSimulationTime() + " - switch to Power");
 				
 				//switch to power policy to attempt to reduce power to normal level
 				enablePowerPolicy();
@@ -199,7 +172,7 @@ public class SlaVsPowerStrategySwitchPolicy implements Daemon {
 			//if SLA exceeds slaHigh and power is below powerNormal, switch
 			if (sla > slaHigh && power < powerNormal) {
 			
-				//System.out.println(simulation.getSimulationTime() + " - switch to SLA");
+				System.out.println(simulation.getSimulationTime() + " - switch to SLA");
 				
 				//switch to SLA policy to attempt to reduce SLA to normal level
 				enableSlaPolicy();
@@ -212,23 +185,6 @@ public class SlaVsPowerStrategySwitchPolicy implements Daemon {
 			
 			//if SLA exceeds slaHigh but power is still above powerNormal, remain on power policy to continue to reduce power 
 		}
-	}
-	
-	private double getSlope(ArrayList<Double> list){
-		double sumx = 0;
-		double sumy = 0;
-		double sumx2 = 0;
-		double sumxy = 0;
-		int startIndex = list.size() - WINDOW_SIZE;
-		for(int i=0; i<WINDOW_SIZE; i++){
-			sumx += i;
-			sumx2 += i*i;
-			sumy += list.get(startIndex+i);
-			sumxy += i * list.get(startIndex+i);
-		}
-		int n = WINDOW_SIZE;
-		double slope = ((n * sumxy) - (sumx * sumy)) / ((n * sumx2) - (sumx * sumx));
-		return slope;
 	}
 
 	@Override
