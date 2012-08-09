@@ -96,7 +96,8 @@ public class DistanceToGoalStrategySwitching extends DCSimulationTask {
 		
 		// Create and start ServiceProducer.
 //		IM2012TestEnvironment.configureStaticServices(simulation, dc);
-		IM2012TestEnvironment.configureDynamicServices(simulation, dc);
+//		IM2012TestEnvironment.configureDynamicServices(simulation, dc);
+		IM2012TestEnvironment.configureRandomServices(simulation, dc, 1, 600, 1600);
 		
 		
 		/*
@@ -160,8 +161,8 @@ public class DistanceToGoalStrategySwitching extends DCSimulationTask {
 			.worstPowerEffCo(worstPowerEffCo)
 			.build();
 		
-		DaemonScheduler policyDaemon = new FixedIntervalDaemonScheduler(simulation, SimTime.hours(2), switchingPolicy);
-		policyDaemon.start(SimTime.hours(2) - SimTime.seconds(1)); 
+		DaemonScheduler policyDaemon = new FixedIntervalDaemonScheduler(simulation, SimTime.hours(1), switchingPolicy);
+		policyDaemon.start(SimTime.hours(1) - SimTime.seconds(1)); 
 	}
 
 }
