@@ -37,6 +37,9 @@ public class FullStrategySwitching extends DCSimulationTask {
 		
 		completedTasks = executor.execute();
 		
+//		DCSimulationReport report = new DCSimulationReport("strat-switching", completedTasks);
+//		report.logResults();
+		
 		for(DCSimulationTask task : completedTasks) {
 			logger.info(task.getName());
 			IM2012TestEnvironment.printMetrics(task.getResults());

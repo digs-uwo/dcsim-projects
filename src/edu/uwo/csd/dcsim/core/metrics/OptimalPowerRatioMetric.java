@@ -93,11 +93,6 @@ public class OptimalPowerRatioMetric extends Metric {
 		
 		return optimalPowerConsumption;
 	}
-	
-	@Override
-	public String toString() {
-		return Double.toString(getValue()); //Double.toString(Simulation.roundToMetricPrecision(getValue()));
-	}
 
 	@Override
 	public double getValue() {
@@ -137,6 +132,11 @@ public class OptimalPowerRatioMetric extends Metric {
 			simulation.addMetric(metric);
 		}
 		return metric;	
+	}
+
+	@Override
+	public String format(double value) {
+		return Double.toString(getValue()); //Double.toString(Simulation.roundToMetricPrecision(getValue()));
 	}
 	
 }
