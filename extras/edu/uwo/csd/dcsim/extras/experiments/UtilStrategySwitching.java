@@ -18,7 +18,7 @@ import edu.uwo.csd.dcsim.management.VMPlacementPolicy;
  */
 public class UtilStrategySwitching extends DCSimulationTask {
 
-	private static Logger logger = Logger.getLogger(FullStrategySwitching.class);
+	private static Logger logger = Logger.getLogger(SlaPowerStrategySwitching.class);
 	
 	private double toPowerThreshold, toSlaThreshold;
 	

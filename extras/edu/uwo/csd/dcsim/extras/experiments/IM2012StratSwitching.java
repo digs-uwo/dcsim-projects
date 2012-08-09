@@ -21,7 +21,7 @@ import edu.uwo.csd.dcsim.core.metrics.Metric;
 
 public class IM2012StratSwitching {
 
-	private static Logger logger = Logger.getLogger(FullStrategySwitching.class);
+	private static Logger logger = Logger.getLogger(SlaPowerStrategySwitching.class);
 	private static double powerEffMin, powerEffMax, slaMin, slaMax;
 	private static SimulationExecutor<DCSimulationTask> executor;
 	private static int numTasksInQueue=0;
@@ -187,7 +187,7 @@ public class IM2012StratSwitching {
 				for(double slaNorm = slaStart; slaNorm <= slaEnd; slaNorm += slaStep){
 					for(double slaHigh = slaNorm; slaHigh <= slaEnd; slaHigh += slaStep){
 						
-						runTask(new FullStrategySwitching("StratSwitching,"+slaHigh+","+slaNorm+","+powerHigh+","+powerNorm+",", randomSeed, slaHigh, slaNorm, powerHigh, powerNorm));
+						runTask(new SlaPowerStrategySwitching("StratSwitching,"+slaHigh+","+slaNorm+","+powerHigh+","+powerNorm+",", randomSeed, slaHigh, slaNorm, powerHigh, powerNorm));
 						
 					}
 				}

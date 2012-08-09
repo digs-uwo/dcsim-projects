@@ -16,9 +16,9 @@ import edu.uwo.csd.dcsim.management.VMPlacementPolicy;
  * @author Michael Tighe
  *
  */
-public class FullStrategySwitching extends DCSimulationTask {
+public class SlaPowerStrategySwitching extends DCSimulationTask {
 
-	private static Logger logger = Logger.getLogger(FullStrategySwitching.class);
+	private static Logger logger = Logger.getLogger(SlaPowerStrategySwitching.class);
 	
 	private double slaHigh, slaNormal, powerHigh, powerNormal;
 	
@@ -29,11 +29,11 @@ public class FullStrategySwitching extends DCSimulationTask {
 		Collection<DCSimulationTask> completedTasks;
 		SimulationExecutor<DCSimulationTask> executor = new SimulationExecutor<DCSimulationTask>();
 		
-		executor.addTask(new FullStrategySwitching("strat-switching-1", 6198910678692541341l));
-//		executor.addTask(new FullStrategySwitching("strat-switching-2", 5646441053220106016l));
-//		executor.addTask(new FullStrategySwitching("strat-switching-3", -5705302823151233610l));
-//		executor.addTask(new FullStrategySwitching("strat-switching-4", 8289672009575825404l));
-//		executor.addTask(new FullStrategySwitching("strat-switching-5", -4637549055860880177l));
+		executor.addTask(new SlaPowerStrategySwitching("slapow-strat-switching-1", 6198910678692541341l));
+//		executor.addTask(new SlaPowerStrategySwitching("slapow-strat-switching-2", 5646441053220106016l));
+//		executor.addTask(new SlaPowerStrategySwitching("slapow-strat-switching-3", -5705302823151233610l));
+//		executor.addTask(new SlaPowerStrategySwitching("slapow-strat-switching-4", 8289672009575825404l));
+//		executor.addTask(new SlaPowerStrategySwitching("slapow-strat-switching-5", -4637549055860880177l));
 		
 		completedTasks = executor.execute();
 		
@@ -55,7 +55,7 @@ public class FullStrategySwitching extends DCSimulationTask {
 	 * @param name
 	 * @param randomSeed
 	 */
-	public FullStrategySwitching(String name, long randomSeed) {
+	public SlaPowerStrategySwitching(String name, long randomSeed) {
 		super(name, SimTime.days(10));					// 10-day simulation
 		this.setMetricRecordStart(SimTime.days(2));	// start on 3rd day (i.e. after 2 days)
 		this.setRandomSeed(randomSeed);
@@ -74,7 +74,7 @@ public class FullStrategySwitching extends DCSimulationTask {
 	 * @param powerHigh
 	 * @param powerNormal
 	 */
-	public FullStrategySwitching(String name, long randomSeed, double slaHigh, double slaNormal, double powerHigh, double powerNormal){
+	public SlaPowerStrategySwitching(String name, long randomSeed, double slaHigh, double slaNormal, double powerHigh, double powerNormal){
 		super(name, SimTime.days(10));					// 10-day simulation
 		this.setMetricRecordStart(SimTime.days(2));	// start on 3rd day (i.e. after 2 days)
 		this.setRandomSeed(randomSeed);
