@@ -1,14 +1,9 @@
 package edu.uwo.csd.dcsim.extras.policies;
 
-import java.util.ArrayList;
-import java.util.Collections;
-
 import edu.uwo.csd.dcsim.*;
 import edu.uwo.csd.dcsim.common.ObjectBuilder;
 import edu.uwo.csd.dcsim.core.*;
 import edu.uwo.csd.dcsim.core.metrics.AggregateMetric;
-import edu.uwo.csd.dcsim.host.Host;
-import edu.uwo.csd.dcsim.host.comparator.HostComparator;
 import edu.uwo.csd.dcsim.management.VMPlacementPolicy;
 
 public class DistanceToGoalStrategySwitchPolicy implements Daemon {
@@ -18,18 +13,16 @@ public class DistanceToGoalStrategySwitchPolicy implements Daemon {
 	public static final String STRAT_SLA_ENABLE = "stratSlaEnable";
 	public static final String STRAT_POWER_ENABLE = "stratPowerEnable";
 	
-	DataCentre dc;								//the data centre this policy is operating on
-	DCUtilizationMonitor dcMon; 				//monitor to get datacentre metrics
-	DaemonScheduler slaPolicy; 					//an SLA friendly policy
-	VMPlacementPolicy slaPlacementPolicy; 		//an SLA friendly placement policy
-	DaemonScheduler powerPolicy;				//a power friendly policy
-	VMPlacementPolicy powerPlacementPolicy; 	//a power friendly placement policy
-	long lastSwitch = Long.MIN_VALUE;			//the last time a policy switch was considered
-	DaemonScheduler currentPolicy;				//the current policy being enforced
-	double worstSlaGoal;						// Worst SLA violations value expected (or desired).
-	double lastSlavWork = 0;					//the total SLA violated work at the last check
-	double lastWork = 0;						//the total incoming work at the last check
-	double lastPower = 0;						//the total power consumption at the last check
+	DataCentre dc;								// Data centre this policy is operating on.
+	DCUtilizationMonitor dcMon; 				// Monitor to get datacentre metrics.
+	DaemonScheduler slaPolicy; 					// SLA-friendly strategy.
+	VMPlacementPolicy slaPlacementPolicy; 		// SLA-friendly VM Placement policy.
+	DaemonScheduler powerPolicy;				// Power-friendly strategy.
+	VMPlacementPolicy powerPlacementPolicy; 	// Power-friendly VM Placement policy.
+	long lastSwitch = Long.MIN_VALUE;			// Last time a strategy switch was considered.
+	DaemonScheduler currentPolicy;				// Current strategy being enforced.
+	double worstSlaGoal;						// Worst SLA violations Goal. Expected (or desired) worst value.
+	double worstPowerEffCo;						// Worst Power Efficiency Coefficient, as percentage (0,1) of the current Optimal Power Efficiency metric.
 	
 	public DistanceToGoalStrategySwitchPolicy(Builder builder) {
 		this.dc = builder.dc;
@@ -39,6 +32,7 @@ public class DistanceToGoalStrategySwitchPolicy implements Daemon {
 		this.powerPolicy = builder.powerPolicy;
 		this.powerPlacementPolicy = builder.powerPlacementPolicy;
 		this.worstSlaGoal = builder.worstSlaGoal;
+		this.worstPowerEffCo = builder.worstPowerEffCo;
 		this.currentPolicy = builder.startingPolicy;
 	}
 
@@ -52,6 +46,7 @@ public class DistanceToGoalStrategySwitchPolicy implements Daemon {
 		private VMPlacementPolicy slaPlacementPolicy;
 		private VMPlacementPolicy powerPlacementPolicy;
 		double worstSlaGoal = Double.MAX_VALUE;
+		double worstPowerEffCo = Double.MAX_VALUE;
 		
 		public Builder(DataCentre dc, DCUtilizationMonitor dcMon) {
 			this.dc = dc;
@@ -61,6 +56,7 @@ public class DistanceToGoalStrategySwitchPolicy implements Daemon {
 		public Builder slaPolicy(DaemonScheduler slaPolicy, VMPlacementPolicy slaPlacementPolicy) { this.slaPolicy = slaPolicy; this.slaPlacementPolicy = slaPlacementPolicy; return this; }
 		public Builder powerPolicy(DaemonScheduler powerPolicy, VMPlacementPolicy powerPlacementPolicy) { this.powerPolicy = powerPolicy; this.powerPlacementPolicy = powerPlacementPolicy; return this; }
 		public Builder worstSlaGoal(double worstSlaGoal) { this.worstSlaGoal = worstSlaGoal; return this; }
+		public Builder worstPowerEffCo(double worstPowerEffCo) { this.worstPowerEffCo = worstPowerEffCo; return this; }
 		public Builder startingPolicy(DaemonScheduler startingPolicy) { this.startingPolicy = startingPolicy; return this; }
 		
 		@Override
@@ -76,7 +72,9 @@ public class DistanceToGoalStrategySwitchPolicy implements Daemon {
 			if (powerPlacementPolicy == null)
 				throw new IllegalStateException("Must specifiy an power friendly placement policy");
 			if (worstSlaGoal == Double.MAX_VALUE)
-				throw new IllegalStateException("Must specify a worstSlaGoal threshold");
+				throw new IllegalStateException("Must specify a Worst SLA Goal value");
+			if (worstPowerEffCo == Double.MAX_VALUE)
+				throw new IllegalStateException("Must specify a Worst Power Efficiency Coefficient");
 			
 			return new DistanceToGoalStrategySwitchPolicy(this);
 		}
@@ -116,65 +114,6 @@ public class DistanceToGoalStrategySwitchPolicy implements Daemon {
 		dc.setVMPlacementPolicy(powerPlacementPolicy);
 	}
 	
-	private double calculateOptimalCpuPerPower() {
-		
-		//create new list of all of the Hosts in the datacentre. We create a new list as we are going to resort it
-		ArrayList<Host> hosts = new ArrayList<Host>(dc.getHosts());
-		
-		//sort hosts by power efficiency, descending
-		Collections.sort(hosts, HostComparator.EFFICIENCY);
-		Collections.reverse(hosts);
-		
-		
-		/*
-		 * Calculate the theoretical optimal power consumption give the current workload.
-		 * 
-		 * To calculate this, we first consider the total of all CPU shares currently in use in the datacentre as a single
-		 * value that can be divided arbitrarily among hosts. We set 'cpuRemaining' to this value.
-		 * 
-		 * We then sort all Hosts in the data centre by power efficiency, starting with the most efficient host. We remove 
-		 * the number of CPU shares that the most efficient host possesses from cpuRemaining, and add the power that the host
-		 * would consume given 100% load to the optimal power consumption. We then move on to the next most efficient host
-		 * until cpuRemaining = 0 (all cpu has been assigned to a host).
-		 * 
-		 * The final host will probably not be entirely filled by the cpuRemaining still left to assign. If this is the case,
-		 * we calculate what the CPU utilization of the host would be given that all of cpuRemaining is placed on the host, and use
-		 * this value to calculate the host's power consumption. This power consumption is then added to the optimal power consumption. 
-		 * 
-		 */
-		double optimalPowerConsumption = 0; //the optimal total power consumption given the current load
-		double cpuRemaining = dcMon.getDCInUse().getFirst(); //the amount of CPU still to be allocated to a host
-		
-		int i = 0; //current position in host list
-		while (cpuRemaining > 0) {
-			
-			//if there is more CPU left than available in the host
-			if (cpuRemaining >= hosts.get(i).getTotalCpu()) {
-				
-				//remove the full capacity of the host from the remaining CPU
-				cpuRemaining -= hosts.get(i).getTotalCpu();
-				
-				//add the host power consumption at 100% to the optimalPowerConsumption
-				optimalPowerConsumption += hosts.get(i).getPowerModel().getPowerConsumption(1);
-			} 
-			//else if the host has enough capacity to satisfy all remaining CPU
-			else {
-				
-				//calculate the host utilization
-				double util = cpuRemaining / hosts.get(i).getTotalCpu();
-				cpuRemaining = 0;
-				
-				//add the power consumption of the host at the calculated utilization level
-				optimalPowerConsumption += hosts.get(i).getPowerModel().getPowerConsumption(util);
-			}
-			
-			++i; //move to next host
-		}
-		
-		//optimal cpu-per-power is (current CPU in use / optimal power consumption)
-		return dcMon.getDCInUse().getFirst() / optimalPowerConsumption;
-	}
-	
 	@Override
 	public void run(Simulation simulation) {
 			
@@ -184,26 +123,27 @@ public class DistanceToGoalStrategySwitchPolicy implements Daemon {
 		
 		/* 
 		 * Calculate distance to SLA goal as SLA violations over the last time 
-		 * interval (*) divided by the worst SLA violations value expected (or 
-		 * desired).
+		 * interval (*) divided by the Worst SLA violations Goal.
 		 * 
-		 * (*) Calculated as total amount of SLA Violated work since the last 
-		 * time strategy switching ran divided by the total amount of incoming 
-		 * work over the same period.
+		 * (*) Values from the DC monitor are averaged over the window size.
 		 */
-		double sla = (dcMon.getTotalSlavWork() - lastSlavWork) / (dcMon.getTotalWork() - lastWork);
-		lastSlavWork = dcMon.getTotalSlavWork();
-		lastWork = dcMon.getTotalWork();
-		double slaDistance = sla / worstSlaGoal;
+		double slaDistance = dcMon.getDCsla().getMean() / worstSlaGoal;
+		
+		/* 
+		 * Calculate distance to Power goal.
+		 */
+		double currentPowerEff = dcMon.getDCPowerEfficiency().getMean();
+		double optimalPowerEff = dcMon.getDCOptimalPowerEfficiency().getMean();
+		double worstPowerEff = optimalPowerEff * worstPowerEffCo;
+		double powerDistance = 1 - (currentPowerEff - worstPowerEff) / (optimalPowerEff - worstPowerEff);
 		
 		/* 
 		 * Calculate distance to Power goal as 1 minus the ratio of current DC 
 		 * power efficiency (cpu-shares-per-watt) over optimal DC power 
 		 * efficiency.
 		 */
-		double optimalCpuPerPower = calculateOptimalCpuPerPower();
-		double currentCpuPerPower = dcMon.getDCInUse().getFirst() / dcMon.getDCPower().getFirst();
-		double powerDistance = 1 - currentCpuPerPower / optimalCpuPerPower;
+		//powerDistance = 1 - currentPowerEff / optimalPowerEff;
+		
 		
 		if (slaDistance > powerDistance && currentPolicy == powerPolicy) {
 			
