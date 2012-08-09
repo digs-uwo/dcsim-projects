@@ -4,8 +4,10 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import org.apache.commons.math3.distribution.ExponentialDistribution;
 import org.apache.commons.math3.distribution.NormalDistribution;
 import org.apache.commons.math3.distribution.RealDistribution;
+import org.apache.commons.math3.distribution.UniformIntegerDistribution;
 import org.apache.log4j.Logger;
 
 import edu.uwo.csd.dcsim.*;
@@ -194,6 +196,49 @@ public class IM2012TestEnvironment {
 		serviceProducer.start();
 
 		
+	}
+	
+	public static void configureRandomServices(DataCentreSimulation simulation, DataCentre dc) {
+		
+		double changesPerDay = 1;
+		int minServices = 600;
+		int maxServices = 1600;
+		
+		//Configure minimum services
+		ArrayList<Tuple<Long, Double>> serviceRates = new ArrayList<Tuple<Long, Double>>();
+		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), (minServices / 40d)));		
+		serviceRates.add(new Tuple<Long, Double>(SimTime.hours(40), 0d));		
+		serviceRates.add(new Tuple<Long, Double>(SimTime.days(10), 0d));		// 10 days
+		
+		ServiceProducer serviceProducer = new IMServiceProducer(simulation, dc, null, serviceRates);
+		serviceProducer.start();
+		
+		
+		ExponentialDistribution changeDist = new ExponentialDistribution(1 / (changesPerDay / 24 / 60 / 60 / 1000));
+		UniformIntegerDistribution serviceCountDist = new UniformIntegerDistribution(0, (maxServices - minServices));
+		
+		long time;
+		long nextTime;
+		double rate;
+		serviceRates = new ArrayList<Tuple<Long, Double>>();
+		
+		time = SimTime.days(3); //start at beginning of 3rd day
+		
+		while (time < SimTime.days(10)) {
+			//nextTime = time + Math.round(changeDist.sample());
+			nextTime = time + Math.round(SimTime.days(1) / changesPerDay);
+			double target = serviceCountDist.sample(); 
+			rate = target / ((nextTime - time) / 1000d / 60d / 60d);
+			serviceRates.add(new Tuple<Long, Double>(time, rate));
+			//System.out.println("ServiceRate(" + (time / 1000 / 60 / 60) + ", " + rate + "), target=" + target);
+			time = nextTime;
+		}
+		//add a final rate of 0 to run until the end of the simulation
+		serviceRates.add(new Tuple<Long, Double>(SimTime.days(10), 0d));
+
+		
+		serviceProducer = new IMServiceProducer(simulation, dc, new NormalDistribution(SimTime.days(1) / changesPerDay, SimTime.hours(1)), serviceRates);
+		serviceProducer.start();
 	}
 	
 	/**
