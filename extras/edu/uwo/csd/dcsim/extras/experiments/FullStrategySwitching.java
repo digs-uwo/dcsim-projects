@@ -99,7 +99,7 @@ public class FullStrategySwitching extends DCSimulationTask {
 		// Create and start ServiceProducer.
 //		IM2012TestEnvironment.configureStaticServices(simulation, dc);
 //		IM2012TestEnvironment.configureDynamicServices(simulation, dc);
-		IM2012TestEnvironment.configureRandomServices(simulation, dc);
+		IM2012TestEnvironment.configureRandomServices(simulation, dc, 1, 600, 1600);
 		
 		
 		/*
