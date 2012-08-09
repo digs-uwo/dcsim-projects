@@ -36,18 +36,24 @@ public class IM2012StratSwitching {
 		
 		Simulation.initializeLogging();
 		
-		//generate power and sla-focused baseline measurements
-		generateBaseline(6198910678692541341l);
-		
-		//run a lot of experiments searching for sla/power thresholds
+		/*
+		 * run a lot of experiments searching for sla/power thresholds
+		 */
 		//runSlaPowerThresholdSearch(6198910678692541341l);
 		
-		//run a lot of experiments searching for datacenter utilization switching thresholds
+		/*
+		 * run a lot of experiments searching for datacenter utilization switching thresholds
+		 */
 		//runUtilizationThresholdSearch(6198910678692541341l);
 		
-		//run 1 experiment
-		runOnce(new UtilStrategySwitching("strat-switching-1", 6198910678692541341l, 8163.2653061225, 4897.9591836735));
-		runOnce(new BalancedStrategy("balanced", 6198910678692541341l));
+		/*
+		 * run single experiments
+		 */
+		runSingleTrial(6198910678692541341l, 1, 0.011, 0.001);
+		runSingleTrial(5646441053220106016l, 2, 0.011, 0.001);
+		runSingleTrial(-5705302823151233610l, 3, 0.011, 0.001);
+		runSingleTrial(8289672009575825404l, 4, 0.011, 0.001);
+		runSingleTrial(-4637549055860880177l, 5, 0.011, 0.001);
 	}
 	
 	/**
@@ -135,7 +141,14 @@ public class IM2012StratSwitching {
 		return Math.sqrt((normPowerEff * normPowerEff) + (normSla * normSla));
 	}
 	
+	private static void runSingleTrial(long randomSeed, int trialNum, double toPowerThreshold, double toSlaThreshold){
+		generateBaseline(randomSeed);
+		runOnce(new UtilStrategySwitching("strat-switching-" + trialNum, randomSeed, toPowerThreshold, toSlaThreshold));
+		runOnce(new BalancedStrategy("balanced-" + trialNum, randomSeed));
+	}
+	
 	private static void runOnce(DCSimulationTask task){
+		
 		task.run();
 		
 		double powerEff = extractPowerEff(task.getResults());
@@ -150,7 +163,10 @@ public class IM2012StratSwitching {
 		traceWriter.writeTrace();
 	}
 	
-	private static void runSlaPowerThresholdSearch(long randomSeed){		
+	private static void runSlaPowerThresholdSearch(long randomSeed){
+		//generate power and sla-focused baseline measurements 
+		generateBaseline(randomSeed);
+		
 		int numSlaSteps = 8;
 		int numPowerSteps = 8;
 		
@@ -195,9 +211,12 @@ public class IM2012StratSwitching {
 	}
 	
 	private static void runUtilizationThresholdSearch(long randomSeed){
-		int numSteps = 50;
-		double start = -80000;
-		double end = 80000;
+		//generate power and sla-focused baseline measurements 
+		generateBaseline(randomSeed);
+		
+		int numSteps = 61;
+		double start = -0.015;
+		double end = 0.015;
 		
 		//divide by steps-1 to include the end value as well
 		double step = (end - start) / (numSteps-1);

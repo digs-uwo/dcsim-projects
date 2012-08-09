@@ -2,6 +2,7 @@ package edu.uwo.csd.dcsim.extras.policies;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import org.apache.commons.math3.stat.regression.*;
 
 import edu.uwo.csd.dcsim.*;
 import edu.uwo.csd.dcsim.host.*;
@@ -29,7 +30,8 @@ public class UtilStrategySwitchPolicy implements Daemon {
 	DaemonScheduler currentPolicy;				//the current policy being enforced
 	double toPowerThreshold;					//the threshold of the utilization slope that would cause a switch to the power policy
 	double toSlaThreshold;						//the threshold of the utilization slope that would cause a switch to the sla policy
-	double dcCapacity = 0;
+	double dcCapacity = 0;						//the capacity of the data center in cpu units
+	double min = Double.MAX_VALUE, max = Double.MIN_VALUE;
 	
 	private ArrayList<Double> utilList = new ArrayList<Double>();
 	
@@ -142,8 +144,8 @@ public class UtilStrategySwitchPolicy implements Daemon {
 		 * WINDOW_SIZE measurements
 		 */
 		double utilSlope = 0;
-		utilList.add(dcMon.getDCInUse().getFirst());				//Add current datacenter workload measured in cpu units
-		//utilList.add(dcMon.getDCInUse().getFirst() / dcCapacity);	//Add current datacenter workload measured in percentage utilization
+		//utilList.add(dcMon.getDCInUse().getFirst());				//Add current datacenter workload measured in cpu units
+		utilList.add(dcMon.getDCInUse().getFirst() / dcCapacity);	//Add current datacenter workload measured in percentage utilization
 		if(utilList.size() >= WINDOW_SIZE){
 			utilSlope = getSlope(utilList);
 		}
@@ -185,20 +187,14 @@ public class UtilStrategySwitchPolicy implements Daemon {
 	}
 	
 	private double getSlope(ArrayList<Double> list){
-		double sumx = 0;
-		double sumy = 0;
-		double sumx2 = 0;
-		double sumxy = 0;
+		SimpleRegression regression = new SimpleRegression();
+		
 		int startIndex = list.size() - WINDOW_SIZE;
 		for(int i=0; i<WINDOW_SIZE; i++){
-			sumx += i;
-			sumx2 += i*i;
-			sumy += list.get(startIndex+i);
-			sumxy += i * list.get(startIndex+i);
+			regression.addData(i,list.get(startIndex+i));
 		}
-		int n = WINDOW_SIZE;
-		double slope = ((n * sumxy) - (sumx * sumy)) / ((n * sumx2) - (sumx * sumx));
-		return slope;
+		
+		return regression.getSlope();
 	}
 
 	@Override

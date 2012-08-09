@@ -155,7 +155,7 @@ public class UtilStrategySwitching extends DCSimulationTask {
 			.build();
 		
 		DaemonScheduler policyDaemon = new FixedIntervalDaemonScheduler(simulation, SimTime.minutes(30), switchingPolicy);
-		policyDaemon.start(SimTime.minutes(30) - SimTime.seconds(1)); 
+		policyDaemon.start(SimTime.minutes(10) - SimTime.seconds(1)); 
 	}
 
 }
