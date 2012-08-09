@@ -2,7 +2,6 @@ package edu.uwo.csd.dcsim.management;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedList;
 
 import edu.uwo.csd.dcsim.*;
 import edu.uwo.csd.dcsim.common.Utility;
@@ -18,7 +17,6 @@ public abstract class VMRelocationPolicyGreedy implements Daemon {
 	protected double lowerThreshold;
 	protected double upperThreshold;
 	protected double targetUtilization;
-	private static int numRuns = 0;
 	
 	public VMRelocationPolicyGreedy(DataCentre dc, DCUtilizationMonitor utilizationMonitor, double lowerThreshold, double upperThreshold, double targetUtilization) {
 		this.dc = dc;
@@ -33,10 +31,7 @@ public abstract class VMRelocationPolicyGreedy implements Daemon {
 
 	@Override
 	public void run(Simulation simulation) {
-		
-		numRuns++;
-		//System.out.println("executing run#: " + numRuns);
-		
+
 		// Categorize hosts.
 		ArrayList<HostStub> stressed = new ArrayList<HostStub>();
 		ArrayList<HostStub> partiallyUtilized = new ArrayList<HostStub>();
@@ -124,7 +119,7 @@ public abstract class VMRelocationPolicyGreedy implements Daemon {
 		
 		for (Host host : hostList) {
 			// Calculate host's avg CPU utilization in the last window of time.
-			LinkedList<Double> hostUtilValues = this.utilizationMonitor.getHostInUse(host);
+			double hostUtilValues[] = this.utilizationMonitor.getHostInUse(host).getValues();
 			double avgCpuInUse = 0;
 			for (Double x : hostUtilValues) {
 				avgCpuInUse += x;

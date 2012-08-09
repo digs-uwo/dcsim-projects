@@ -21,7 +21,8 @@ public class DistanceToGoalStrategySwitching extends DCSimulationTask {
 
 	private static Logger logger = Logger.getLogger(DistanceToGoalStrategySwitching.class);
 	
-	private double worstSlaGoal;
+	private double worstSlaGoal;		// Worst SLA violations Goal. Expected (or desired) worst value.
+	private double worstPowerEffCo;		// Worst Power Efficiency Coefficient, as percentage (0,1) of the current Optimal Power Efficiency metric.
 	
 	public static void main(String args[]) {
 		
@@ -55,9 +56,12 @@ public class DistanceToGoalStrategySwitching extends DCSimulationTask {
 	 */
 	public DistanceToGoalStrategySwitching(String name, long randomSeed) {
 		super(name, SimTime.days(10));					// 10-day simulation
-		this.setMetricRecordStart(SimTime.days(2));	// start on 3rd day (i.e. after 2 days)
+		this.setMetricRecordStart(SimTime.days(2));		// start on 3rd day (i.e. after 2 days)
 		this.setRandomSeed(randomSeed);
+//		this.worstSlaGoal = 0.005;						// 0.5% SLA violations as the worst SLA violations value desired
 		this.worstSlaGoal = 0.005;
+//		this.worstPowerEffCo = 0.80;					// 75% Optimal Power Efficiency as the worst power efficiency desired
+		this.worstPowerEffCo = 0.85;
 	}
 	
 	/**
@@ -65,12 +69,14 @@ public class DistanceToGoalStrategySwitching extends DCSimulationTask {
 	 * @param name
 	 * @param randomSeed
 	 * @param worstSlaGoal
+	 * @param worstPowerEffCo
 	 */
-	public DistanceToGoalStrategySwitching(String name, long randomSeed, double worstSlaGoal){
+	public DistanceToGoalStrategySwitching(String name, long randomSeed, double worstSlaGoal, double worstPowerEffCo){
 		super(name, SimTime.days(10));					// 10-day simulation
-		this.setMetricRecordStart(SimTime.days(2));	// start on 3rd day (i.e. after 2 days)
+		this.setMetricRecordStart(SimTime.days(2));		// start on 3rd day (i.e. after 2 days)
 		this.setRandomSeed(randomSeed);
 		this.worstSlaGoal = worstSlaGoal;
+		this.worstPowerEffCo = worstPowerEffCo;
 	}
 
 	@Override
@@ -80,11 +86,14 @@ public class DistanceToGoalStrategySwitching extends DCSimulationTask {
 		DataCentre dc = IM2012TestEnvironment.createDataCentre(simulation);
 		simulation.addDatacentre(dc);
 		
-		// Create CPU load utilization monitor.
-		DCUtilizationMonitor dcMon = new DCUtilizationMonitor(simulation, 120000, 5, dc);
+		// Create CPU load utilization monitor (for use with policy-sets).
+		DCUtilizationMonitor hostsMon = new DCUtilizationMonitor(simulation, SimTime.minutes(2), 5, dc);
+		simulation.addMonitor(hostsMon);
+		
+		// Create CPU load utilization monitor (for use with strategy switching).
+		DCUtilizationMonitor dcMon = new DCUtilizationMonitor(simulation, SimTime.minutes(5), 6, dc);
 		simulation.addMonitor(dcMon);
 		
-
 		// Create and start ServiceProducer.
 //		IM2012TestEnvironment.configureStaticServices(simulation, dc);
 		IM2012TestEnvironment.configureDynamicServices(simulation, dc);
@@ -100,14 +109,14 @@ public class DistanceToGoalStrategySwitching extends DCSimulationTask {
 		double powerTarget = 0.90;	// 0.85
 		
 		// Create and set desired VM Placement policy for the data centre.
-		VMPlacementPolicy powerVMPlacementPolicy = new VMPlacementPolicyFFDGreen(simulation, dc, dcMon, powerLower, powerUpper, powerTarget);
+		VMPlacementPolicy powerVMPlacementPolicy = new VMPlacementPolicyFFDGreen(simulation, dc, hostsMon, powerLower, powerUpper, powerTarget);
 		
 		// Relocation policy
-		VMRelocationPolicyFFIDGreen powerRelocationPolicy = new VMRelocationPolicyFFIDGreen(dc, dcMon, powerLower, powerUpper, powerTarget);
+		VMRelocationPolicyFFIDGreen powerRelocationPolicy = new VMRelocationPolicyFFIDGreen(dc, hostsMon, powerLower, powerUpper, powerTarget);
 		DaemonScheduler powerRelocationPolicyDaemon = new FixedIntervalDaemonScheduler(simulation, 600000, powerRelocationPolicy);
 		
 		// Consolidation policy
-		VMConsolidationPolicyFFDDIGreen powerConsolidationPolicy = new VMConsolidationPolicyFFDDIGreen(dc, dcMon, powerLower, powerUpper, powerTarget);
+		VMConsolidationPolicyFFDDIGreen powerConsolidationPolicy = new VMConsolidationPolicyFFDDIGreen(dc, hostsMon, powerLower, powerUpper, powerTarget);
 		DaemonScheduler powerConsolidationPolicyDaemon = new FixedIntervalDaemonScheduler(simulation, 3600000, powerConsolidationPolicy);
 
 		DaemonSchedulerGroup powerDaemonGroup = new DaemonSchedulerGroup(simulation);
@@ -126,14 +135,14 @@ public class DistanceToGoalStrategySwitching extends DCSimulationTask {
 		double slaTarget = 0.8;
 		
 		// Create and set desired VM Placement policy for the data centre.
-		VMPlacementPolicy slaVMPlacementPolicy = new VMPlacementPolicyFFMSla(simulation, dc, dcMon, slaLower, slaUpper, slaTarget);
+		VMPlacementPolicy slaVMPlacementPolicy = new VMPlacementPolicyFFMSla(simulation, dc, hostsMon, slaLower, slaUpper, slaTarget);
 		
 		// Relocation policy
-		VMRelocationPolicyFFIMSla slaRelocationPolicy = new VMRelocationPolicyFFIMSla(dc, dcMon, slaLower, slaUpper, slaTarget);
+		VMRelocationPolicyFFIMSla slaRelocationPolicy = new VMRelocationPolicyFFIMSla(dc, hostsMon, slaLower, slaUpper, slaTarget);
 		DaemonScheduler slaRelocationPolicyDaemon = new FixedIntervalDaemonScheduler(simulation, 600000, slaRelocationPolicy);
 		
 		// Consolidation policy
-		VMConsolidationPolicyFFDMISla slaConsolidationPolicy = new VMConsolidationPolicyFFDMISla(dc, dcMon, slaLower, slaUpper, slaTarget);
+		VMConsolidationPolicyFFDMISla slaConsolidationPolicy = new VMConsolidationPolicyFFDMISla(dc, hostsMon, slaLower, slaUpper, slaTarget);
 		DaemonScheduler slaConsolidationPolicyDaemon = new FixedIntervalDaemonScheduler(simulation, 14400000, slaConsolidationPolicy);
 
 		DaemonSchedulerGroup slaDaemonGroup = new DaemonSchedulerGroup(simulation);
@@ -148,10 +157,11 @@ public class DistanceToGoalStrategySwitching extends DCSimulationTask {
 			.powerPolicy(powerDaemonGroup, powerVMPlacementPolicy)
 			.startingPolicy(powerDaemonGroup)
 			.worstSlaGoal(worstSlaGoal)
+			.worstPowerEffCo(worstPowerEffCo)
 			.build();
 		
-		DaemonScheduler policyDaemon = new FixedIntervalDaemonScheduler(simulation, SimTime.hours(1), switchingPolicy);
-		policyDaemon.start(SimTime.hours(1) - SimTime.seconds(1)); 
+		DaemonScheduler policyDaemon = new FixedIntervalDaemonScheduler(simulation, SimTime.hours(2), switchingPolicy);
+		policyDaemon.start(SimTime.hours(2) - SimTime.seconds(1)); 
 	}
 
 }

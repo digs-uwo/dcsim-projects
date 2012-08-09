@@ -84,9 +84,12 @@ public class UtilStrategySwitching extends DCSimulationTask {
 		simulation.addDatacentre(dc);
 		
 		// Create CPU load utilization monitor.
-		DCUtilizationMonitor dcMon = new DCUtilizationMonitor(simulation, 120000, 5, dc);
+		DCUtilizationMonitor dcMon = new DCUtilizationMonitor(simulation, SimTime.minutes(2), 5, dc);
 		simulation.addMonitor(dcMon);
-		
+
+		// Create utilization monitor for strategy switching
+		DCUtilizationMonitor dcMon = new DCUtilizationMonitor(simulation, SimTime.minutes(2), 5, dc);
+		simulation.addMonitor(dcMon);
 
 		// Create and start ServiceProducer.
 //		IM2012TestEnvironment.configureStaticServices(simulation, dc);
@@ -155,7 +158,7 @@ public class UtilStrategySwitching extends DCSimulationTask {
 			.build();
 		
 		DaemonScheduler policyDaemon = new FixedIntervalDaemonScheduler(simulation, SimTime.minutes(30), switchingPolicy);
-		policyDaemon.start(SimTime.minutes(10) - SimTime.seconds(1)); 
+		policyDaemon.start(SimTime.hours(1) - SimTime.seconds(1)); 
 	}
 
 }

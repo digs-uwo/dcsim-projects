@@ -146,6 +146,7 @@ public class UtilStrategySwitchPolicy implements Daemon {
 		double utilSlope = 0;
 		//utilList.add(dcMon.getDCInUse().getFirst());				//Add current datacenter workload measured in cpu units
 		utilList.add(dcMon.getDCInUse().getFirst() / dcCapacity);	//Add current datacenter workload measured in percentage utilization
+		utilList.add(dcMon.getDCInUse().);
 		if(utilList.size() >= WINDOW_SIZE){
 			utilSlope = getSlope(utilList);
 		}

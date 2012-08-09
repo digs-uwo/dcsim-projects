@@ -214,7 +214,7 @@ public class IM2012StratSwitching {
 		//generate power and sla-focused baseline measurements 
 		generateBaseline(randomSeed);
 		
-		int numSteps = 61;
+		int numSteps = 62;
 		double start = -0.015;
 		double end = 0.015;
 		

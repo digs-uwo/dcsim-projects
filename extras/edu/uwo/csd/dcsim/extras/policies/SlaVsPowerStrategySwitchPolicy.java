@@ -167,43 +167,18 @@ public class SlaVsPowerStrategySwitchPolicy implements Daemon {
 		/* 
 		 * Calculate the SLA metric. Values from the DC monitor are averaged over the window size. 
 		 */
-		double sla = 0;
-		
-		/*
-		 * Calculate the slope of the slope of the datacentre workload line over the last
-		 * WINDOW_SIZE measurements
-		 */
-		double utilSlope = 0;
-		utilList.add(dcMon.getDCInUse().getFirst());				//Add current datacentre workload measured in cpu units
-		//utilList.add(dcMon.getDCInUse().getFirst() / dcCapacity);	//Add current datacentre workload measured in percentage utilization
-		if(utilList.size() >= WINDOW_SIZE){
-			utilSlope = getSlope(utilList);
-		}
-		
-		//calculate average over window
-		for (Double val : dcMon.getDCsla())
-			sla += val;
-		sla = sla / dcMon.getDCsla().size();
-		
+		double sla = dcMon.getDCsla().getMean();
 		
 		/*
 		 * Calculate optimal power ratio metric. Values from the DC monitor are averaged over the window size.
 		 */
-		double power = 0;
-		
-		for (Double val : dcMon.getDCOptimalPowerRatio())
-			power += val;
-		power = power / dcMon.getDCOptimalPowerRatio().size();
-		
-		long time = simulation.getSimulationTime();
+		double power = dcMon.getDCOptimalPowerRatio().getMean();
 		
 		if (currentPolicy == slaPolicy) {
 			//We are current running an SLA friendly policy. The goal of the SLA policy is to keep SLA below the slaNormal threshold.
 
 			//if power exceeds powerHigh and SLA is below slaNormal, switch
-			//if (power > powerHigh && sla < slaNormal) {
-			//if((time > 350000000 && time < 607000000) || (time > 690000000)){
-			if(utilSlope < toPowerThreshold){
+			if (power > powerHigh && sla < slaNormal) {
 			
 				//System.out.println(simulation.getSimulationTime() + " - switch to Power");
 				
@@ -222,9 +197,7 @@ public class SlaVsPowerStrategySwitchPolicy implements Daemon {
 			//We are currently running a power friendly policy. The goal of the power policy is to keep power below the powerNormal threshold.
 			
 			//if SLA exceeds slaHigh and power is below powerNormal, switch
-			//if (sla > slaHigh && power < powerNormal) {
-			//if((time > 260000000 && time < 350000000) || (time > 607000000 && time < 690000000)){
-			if(utilSlope > toSlaThreshold){
+			if (sla > slaHigh && power < powerNormal) {
 			
 				//System.out.println(simulation.getSimulationTime() + " - switch to SLA");
 				
