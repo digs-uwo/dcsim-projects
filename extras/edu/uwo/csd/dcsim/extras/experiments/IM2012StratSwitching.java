@@ -44,12 +44,12 @@ public class IM2012StratSwitching {
 		/*
 		 * run a lot of experiments searching for datacenter utilization switching thresholds
 		 */
-		//runUtilizationThresholdSearch(6198910678692541341l);
+		runUtilizationThresholdSearch(6198910678692541341l);
 		
 		/*
 		 * run single experiments
 		 */
-		runSingleTrial(6198910678692541341l, 1, 0.011, 0.001);
+//		runSingleTrial(6198910678692541341l, 1, 0.005, 0);
 //		runSingleTrial(5646441053220106016l, 2, 0.011, 0.001);
 //		runSingleTrial(-5705302823151233610l, 3, 0.011, 0.001);
 //		runSingleTrial(8289672009575825404l, 4, 0.011, 0.001);
@@ -141,6 +141,14 @@ public class IM2012StratSwitching {
 		return Math.sqrt((normPowerEff * normPowerEff) + (normSla * normSla));
 	}
 	
+	/**
+	 * Run a single candidate task.  First execute the baseline tasks, followed by the candidate task and the balanced task.
+	 * Calculates score for candidate and balanced tasks and writes each to trace files
+	 * @param randomSeed
+	 * @param trialNum This number will be appended to the task names and trace file names
+	 * @param toPowerThreshold
+	 * @param toSlaThreshold
+	 */
 	private static void runSingleTrial(long randomSeed, int trialNum, double toPowerThreshold, double toSlaThreshold){
 		generateBaseline(randomSeed);
 		runOnce(new UtilStrategySwitching("strat-switching-" + trialNum, randomSeed, toPowerThreshold, toSlaThreshold));
@@ -214,7 +222,7 @@ public class IM2012StratSwitching {
 		//generate power and sla-focused baseline measurements 
 		generateBaseline(randomSeed);
 		
-		int numSteps = 62;
+		int numSteps = 15;
 		double start = -0.015;
 		double end = 0.015;
 		
@@ -225,7 +233,7 @@ public class IM2012StratSwitching {
 		
 		//create tasks
 		for(double toPower = start; toPower <= end; toPower += step){
-			for(double toSla = start; toSla <= end; toSla += step){
+			for(double toSla = toPower; toSla <= end; toSla += step){
 				runTask(new UtilStrategySwitching("StratSwitching,"+toPower+","+toSla+",",randomSeed,toPower,toSla));
 			}
 		}
@@ -244,13 +252,15 @@ public class IM2012StratSwitching {
 		}
 		
 		executor = new SimulationExecutor<DCSimulationTask>();
+		
+		runOnce(new BalancedStrategy("balanced", randomSeed));
 	}
 	
 	private static void runTask(DCSimulationTask newTask){
 		executor.addTask(newTask);
 		numTasksInQueue++;
 		
-		if(numTasksInQueue == 4){
+		if(numTasksInQueue == 8){
 			Collection<DCSimulationTask> completedTasks = executor.execute();
 			
 			for(DCSimulationTask task : completedTasks){

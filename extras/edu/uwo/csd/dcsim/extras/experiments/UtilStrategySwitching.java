@@ -88,7 +88,7 @@ public class UtilStrategySwitching extends DCSimulationTask {
 		simulation.addMonitor(hostsMon);
 
 		// Create utilization monitor for strategy switching
-		DCUtilizationMonitor dcMon = new DCUtilizationMonitor(simulation, SimTime.minutes(2), 15, dc);
+		DCUtilizationMonitor dcMon = new DCUtilizationMonitor(simulation, SimTime.minutes(5), 6, dc);
 		simulation.addMonitor(dcMon);
 
 		// Create and start ServiceProducer.
