@@ -83,12 +83,12 @@ public class UtilStrategySwitching extends DCSimulationTask {
 		DataCentre dc = IM2012TestEnvironment.createDataCentre(simulation);
 		simulation.addDatacentre(dc);
 		
-		// Create CPU load utilization monitor.
-		DCUtilizationMonitor dcMon = new DCUtilizationMonitor(simulation, SimTime.minutes(2), 5, dc);
-		simulation.addMonitor(dcMon);
+		// Create CPU load utilization monitor (for use with policy-sets).
+		DCUtilizationMonitor hostsMon = new DCUtilizationMonitor(simulation, SimTime.minutes(2), 5, dc);
+		simulation.addMonitor(hostsMon);
 
 		// Create utilization monitor for strategy switching
-		DCUtilizationMonitor dcMon = new DCUtilizationMonitor(simulation, SimTime.minutes(2), 5, dc);
+		DCUtilizationMonitor dcMon = new DCUtilizationMonitor(simulation, SimTime.minutes(2), 15, dc);
 		simulation.addMonitor(dcMon);
 
 		// Create and start ServiceProducer.
@@ -106,14 +106,14 @@ public class UtilStrategySwitching extends DCSimulationTask {
 		double powerTarget = 0.90;	// 0.85
 		
 		// Create and set desired VM Placement policy for the data centre.
-		VMPlacementPolicy powerVMPlacementPolicy = new VMPlacementPolicyFFDGreen(simulation, dc, dcMon, powerLower, powerUpper, powerTarget);
+		VMPlacementPolicy powerVMPlacementPolicy = new VMPlacementPolicyFFDGreen(simulation, dc, hostsMon, powerLower, powerUpper, powerTarget);
 		
 		// Relocation policy
-		VMRelocationPolicyFFIDGreen powerRelocationPolicy = new VMRelocationPolicyFFIDGreen(dc, dcMon, powerLower, powerUpper, powerTarget);
+		VMRelocationPolicyFFIDGreen powerRelocationPolicy = new VMRelocationPolicyFFIDGreen(dc, hostsMon, powerLower, powerUpper, powerTarget);
 		DaemonScheduler powerRelocationPolicyDaemon = new FixedIntervalDaemonScheduler(simulation, 600000, powerRelocationPolicy);
 		
 		// Consolidation policy
-		VMConsolidationPolicyFFDDIGreen powerConsolidationPolicy = new VMConsolidationPolicyFFDDIGreen(dc, dcMon, powerLower, powerUpper, powerTarget);
+		VMConsolidationPolicyFFDDIGreen powerConsolidationPolicy = new VMConsolidationPolicyFFDDIGreen(dc, hostsMon, powerLower, powerUpper, powerTarget);
 		DaemonScheduler powerConsolidationPolicyDaemon = new FixedIntervalDaemonScheduler(simulation, 3600000, powerConsolidationPolicy);
 
 		DaemonSchedulerGroup powerDaemonGroup = new DaemonSchedulerGroup(simulation);
@@ -132,14 +132,14 @@ public class UtilStrategySwitching extends DCSimulationTask {
 		double slaTarget = 0.8;
 		
 		// Create and set desired VM Placement policy for the data centre.
-		VMPlacementPolicy slaVMPlacementPolicy = new VMPlacementPolicyFFMSla(simulation, dc, dcMon, slaLower, slaUpper, slaTarget);
+		VMPlacementPolicy slaVMPlacementPolicy = new VMPlacementPolicyFFMSla(simulation, dc, hostsMon, slaLower, slaUpper, slaTarget);
 		
 		// Relocation policy
-		VMRelocationPolicyFFIMSla slaRelocationPolicy = new VMRelocationPolicyFFIMSla(dc, dcMon, slaLower, slaUpper, slaTarget);
+		VMRelocationPolicyFFIMSla slaRelocationPolicy = new VMRelocationPolicyFFIMSla(dc, hostsMon, slaLower, slaUpper, slaTarget);
 		DaemonScheduler slaRelocationPolicyDaemon = new FixedIntervalDaemonScheduler(simulation, 600000, slaRelocationPolicy);
 		
 		// Consolidation policy
-		VMConsolidationPolicyFFDMISla slaConsolidationPolicy = new VMConsolidationPolicyFFDMISla(dc, dcMon, slaLower, slaUpper, slaTarget);
+		VMConsolidationPolicyFFDMISla slaConsolidationPolicy = new VMConsolidationPolicyFFDMISla(dc, hostsMon, slaLower, slaUpper, slaTarget);
 		DaemonScheduler slaConsolidationPolicyDaemon = new FixedIntervalDaemonScheduler(simulation, 14400000, slaConsolidationPolicy);
 
 		DaemonSchedulerGroup slaDaemonGroup = new DaemonSchedulerGroup(simulation);
@@ -157,7 +157,7 @@ public class UtilStrategySwitching extends DCSimulationTask {
 			.toSlaThreshold(toSlaThreshold)
 			.build();
 		
-		DaemonScheduler policyDaemon = new FixedIntervalDaemonScheduler(simulation, SimTime.minutes(30), switchingPolicy);
+		DaemonScheduler policyDaemon = new FixedIntervalDaemonScheduler(simulation, SimTime.hours(1), switchingPolicy);
 		policyDaemon.start(SimTime.hours(1) - SimTime.seconds(1)); 
 	}
 
