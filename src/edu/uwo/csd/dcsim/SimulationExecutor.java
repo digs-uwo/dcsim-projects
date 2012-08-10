@@ -27,6 +27,14 @@ public class SimulationExecutor<T extends SimulationTask> {
 	}
 	
 	/**
+	 * Add a collection of tasks to execute
+	 * @param tasks
+	 */
+	public void addTasks(Collection<T> taskCollection) {
+		tasks.addAll(taskCollection);
+	}
+	
+	/**
 	 * Execute the tasks, in parallel. This method blocks until all tasks have completed.
 	 * 
 	 * @return
