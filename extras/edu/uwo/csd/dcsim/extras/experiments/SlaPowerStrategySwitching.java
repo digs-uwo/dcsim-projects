@@ -58,10 +58,10 @@ public class SlaPowerStrategySwitching extends DCSimulationTask {
 	public SlaPowerStrategySwitching(String name) {
 		super(name, SimTime.days(10));					// 10-day simulation
 		this.setMetricRecordStart(SimTime.days(2));	// start on 3rd day (i.e. after 2 days)
-		this.slaHigh = 0.01;
-		this.slaNormal = 0.001;
-		this.powerHigh = 1.5;
-		this.powerNormal = 1.25;
+		this.slaHigh = 0.008;
+		this.slaNormal = 0.004;
+		this.powerHigh = 1.3;
+		this.powerNormal = 1.15;
 	}
 	
 	/**

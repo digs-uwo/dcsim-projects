@@ -1,8 +1,6 @@
 package edu.uwo.csd.dcsim.extras.experiments;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 import java.util.*;
 
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
@@ -15,94 +13,96 @@ import edu.uwo.csd.dcsim.core.metrics.Metric;
 public class StrategyEvaluator {
 
 	public static void main(String args[]) {
-		
+
 		Simulation.initializeLogging();
 		
-		StrategyEvaluator stratEval = new StrategyEvaluator();
+		StrategyEvaluator stratEval = new StrategyEvaluator(4);
 		
-		stratEval.addRandomSeed(6198910678692541341l);
-		stratEval.addRandomSeed(5646441053220106016l);
-		stratEval.addRandomSeed(-5705302823151233610l);
-		stratEval.addRandomSeed(8289672009575825404l);
-		stratEval.addRandomSeed(-4637549055860880177l);
-		
-		try{
-			File outputFile = new File("results");
-			FileWriter out = new FileWriter(outputFile);
-			
-			out.write("Beginning brute-force search...\n");
-			out.flush();
-		
-			DescriptiveStatistics balancedStats = stratEval.evaluate(
-					new ObjectFactory<DCSimulationTask>() {
+		stratEval.generateRandomSeeds(2, 6198910678692541341l);
+
 	
-						@Override
-						public DCSimulationTask newInstance() {
-							return new BalancedStrategy("balanced");
-						}
-						
-					});
-			
-			out.write("Balanced: " + balancedStats.getMean() + "\n");
-			out.flush();
-			
-			double slaHighValues[] = {0.004, 0.006, 0.008, 0.01};
-			double slaNormalValues[] = {0.001, 0.002, 0.004, 0.006};
-			double powerHighValues[] = {1.25, 1.3, 1.4, 1.5};
-			double powerNormalValues[] = {1.15, 1.2, 1.25, 1.3};
-			
-			for (double slaHigh : slaHighValues) {
-				for (double slaNormal : slaNormalValues) {
-					for (double powerHigh : powerHighValues) {
-						for (double powerNormal : powerNormalValues) {
-							
-							if (slaHigh >= slaNormal && powerHigh >= powerNormal) {
-							
-								//need to create in-scope final variables for the inner class
-								final double fSlaHigh = slaHigh;
-								final double fSlaNormal = slaNormal;
-								final double fPowerHigh = powerHigh;
-								final double fPowerNormal = powerNormal;
-								
-								DescriptiveStatistics switchStats = stratEval.evaluate(
-										new ObjectFactory<DCSimulationTask>() {
-						
-											@Override
-											public DCSimulationTask newInstance() {
-												return new SlaPowerStrategySwitching("strat-switching", fSlaHigh, fSlaNormal, fPowerHigh, fPowerNormal);
-											}
-											
-										});
-								
-								
-								out.write("Switching (" + fSlaNormal + ", " +
-										fSlaHigh + ", " +
-										fPowerNormal + ", " +
-										fPowerHigh + ")" +									
-										": " + switchStats.getMean() + "\n");
-								out.flush();
-							}
-						}
+		DescriptiveStatistics balancedStats = stratEval.evaluate(
+				new ObjectFactory<DCSimulationTask>() {
+
+					@Override
+					public DCSimulationTask newInstance() {
+						return new BalancedStrategy("balanced");
 					}
-				}
-			}
-			
-			
-			out.close();
+					
+				});
+	
+		DescriptiveStatistics threshStats = stratEval.evaluate(
+				new ObjectFactory<DCSimulationTask>() {
+
+					@Override
+					public DCSimulationTask newInstance() {
+						return new SlaPowerStrategySwitching("thresh-switching", 0.008, 0.004, 1.3, 1.15);
+					}
+					
+				});
 		
-		} catch(IOException e) {
-			e.printStackTrace();
-		}
+		DescriptiveStatistics utilStats = stratEval.evaluate(
+				new ObjectFactory<DCSimulationTask>() {
+
+					@Override
+					public DCSimulationTask newInstance() {
+						//UtilStrategySwitching thresholds: toPower=0.0025517241, toSla=0.0025517241
+						return new UtilStrategySwitching("util-switching", 0, 0.0025517241, 0.0025517241);
+					}
+					
+				});
+		
+		
+		System.out.println("Balanced: " + balancedStats.getMean() + "\n");
+		System.out.println("Thresh-Switching: " + threshStats.getMean() + "\n");
+		System.out.println("Util-Switching: " + utilStats.getMean() + "\n");
+	
 		
 	}
 	
 	
 	private ArrayList<Long> randomSeeds = new ArrayList<Long>();
+	private int nThreads;
+	
+	public StrategyEvaluator(int nThreads) {
+		this.nThreads = nThreads;
+	}
+	
+	/**
+	 * Generate a specific number of random seeds to evaluate strategies on
+	 * @param nSeeds
+	 */
+	public void generateRandomSeeds(int nSeeds) {
+		Random random = new Random();
+		for (int i = 0; i < nSeeds; ++i) {
+			randomSeeds.add(random.nextLong());
+		}
+	}
 
+	/**
+	 * Generate a specific number of random seeds to evaluate strategies on, using a specified
+	 * seed to generate the sequence
+	 * @param nSeeds
+	 */
+	public void generateRandomSeeds(int nSeeds, long startingSeed) {
+		Random random = new Random(startingSeed);
+		for (int i = 0; i < nSeeds; ++i) {
+			randomSeeds.add(random.nextLong());
+		}
+	}
+	
+	/**
+	 * Add a random seed to the list of random seeds that strategies are evaluated on
+	 * @param randomSeed
+	 */
 	public void addRandomSeed(long randomSeed) {
 		randomSeeds.add(randomSeed);
 	}
 	
+	/**
+	 * Add a collection of random seeds to the list of random seeds that strategies are evaluated on
+	 * @param randomSeeds
+	 */
 	public void addRandomSeeds(Collection<Long> randomSeeds) {
 		randomSeeds.addAll(randomSeeds);
 	}
@@ -125,12 +125,20 @@ public class StrategyEvaluator {
 	public DescriptiveStatistics evaluate(ArrayList<Long> randomSeeds, ObjectFactory<DCSimulationTask> taskFactory) {
 		ArrayList<DCSimulationTask> tasks = new ArrayList<DCSimulationTask>();
 		DescriptiveStatistics scoreStats = new DescriptiveStatistics();
+		DescriptiveStatistics slaScoreStats = new DescriptiveStatistics();
+		DescriptiveStatistics powerScoreStats = new DescriptiveStatistics();
+		HashMap<DCSimulationTask, Score> taskScores = new HashMap<DCSimulationTask, Score>();
 		HashMap<DCSimulationTask, Baseline> taskBaselines = new HashMap<DCSimulationTask, Baseline>();
+		String name = "";
+		
+		//generate the baselines
+		Baseline.preloadBaselines(randomSeeds, nThreads);
 		
 		for (Long randomSeed : randomSeeds) {
 			DCSimulationTask task = taskFactory.newInstance();
 			task.setRandomSeed(randomSeed);
 			tasks.add(task);
+			name = task.getName(); //will set the overall evaluation name to that of the last generated task
 			
 			//get the baseline
 			Baseline baseline = Baseline.getBaseline(randomSeed);
@@ -143,15 +151,51 @@ public class StrategyEvaluator {
 		//execute the simulations in parallel
 		SimulationExecutor<DCSimulationTask> executor = new SimulationExecutor<DCSimulationTask>();
 		executor.addTasks(tasks);
-		executor.execute();
-				
+		executor.execute(nThreads);	
+		
+		try {
+			DCSimulationReport report = new DCSimulationReport(tasks);
+			BufferedWriter out = new BufferedWriter(new FileWriter(name + "_full_report.csv"));
+			report.writeCsv(out);
+			out.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 		
 		System.out.println("Calculating scores...");
 		
 		//calculate the task scores
 		for (DCSimulationTask task : tasks) {
 			//score each task using the baseline calculated for it
-			scoreStats.addValue(score(task, taskBaselines.get(task)));
+			Score score = score(task, taskBaselines.get(task));
+			taskScores.put(task, score);
+			scoreStats.addValue(score.score);
+			slaScoreStats.addValue(score.slaScore);
+			powerScoreStats.addValue(score.powerScore);
+		}
+		
+		try {
+			BufferedWriter out = new BufferedWriter(new FileWriter(name + "_scores_report.csv"));
+			
+			out.write("task#, slaScore, powerScore, score");
+			out.newLine();
+			for (int i = 0; i < tasks.size(); ++i) {
+				Score score = taskScores.get(tasks.get(i));
+				out.write(i + ", " + score.slaScore + ", " + score.powerScore + ", " + score.score);
+				out.newLine();
+			}
+			
+			out.write("avg, " + slaScoreStats.getMean() + ", " + powerScoreStats.getMean() + ", " + scoreStats.getMean());
+			out.newLine();
+			out.write("max, " + slaScoreStats.getMax() + ", " + powerScoreStats.getMax() + ", " + scoreStats.getMax());
+			out.newLine();
+			out.write("min, " + slaScoreStats.getMin() + ", " + powerScoreStats.getMin() + ", " + scoreStats.getMin());
+			out.newLine();
+			out.write("stdev, " + slaScoreStats.getStandardDeviation() + ", " + powerScoreStats.getStandardDeviation() + ", " + scoreStats.getStandardDeviation());
+			out.newLine();
+			out.close();
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
 		
 		System.out.println("done.");
@@ -165,7 +209,7 @@ public class StrategyEvaluator {
 	 * @param baseline
 	 * @return
 	 */
-	private double score(DCSimulationTask task, Baseline baseline) {
+	private static Score score(DCSimulationTask task, Baseline baseline) {
 		
 		//get the power efficiency and sla values from the task
 		double powerEff = extractPowerEfficiency(task.getResults());
@@ -176,7 +220,7 @@ public class StrategyEvaluator {
 		double normSla = (sla - baseline.slaLow) / (baseline.slaHigh - baseline.slaLow);
 		
 		//return the distance to the origin
-		return Math.sqrt((normPowerEff * normPowerEff) + (normSla * normSla));
+		return new Score(normSla, normPowerEff);
 	}
 
 	
@@ -208,11 +252,23 @@ public class StrategyEvaluator {
 		throw new RuntimeException("Could not extract sla from metric collection");
 	}
 	
+	public static class Score {
+		public final double slaScore;
+		public final double powerScore;
+		public final double score;
+		
+		public Score(double slaScore, double powerScore) {
+			this.slaScore = slaScore;
+			this.powerScore = powerScore;
+			score = Math.sqrt((powerScore * powerScore) + (slaScore * slaScore));
+		}
+	}
 	
 	public static class Baseline {
 		
 		//store all previously calculated baselines
 		private static HashMap<Long, Baseline> baselines = new HashMap<Long, Baseline>();
+		private static boolean fileLoaded = false;
 		
 		public final double slaLow;
 		public final double slaHigh;
@@ -225,8 +281,108 @@ public class StrategyEvaluator {
 			this.powerLow = powerLow;
 			this.powerHigh = powerHigh;
 		}
+	
+		private static void loadFile() {
+			File f = new File("baselines.csv");
+			
+			if (f.exists()) {
+				try {
+					BufferedReader reader = new BufferedReader(new FileReader(f));
+					
+					String line;
+					while ((line = reader.readLine()) != null) {
+						String values[] = line.split(",");
+						
+						long seed = Long.parseLong(values[0]);
+						double slaLow = Double.parseDouble(values[1]);
+						double slaHigh = Double.parseDouble(values[2]);
+						double powerLow = Double.parseDouble(values[3]);
+						double powerHigh = Double.parseDouble(values[4]);
+						
+						Baseline baseline = new Baseline(slaLow, slaHigh, powerLow, powerHigh);
+						baselines.put(seed, baseline);
+					}
+					
+					reader.close();
+				} catch (FileNotFoundException e) {
+					throw new RuntimeException(e);
+				} catch (IOException e) {
+					throw new RuntimeException(e);
+				}
+			}
+			
+		}
+		
+		private static void writeFile() {
+			try {
+				BufferedWriter out = new BufferedWriter(new FileWriter("baselines.csv"));
+				
+				for (Long seed : baselines.keySet()) {
+					Baseline baseline = baselines.get(seed);
+					out.write(seed + "," + baseline.slaLow + "," + baseline.slaHigh + "," + baseline.powerLow + "," + baseline.powerHigh);
+					out.newLine();
+				}
+				
+				out.close();
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
+			
+		}
+		
+		public static void preloadBaselines(ArrayList<Long> randomSeeds, int nThreads) {
+			
+			if (!fileLoaded) {
+				loadFile();
+				fileLoaded = true;
+			}
+			
+			HashMap<Long, DCSimulationTask> powerTasks = new HashMap<Long, DCSimulationTask>();
+			HashMap<Long, DCSimulationTask> slaTasks = new HashMap<Long, DCSimulationTask>();
+			
+			System.out.println("Preloading " + randomSeeds.size() + " baselines...");
+			
+			for (Long seed : randomSeeds) {
+				if (!baselines.containsKey(seed)) {
+					//setup power-friendly and sla-friendly strategy simulations with specified random seed
+					DCSimulationTask powerTask = new GreenStrategy("power-baseline", seed);
+					DCSimulationTask slaTask = new SLAFriendlyStrategy("sla-baseline", seed);
+					
+					powerTasks.put(seed, powerTask);
+					slaTasks.put(seed, slaTask);
+				}
+			}
+			
+			SimulationExecutor<DCSimulationTask> executor = new SimulationExecutor<DCSimulationTask>();
+			executor.addTasks(powerTasks.values());
+			executor.addTasks(slaTasks.values());
+			executor.execute(nThreads);
+			
+			//creates baselines from results
+			for (Long seed : randomSeeds) {
+				if (!baselines.containsKey(seed)) {
+					DCSimulationTask powerTask = powerTasks.get(seed);
+					DCSimulationTask slaTask = slaTasks.get(seed);
+					
+					Baseline baseline = new Baseline(extractSLA(slaTask.getResults()),
+							extractSLA(powerTask.getResults()),
+							extractPowerEfficiency(slaTask.getResults()),
+							extractPowerEfficiency(powerTask.getResults()));
+					
+					baselines.put(seed, baseline);
+				}
+			}
+			
+			writeFile();
+		}
 		
 		public static Baseline getBaseline(long randomSeed) {
+			
+			if (!fileLoaded) {
+				loadFile();
+				fileLoaded = true;
+			}
+			
 			//if we have already generated a baseline for this seed, use it
 			if (baselines.containsKey(randomSeed))
 				return baselines.get(randomSeed);
@@ -249,6 +405,8 @@ public class StrategyEvaluator {
 					extractPowerEfficiency(powerTask.getResults()));
 			
 			baselines.put(randomSeed, baseline);
+			
+			writeFile();
 			
 			return baseline;
 		}

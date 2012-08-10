@@ -40,6 +40,14 @@ public class SimulationExecutor<T extends SimulationTask> {
 	 * @return
 	 */
 	public Collection<T> execute() {
+		return execute(Executors.newCachedThreadPool());
+	}
+	
+	public Collection<T> execute(int nThreads) {
+		return execute(Executors.newFixedThreadPool(nThreads));
+	}
+	
+	private Collection<T> execute(ExecutorService executorService) {
 		
 		long startTime = System.currentTimeMillis();
 		
@@ -49,7 +57,6 @@ public class SimulationExecutor<T extends SimulationTask> {
 			callableTasks.add(Executors.callable(task));
 		
 		//run the tasks
-		ExecutorService executorService = Executors.newCachedThreadPool();
 		try {
 			executorService.invokeAll(callableTasks);
 		} catch (InterruptedException e) {
