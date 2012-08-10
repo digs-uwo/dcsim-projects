@@ -146,7 +146,11 @@ public class UtilStrategySwitchPolicy implements Daemon {
 		double utilSlope = 0;
 		//utilList.add(dcMon.getDCInUse().getFirst());				//Add current datacenter workload measured in cpu units
 		//utilList.add(dcMon.getDCInUse().getFirst() / dcCapacity);	//Add current datacenter workload measured in percentage utilization
-		utilSlope = getSlope(dcMon.getDCInUse().getValues());
+		double[] dcUtil = dcMon.getDCInUse().getValues();
+		for(int i=0; i<dcUtil.length; i++){
+			dcUtil[i] = dcUtil[i] / dcCapacity;
+		}
+		utilSlope = getSlope(dcUtil);
 		
 		if (currentPolicy == slaPolicy) {
 			//We are current running an SLA friendly policy. The goal of the SLA policy is to minimise sla violations.
@@ -187,9 +191,8 @@ public class UtilStrategySwitchPolicy implements Daemon {
 	private double getSlope(double[] list){
 		SimpleRegression regression = new SimpleRegression();
 		
-		int startIndex = list.length - WINDOW_SIZE;
-		for(int i=0; i<WINDOW_SIZE; i++){
-			regression.addData(i,list[startIndex+i]);
+		for(int i=0; i<list.length; i++){
+			regression.addData(i, list[i]);
 		}
 		
 		return regression.getSlope();
