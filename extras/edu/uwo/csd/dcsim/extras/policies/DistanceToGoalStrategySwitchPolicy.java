@@ -147,7 +147,7 @@ public class DistanceToGoalStrategySwitchPolicy implements Daemon {
 		
 		if (slaDistance > powerDistance && currentPolicy == powerPolicy) {
 			
-			System.out.println(simulation.getSimulationTime() + " - switch to SLA");
+			//System.out.println(simulation.getSimulationTime() + " - switch to SLA");
 			
 			// Switch to SLA-friendly strategy to attempt to decrease the distance to the SLA goal.
 			enableSlaPolicy();
@@ -159,7 +159,7 @@ public class DistanceToGoalStrategySwitchPolicy implements Daemon {
 		}
 		else if (powerDistance > slaDistance && currentPolicy == slaPolicy) {
 			
-			System.out.println(simulation.getSimulationTime() + " - switch to Power");
+			//System.out.println(simulation.getSimulationTime() + " - switch to Power");
 			
 			// Switch to Power strategy to attempt to decrease the distance to the Power goal.
 			enablePowerPolicy();

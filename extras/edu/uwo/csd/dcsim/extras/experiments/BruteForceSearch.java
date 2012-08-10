@@ -148,7 +148,7 @@ public class BruteForceSearch {
 				slaMin = extractSLA(task.getResults());
 				powerEffMin = extractPowerEff(task.getResults());
 			}
-			IM2012TestEnvironment.printMetrics(task.getResults());
+			//IM2012TestEnvironment.printMetrics(task.getResults());
 		}
 		
 		logger.info("Baseline Measurements are:");
@@ -175,7 +175,7 @@ public class BruteForceSearch {
 			double score = Utility.roundDouble(getScore(power,sla),3);
 			long seed = task.getRandomSeed();
 			
-			IM2012TestEnvironment.printMetrics(task.getResults());
+			//IM2012TestEnvironment.printMetrics(task.getResults());
 			
 			addToFile(task.getName() + sla + "," + power + "," + score + "," + seed + "\n");
 			logger.info(task.getName() + " sla: " + sla + ", power: " + power + ", scored: " + score + ", seed: " + seed);
