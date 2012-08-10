@@ -1,5 +1,6 @@
 package edu.uwo.csd.dcsim;
 
+import java.io.*;
 import java.util.*;
 
 import org.apache.commons.math3.stat.descriptive.*;
@@ -74,6 +75,76 @@ public class DCSimulationReport {
 					stats.getMax() + "]");
 		}
 		
+	}
+	
+	public void writeCsv(BufferedWriter out) throws IOException {
+
+		//sort metrics by name
+		ArrayList<String> metricNames = new ArrayList<String>(metricStats.keySet());
+		Collections.sort(metricNames);
+
+		//write headers
+		out.write("task#, ");
+		for (int i = 0; i < metricNames.size(); ++i) {
+			out.write(metricNames.get(i));
+			if (i != metricNames.size() - 1)
+				out.write(", ");
+		}
+		out.newLine();
+		
+		//write simulation task values
+		for (int i = 0; i < tasks.size(); ++i) {
+			out.write(i + ", ");
+			
+			for (int j = 0; j < metricNames.size(); ++j) {
+				out.write(Double.toString(metricStats.get(metricNames.get(j)).getValues()[i]));
+				if (j != metricNames.size() - 1)
+					out.write(", ");
+			}
+			
+			out.newLine();
+		}
+		
+		//write average values
+		out.write("avg, ");
+		for (int i = 0; i < metricNames.size(); ++i) {
+			out.write(Double.toString(metricStats.get(metricNames.get(i)).getMean()));
+			if (i != metricNames.size() -1)
+				out.write(", ");
+		}
+		out.newLine();
+		
+		//write max values
+		out.write("max, ");
+		for (int i = 0; i < metricNames.size(); ++i) {
+			out.write(Double.toString(metricStats.get(metricNames.get(i)).getMax()));
+			if (i != metricNames.size() -1)
+				out.write(", ");
+		}
+		out.newLine();
+		
+		//write min values
+		out.write("min, ");
+		for (int i = 0; i < metricNames.size(); ++i) {
+			out.write(Double.toString(metricStats.get(metricNames.get(i)).getMin()));
+			if (i != metricNames.size() -1)
+				out.write(", ");
+		}
+		out.newLine();
+		
+		//write std.dev. values
+		out.write("stdev, ");
+		for (int i = 0; i < metricNames.size(); ++i) {
+			out.write(Double.toString(metricStats.get(metricNames.get(i)).getStandardDeviation()));
+			if (i != metricNames.size() -1)
+				out.write(", ");
+		}
+		out.newLine();
+
+	}
+	
+	public String getName() {
+		return name;
 	}
 	
 }

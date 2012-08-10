@@ -55,14 +55,23 @@ public class SlaPowerStrategySwitching extends DCSimulationTask {
 	 * @param name
 	 * @param randomSeed
 	 */
-	public SlaPowerStrategySwitching(String name, long randomSeed) {
+	public SlaPowerStrategySwitching(String name) {
 		super(name, SimTime.days(10));					// 10-day simulation
 		this.setMetricRecordStart(SimTime.days(2));	// start on 3rd day (i.e. after 2 days)
-		this.setRandomSeed(randomSeed);
 		this.slaHigh = 0.008;
-		this.slaNormal = 0.002;
-		this.powerHigh = 1.35;
-		this.powerNormal = 1.2;
+		this.slaNormal = 0.004;
+		this.powerHigh = 1.3;
+		this.powerNormal = 1.15;
+	}
+	
+	/**
+	 * Constructs a Strategy Switching task with default thresholds
+	 * @param name
+	 * @param randomSeed
+	 */
+	public SlaPowerStrategySwitching(String name, long randomSeed) {
+		this(name);
+		this.setRandomSeed(randomSeed);
 	}
 	
 	/**
@@ -78,6 +87,15 @@ public class SlaPowerStrategySwitching extends DCSimulationTask {
 		super(name, SimTime.days(10));					// 10-day simulation
 		this.setMetricRecordStart(SimTime.days(2));	// start on 3rd day (i.e. after 2 days)
 		this.setRandomSeed(randomSeed);
+		this.slaHigh = slaHigh;
+		this.slaNormal = slaNormal;
+		this.powerHigh = powerHigh;
+		this.powerNormal = powerNormal;
+	}
+	
+	public SlaPowerStrategySwitching(String name, double slaHigh, double slaNormal, double powerHigh, double powerNormal){
+		super(name, SimTime.days(10));					// 10-day simulation
+		this.setMetricRecordStart(SimTime.days(2));	// start on 3rd day (i.e. after 2 days)
 		this.slaHigh = slaHigh;
 		this.slaNormal = slaNormal;
 		this.powerHigh = powerHigh;
@@ -167,7 +185,7 @@ public class SlaPowerStrategySwitching extends DCSimulationTask {
 			.powerNormal(powerNormal)
 			.build();
 		
-		DaemonScheduler policyDaemon = new FixedIntervalDaemonScheduler(simulation, SimTime.hours(4), switchingPolicy);
+		DaemonScheduler policyDaemon = new FixedIntervalDaemonScheduler(simulation, SimTime.hours(1), switchingPolicy);
 		policyDaemon.start(SimTime.hours(1) - SimTime.seconds(1)); 
 	}
 

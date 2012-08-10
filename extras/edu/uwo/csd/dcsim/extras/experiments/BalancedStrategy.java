@@ -49,9 +49,13 @@ public class BalancedStrategy extends DCSimulationTask {
 
 	}
 
-	public BalancedStrategy(String name, long randomSeed) {
+	public BalancedStrategy(String name) {
 		super(name, SimTime.days(10));					// 10-day simulation
 		this.setMetricRecordStart(SimTime.days(2));	// start on 3rd day (i.e. after 2 days)
+	}
+	
+	public BalancedStrategy(String name, long randomSeed) {
+		this(name);
 		this.setRandomSeed(randomSeed);
 	}
 
