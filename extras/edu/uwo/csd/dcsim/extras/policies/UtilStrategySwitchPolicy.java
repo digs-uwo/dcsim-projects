@@ -151,7 +151,6 @@ public class UtilStrategySwitchPolicy implements Daemon {
 			dcUtil[i] = dcUtil[i] / dcCapacity;
 		}
 		utilSlope = getSlope(dcUtil);
-		//System.out.println(utilSlope);
 		
 		if (currentPolicy == slaPolicy) {
 			//We are current running an SLA friendly policy. The goal of the SLA policy is to minimise sla violations.

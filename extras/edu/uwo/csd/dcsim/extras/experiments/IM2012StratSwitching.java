@@ -1,6 +1,6 @@
 package edu.uwo.csd.dcsim.extras.experiments;
 
-import java.util.Collection;
+import java.util.*;
 import java.io.*;
 
 import org.apache.log4j.Logger;
@@ -44,16 +44,18 @@ public class IM2012StratSwitching {
 		/*
 		 * run a lot of experiments searching for datacenter utilization switching thresholds
 		 */
-		runUtilizationThresholdSearch(6198910678692541341l);
+//		runUtilizationThresholdSearch(6198910678692541341l);
 		
 		/*
 		 * run single experiments
 		 */
-//		runSingleTrial(6198910678692541341l, 1, 0.005, 0);
-//		runSingleTrial(5646441053220106016l, 2, 0.011, 0.001);
-//		runSingleTrial(-5705302823151233610l, 3, 0.011, 0.001);
-//		runSingleTrial(8289672009575825404l, 4, 0.011, 0.001);
-//		runSingleTrial(-4637549055860880177l, 5, 0.011, 0.001);
+//		runSingleTrial(6198910678692541341l, 1, 0, 0.0005);
+//		runSingleTrial(5646441053220106016l, 2, 0, 0.0005);
+//		runSingleTrial(-5705302823151233610l, 3, 0, 0.0005);
+//		runSingleTrial(8289672009575825404l, 4, 0, 0.0005);
+//		runSingleTrial(-4637549055860880177l, 5, 0, 0.0005);
+		Random random = new Random();
+		runSingleTrial(random.nextLong(), 0, 0.0025517241, 0.0025517241);
 	}
 	
 	/**
