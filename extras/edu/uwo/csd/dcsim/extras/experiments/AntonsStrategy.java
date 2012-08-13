@@ -61,8 +61,8 @@ public class AntonsStrategy extends DCSimulationTask {
 	@Override
 	public void setup(DataCentreSimulation simulation) {
 		// Set utilization thresholds.
-		double lower = 0.6;
-		double upper = 0.95;	// 0.90
+		double lower = 0.5;		// 0.3 ; 0.4 ; 0.5
+		double upper = 0.9;		// 0.7 ; 0.8 ; 0.9
 		
 		// Create data centre (with default VM Placement policy).
 		DataCentre dc = IM2012TestEnvironment.createDataCentre(simulation);

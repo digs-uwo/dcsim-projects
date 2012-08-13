@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 
 import edu.uwo.csd.dcsim.*;
-import edu.uwo.csd.dcsim.common.Utility;
 import edu.uwo.csd.dcsim.core.*;
 import edu.uwo.csd.dcsim.host.Host;
 import edu.uwo.csd.dcsim.host.Host.HostState;
@@ -59,60 +58,56 @@ public class VMAllocationPolicyPABFD implements Daemon {
 	@Override
 	public void run(Simulation simulation) {
 		ArrayList<HostStub> hostList = HostStub.createHostStubList(dc.getHosts());
-		ArrayList<VmStub> vmsToMigrate = new ArrayList<VmStub>();
-		ArrayList<MigrationAction> migrations = new ArrayList<MigrationAction>();
+		ArrayList<VmStub> migrationList = new ArrayList<VmStub>();
 		
-		// Select VMs to migrate away from stressed hosts.
 		for (HostStub host : hostList) {
-			if (this.isHostStressed(host)) {
-				// Sort VMs in increasing order by memory.
-				ArrayList<VmStub> vmList = new ArrayList<VmStub>(host.getVms());
-				Collections.sort(vmList, VmStubComparator.getComparator(VmStubComparator.MEMORY));
-				
-				double hostLoad = host.getCpuInUse();
-				double upperThresholdLoad = host.getTotalCpu() * upperThreshold;
-				ArrayList<VmStub> candidateVms = new ArrayList<VmStub>();
-				
+			// Sort VMs in decreasing order by CPU load.
+			ArrayList<VmStub> vmList = new ArrayList<VmStub>(host.getVms());
+			Collections.sort(vmList, VmStubComparator.getComparator(VmStubComparator.CPU_IN_USE));
+			Collections.reverse(vmList);
+			
+			double hUtil = host.getCpuInUse();
+			double bestFitUtil = Double.MAX_VALUE;
+			double upperThresholdValue  = host.getTotalCpu() * upperThreshold;
+			double lowerThresholdValue = host.getTotalCpu() * lowerThreshold;
+			
+			// Select VMs to migrate away from stressed hosts.
+			while (hUtil > upperThresholdValue) {
+				VmStub bestFitVm = null;
 				for (VmStub vm : vmList) {
-					candidateVms.add(vm);
-					hostLoad = hostLoad - vm.getCpuInUse();
-					if (hostLoad <= upperThresholdLoad)
+					if (vm.getCpuInUse() > hUtil - upperThresholdValue) {
+						double t = vm.getCpuInUse() - hUtil + upperThresholdValue;
+						if (t < bestFitUtil) {
+							bestFitUtil = t;
+							bestFitVm = vm;
+						}
+					} else {
+						if (bestFitUtil == Double.MAX_VALUE) {
+							bestFitVm = vm;
+						}
 						break;
+					}
 				}
-				vmsToMigrate.addAll(candidateVms);
-				vmList.removeAll(candidateVms);
+				hUtil = hUtil - bestFitVm.getCpuInUse();
+				migrationList.add(bestFitVm);
+				vmList.remove(bestFitVm);
 			}
-		}
-		
-		// Place VMs (i.e. get list of migrations).
-		migrations.addAll(this.placeVMs(hostList, vmsToMigrate));
-		vmsToMigrate.clear();
-		
-		// Select VMs (all) to migrate away from Underutilized hosts.
-		for (HostStub host : hostList) {
-			// Ensure that the host has no incoming migrations.
-			if (this.isHostUnderUtilized(host) && 
-					host.getIncomingMigrationCount() == 0) {
-				
-				ArrayList<VmStub> vmList = new ArrayList<VmStub>(host.getVms());
-				vmsToMigrate.addAll(vmList);
+			
+			// Select VMs (all) to migrate away from Underutilized hosts.
+			if (hUtil < lowerThresholdValue) {
+				migrationList.addAll(vmList);
 				vmList.clear();
 			}
 		}
 		
-		// Place VMs (i.e. get list of migrations).
-		migrations.addAll(this.placeVMs(hostList, vmsToMigrate));
-
-		// Trigger migrations.
-		for (MigrationAction migration : migrations) {
-			migration.execute(simulation, this);
-		}
+		// Place VMs.
+		this.placeVMs(hostList, migrationList, simulation);
 		
 		// Shut down Empty hosts.
 		for (HostStub host : hostList) {
 			// Ensure that the host is not involved in any migration and is 
 			// not powering on.
-			if (this.isHostEmpty(host) && 
+			if (host.getHost().getVMAllocations().size() == 0 && 
 					host.getIncomingMigrationCount() == 0 && 
 					host.getOutgoingMigrationCount() == 0 && 
 					host.getHost().getState() != HostState.POWERING_ON) {
@@ -126,7 +121,7 @@ public class VMAllocationPolicyPABFD implements Daemon {
 	 * Estimates power consumption of a host after receiving an incoming VM.
 	 */
 	protected double estimatePower(HostStub host, VmStub vm) {
-		double powerBefore = host.getHost().getPowerModel().getPowerConsumption(host.getCpuUtilization());
+		double powerBefore = host.getHost().getCurrentPowerConsumption();
 		double powerAfter = host.getHost().getPowerModel().getPowerConsumption(host.getCpuUtilization(vm));
 		return powerAfter - powerBefore;
 	}
@@ -141,56 +136,12 @@ public class VMAllocationPolicyPABFD implements Daemon {
 	}
 	
 	/**
-	 * Determines if the host is Stressed.
-	 */
-	protected boolean isHostStressed(HostStub stub) {
-		Host host = stub.getHost();
-		
-		// Calculate host's avg CPU utilization in the last window of time.
-		double hostUtilValues[] = this.utilizationMonitor.getHostInUse(host).getValues();
-		double avgCpuInUse = 0;
-		for (Double x : hostUtilValues) {
-			avgCpuInUse += x;
-		}
-		avgCpuInUse = avgCpuInUse / this.utilizationMonitor.getWindowSize();
-		double avgCpuUtilization = Utility.roundDouble(avgCpuInUse / host.getCpuManager().getTotalCpu());
-		
-		if (avgCpuUtilization > upperThreshold)
-			return true;
-		return false;
-	}
-	
-	/**
-	 * Determines if the host is Underutilized.
-	 */
-	protected boolean isHostUnderUtilized(HostStub stub) {
-		Host host = stub.getHost();
-		
-		// Calculate host's avg CPU utilization in the last window of time.
-		double hostUtilValues[] = this.utilizationMonitor.getHostInUse(host).getValues();
-		double avgCpuInUse = 0;
-		for (Double x : hostUtilValues) {
-			avgCpuInUse += x;
-		}
-		avgCpuInUse = avgCpuInUse / this.utilizationMonitor.getWindowSize();
-		double avgCpuUtilization = Utility.roundDouble(avgCpuInUse / host.getCpuManager().getTotalCpu());
-		
-		if (avgCpuUtilization < lowerThreshold)
-			return true;
-		return false;
-	}
-	
-	/**
 	 * Implements the Power Aware Best Fit Decreasing (PABFD) algorithm for VM 
 	 * Placement. VMs are sorted in decreasing order by <CPU load> and 
 	 * allocated to the host that provides the least increase in power 
 	 * consumption after the allocation.
-	 * 
-	 * @param hostList list of hosts in the data centre
-	 * @param vmList VMs to migrate
-	 * @return migrations list of migrations to trigger
 	 */
-	protected ArrayList<MigrationAction> placeVMs(ArrayList<HostStub> hostList, ArrayList<VmStub> vmList) {
+	protected void placeVMs(ArrayList<HostStub> hostList, ArrayList<VmStub> vmList, Simulation simulation) {
 		ArrayList<MigrationAction> migrations = new ArrayList<MigrationAction>();
 		
 		// Sort VMs in decreasing order by CPU load.
@@ -218,7 +169,10 @@ public class VMAllocationPolicyPABFD implements Daemon {
 			}
 		}
 		
-		return migrations;
+		// Trigger migrations.
+		for (MigrationAction migration : migrations) {
+			migration.execute(simulation, this);
+		}
 	}
 	
 	@Override
