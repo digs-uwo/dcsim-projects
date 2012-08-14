@@ -13,14 +13,14 @@ public class DCSimulationReport {
 	private static Logger logger = Logger.getLogger(DCSimulationReport.class);
 	
 	private String name;
-	private Collection<DCSimulationTask> tasks;
+	private List<? extends SimulationTask> tasks;
 	private Map<String, DescriptiveStatistics> metricStats = new HashMap<String, DescriptiveStatistics>();
 	
-	public DCSimulationReport(List<DCSimulationTask> tasks) {
+	public DCSimulationReport(ArrayList<? extends SimulationTask> tasks) {
 		this(tasks.get(0).getName(), tasks);
 	}
 	
-	public DCSimulationReport(String name, Collection<DCSimulationTask> tasks) {
+	public DCSimulationReport(String name, ArrayList<? extends SimulationTask> tasks) {
 		this.tasks = tasks;
 		this.name = name;
 		
@@ -30,7 +30,7 @@ public class DCSimulationReport {
 		 */
 		
 		//Initialize the metric stats map with all metric names found in any task. This requires checking every task for metrics.
-		for (DCSimulationTask task : tasks) {
+		for (SimulationTask task : tasks) {
 			for (Metric metric : task.getResults()) {
 				if (!metricStats.containsKey(metric.getName())) {
 					metricStats.put(metric.getName(), new DescriptiveStatistics());
@@ -39,7 +39,7 @@ public class DCSimulationReport {
 		}
 		
 		//Iterate through all tasks and add their metric values
-		for (DCSimulationTask task : tasks) {
+		for (SimulationTask task : tasks) {
 			for (String metricName : metricStats.keySet()) {
 				//set the value to 0 by default, in case the metric is not present in this task
 				double val = 0;
@@ -105,41 +105,41 @@ public class DCSimulationReport {
 			out.newLine();
 		}
 		
-		//write average values
-		out.write("avg, ");
-		for (int i = 0; i < metricNames.size(); ++i) {
-			out.write(Double.toString(metricStats.get(metricNames.get(i)).getMean()));
-			if (i != metricNames.size() -1)
-				out.write(", ");
-		}
-		out.newLine();
-		
-		//write max values
-		out.write("max, ");
-		for (int i = 0; i < metricNames.size(); ++i) {
-			out.write(Double.toString(metricStats.get(metricNames.get(i)).getMax()));
-			if (i != metricNames.size() -1)
-				out.write(", ");
-		}
-		out.newLine();
-		
-		//write min values
-		out.write("min, ");
-		for (int i = 0; i < metricNames.size(); ++i) {
-			out.write(Double.toString(metricStats.get(metricNames.get(i)).getMin()));
-			if (i != metricNames.size() -1)
-				out.write(", ");
-		}
-		out.newLine();
-		
-		//write std.dev. values
-		out.write("stdev, ");
-		for (int i = 0; i < metricNames.size(); ++i) {
-			out.write(Double.toString(metricStats.get(metricNames.get(i)).getStandardDeviation()));
-			if (i != metricNames.size() -1)
-				out.write(", ");
-		}
-		out.newLine();
+//		//write average values
+//		out.write("avg, ");
+//		for (int i = 0; i < metricNames.size(); ++i) {
+//			out.write(Double.toString(metricStats.get(metricNames.get(i)).getMean()));
+//			if (i != metricNames.size() -1)
+//				out.write(", ");
+//		}
+//		out.newLine();
+//		
+//		//write max values
+//		out.write("max, ");
+//		for (int i = 0; i < metricNames.size(); ++i) {
+//			out.write(Double.toString(metricStats.get(metricNames.get(i)).getMax()));
+//			if (i != metricNames.size() -1)
+//				out.write(", ");
+//		}
+//		out.newLine();
+//		
+//		//write min values
+//		out.write("min, ");
+//		for (int i = 0; i < metricNames.size(); ++i) {
+//			out.write(Double.toString(metricStats.get(metricNames.get(i)).getMin()));
+//			if (i != metricNames.size() -1)
+//				out.write(", ");
+//		}
+//		out.newLine();
+//		
+//		//write std.dev. values
+//		out.write("stdev, ");
+//		for (int i = 0; i < metricNames.size(); ++i) {
+//			out.write(Double.toString(metricStats.get(metricNames.get(i)).getStandardDeviation()));
+//			if (i != metricNames.size() -1)
+//				out.write(", ");
+//		}
+//		out.newLine();
 
 	}
 	

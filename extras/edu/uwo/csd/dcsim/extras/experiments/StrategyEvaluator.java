@@ -16,12 +16,12 @@ public class StrategyEvaluator {
 
 		Simulation.initializeLogging();
 		
+		
 		StrategyEvaluator stratEval = new StrategyEvaluator(4);
 		
-		stratEval.generateRandomSeeds(2, 6198910678692541341l);
-
+		stratEval.generateRandomSeeds(100, 6198910678692541341l);	
 	
-		DescriptiveStatistics balancedStats = stratEval.evaluate(
+		DescriptiveStatistics balancedStats = stratEval.evaluateInChunks(4,
 				new ObjectFactory<DCSimulationTask>() {
 
 					@Override
@@ -31,7 +31,7 @@ public class StrategyEvaluator {
 					
 				});
 	
-		DescriptiveStatistics threshStats = stratEval.evaluate(
+		DescriptiveStatistics threshStats = stratEval.evaluateInChunks(4,
 				new ObjectFactory<DCSimulationTask>() {
 
 					@Override
@@ -41,7 +41,7 @@ public class StrategyEvaluator {
 					
 				});
 		
-		DescriptiveStatistics utilStats = stratEval.evaluate(
+		DescriptiveStatistics utilStats = stratEval.evaluateInChunks(4,
 				new ObjectFactory<DCSimulationTask>() {
 
 					@Override
@@ -104,7 +104,29 @@ public class StrategyEvaluator {
 	 * @param randomSeeds
 	 */
 	public void addRandomSeeds(Collection<Long> randomSeeds) {
-		randomSeeds.addAll(randomSeeds);
+		this.randomSeeds.addAll(randomSeeds);
+	}
+	
+	public DescriptiveStatistics evaluateInChunks(int nSeedsPerChunk, ObjectFactory<DCSimulationTask> taskFactory) {
+		
+		int currentSeed = 0;
+		DescriptiveStatistics stats = new DescriptiveStatistics();
+		ArrayList<Long> currentSeeds = new ArrayList<Long>();
+		
+		while (currentSeed < randomSeeds.size()) {
+			if (currentSeeds.size() >= nSeedsPerChunk || currentSeed == randomSeeds.size() - 1) {
+				Baseline.preloadBaselines(currentSeeds, 4);
+				DescriptiveStatistics results = evaluate(currentSeeds, taskFactory);
+				for (Double val : results.getValues()) {
+					stats.addValue(val);
+				}
+				currentSeeds = new ArrayList<Long>();
+			}
+			currentSeeds.add(randomSeeds.get(currentSeed));
+			++currentSeed;
+		}
+		
+		return stats;
 	}
 	
 	/**
@@ -155,7 +177,8 @@ public class StrategyEvaluator {
 		
 		try {
 			DCSimulationReport report = new DCSimulationReport(tasks);
-			BufferedWriter out = new BufferedWriter(new FileWriter(name + "_full_report.csv"));
+			
+			BufferedWriter out = new BufferedWriter(new FileWriter(name + "_full_report.csv", true));
 			report.writeCsv(out);
 			out.close();
 		} catch (IOException e) {
@@ -167,7 +190,7 @@ public class StrategyEvaluator {
 		//calculate the task scores
 		for (DCSimulationTask task : tasks) {
 			//score each task using the baseline calculated for it
-			Score score = score(task, taskBaselines.get(task));
+			Score score = score(task.getResults(), taskBaselines.get(task));
 			taskScores.put(task, score);
 			scoreStats.addValue(score.score);
 			slaScoreStats.addValue(score.slaScore);
@@ -185,14 +208,14 @@ public class StrategyEvaluator {
 				out.newLine();
 			}
 			
-			out.write("avg, " + slaScoreStats.getMean() + ", " + powerScoreStats.getMean() + ", " + scoreStats.getMean());
-			out.newLine();
-			out.write("max, " + slaScoreStats.getMax() + ", " + powerScoreStats.getMax() + ", " + scoreStats.getMax());
-			out.newLine();
-			out.write("min, " + slaScoreStats.getMin() + ", " + powerScoreStats.getMin() + ", " + scoreStats.getMin());
-			out.newLine();
-			out.write("stdev, " + slaScoreStats.getStandardDeviation() + ", " + powerScoreStats.getStandardDeviation() + ", " + scoreStats.getStandardDeviation());
-			out.newLine();
+//			out.write("avg, " + slaScoreStats.getMean() + ", " + powerScoreStats.getMean() + ", " + scoreStats.getMean());
+//			out.newLine();
+//			out.write("max, " + slaScoreStats.getMax() + ", " + powerScoreStats.getMax() + ", " + scoreStats.getMax());
+//			out.newLine();
+//			out.write("min, " + slaScoreStats.getMin() + ", " + powerScoreStats.getMin() + ", " + scoreStats.getMin());
+//			out.newLine();
+//			out.write("stdev, " + slaScoreStats.getStandardDeviation() + ", " + powerScoreStats.getStandardDeviation() + ", " + scoreStats.getStandardDeviation());
+//			out.newLine();
 			out.close();
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -209,11 +232,11 @@ public class StrategyEvaluator {
 	 * @param baseline
 	 * @return
 	 */
-	private static Score score(DCSimulationTask task, Baseline baseline) {
+	private static Score score(Collection<Metric> results, Baseline baseline) {
 		
 		//get the power efficiency and sla values from the task
-		double powerEff = extractPowerEfficiency(task.getResults());
-		double sla = extractSLA(task.getResults());
+		double powerEff = extractPowerEfficiency(results);
+		double sla = extractSLA(results);
 		
 		//normalize power efficiency and sla values
 		double normPowerEff = (baseline.powerHigh - powerEff) / (baseline.powerHigh - baseline.powerLow);
@@ -337,6 +360,7 @@ public class StrategyEvaluator {
 				fileLoaded = true;
 			}
 			
+			//since we may create and run a large number of tasks, use task wrappers so that memory will be freed from completed tasks
 			HashMap<Long, DCSimulationTask> powerTasks = new HashMap<Long, DCSimulationTask>();
 			HashMap<Long, DCSimulationTask> slaTasks = new HashMap<Long, DCSimulationTask>();
 			

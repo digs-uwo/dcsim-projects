@@ -26,6 +26,11 @@
                 <exclude name="**/*.java"/>
             </fileset>
         </copy>
+        <copy includeemptydirs="false" todir="bin">
+            <fileset dir="extras">
+                <exclude name="**/*.java"/>
+            </fileset>
+        </copy>
     </target>
     <target name="clean">
         <delete dir="bin"/>
@@ -41,6 +46,10 @@
         </javac>
         <javac debug="true" debuglevel="${debuglevel}" destdir="bin" source="${source}" target="${target}">
             <src path="examples"/>
+            <classpath refid="dcsim2.classpath"/>
+        </javac>
+        <javac debug="true" debuglevel="${debuglevel}" destdir="bin" source="${source}" target="${target}">
+            <src path="extras"/>
             <classpath refid="dcsim2.classpath"/>
         </javac>
     </target>
@@ -85,6 +94,11 @@
     </target>
     <target name="StaticPeak">
         <java classname="edu.uwo.csd.dcsim.examples.StaticPeak" failonerror="true" fork="yes">
+            <classpath refid="dcsim2.classpath"/>
+        </java>
+    </target>
+    <target name="StrategyEvaluator">
+        <java classname="edu.uwo.csd.dcsim.extras.experiments.StrategyEvaluator" failonerror="true" fork="yes">
             <classpath refid="dcsim2.classpath"/>
         </java>
     </target>
