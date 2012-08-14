@@ -198,7 +198,7 @@ public class StrategyEvaluator {
 		}
 		
 		try {
-			BufferedWriter out = new BufferedWriter(new FileWriter(name + "_scores_report.csv"));
+			BufferedWriter out = new BufferedWriter(new FileWriter(name + "_scores_report.csv", true));
 			
 			out.write("task#, slaScore, powerScore, score");
 			out.newLine();
