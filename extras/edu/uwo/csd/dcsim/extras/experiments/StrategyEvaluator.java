@@ -20,23 +20,23 @@ public class StrategyEvaluator {
 		StrategyEvaluator stratEval = new StrategyEvaluator(4);
 		
 		stratEval.generateRandomSeeds(100, 6198910678692541341l);	
-	
-		DescriptiveStatistics balancedStats = stratEval.evaluateInChunks(4,
+		
+		DescriptiveStatistics hybridStats = stratEval.evaluateInChunks(4,
 				new ObjectFactory<DCSimulationTask>() {
 
 					@Override
 					public DCSimulationTask newInstance() {
-						return new BalancedStrategy("balanced");
+						return new BalancedStrategy("hybrid");
 					}
 					
 				});
 	
-		DescriptiveStatistics threshStats = stratEval.evaluateInChunks(4,
+		DescriptiveStatistics spStats = stratEval.evaluateInChunks(4,
 				new ObjectFactory<DCSimulationTask>() {
 
 					@Override
 					public DCSimulationTask newInstance() {
-						return new SlaPowerStrategySwitching("thresh-switching", 0.008, 0.004, 1.3, 1.15);
+						return new SlaPowerStrategySwitching("sp-dss", 0.008, 0.004, 1.3, 1.15);
 					}
 					
 				});
@@ -46,16 +46,28 @@ public class StrategyEvaluator {
 
 					@Override
 					public DCSimulationTask newInstance() {
-						//UtilStrategySwitching thresholds: toPower=0.0025517241, toSla=0.0025517241
-						return new UtilStrategySwitching("util-switching", 0, 0.0025517241, 0.0025517241);
+						//UtilStrategySwitching thresholds: toPower=0.00255, toSla=0.00255
+						return new UtilStrategySwitching("util-dss", 0, 0.00255, 0.00255);
+					}
+					
+				});
+		
+		DescriptiveStatistics goalStats = stratEval.evaluateInChunks(4,
+				new ObjectFactory<DCSimulationTask>() {
+
+					@Override
+					public DCSimulationTask newInstance() {
+						//worstSla= 0.01, worstEfficiency= 0.83
+						return new DistanceToGoalStrategySwitching("goal-dss", 0, 0.01, 0.83);
 					}
 					
 				});
 		
 		
-		System.out.println("Balanced: " + balancedStats.getMean() + "\n");
-		System.out.println("Thresh-Switching: " + threshStats.getMean() + "\n");
-		System.out.println("Util-Switching: " + utilStats.getMean() + "\n");
+		System.out.println("Hybrid: " + hybridStats.getMean() + "\n");
+		System.out.println("SP-DSS: " + spStats.getMean() + "\n");
+		System.out.println("Util-DSS: " + utilStats.getMean() + "\n");
+		System.out.println("Goal-DSS: " + goalStats.getMean() + "\n");
 	
 		
 	}
@@ -114,6 +126,7 @@ public class StrategyEvaluator {
 		ArrayList<Long> currentSeeds = new ArrayList<Long>();
 		
 		while (currentSeed < randomSeeds.size()) {
+			currentSeeds.add(randomSeeds.get(currentSeed));
 			if (currentSeeds.size() >= nSeedsPerChunk || currentSeed == randomSeeds.size() - 1) {
 				Baseline.preloadBaselines(currentSeeds, 4);
 				DescriptiveStatistics results = evaluate(currentSeeds, taskFactory);
@@ -122,7 +135,7 @@ public class StrategyEvaluator {
 				}
 				currentSeeds = new ArrayList<Long>();
 			}
-			currentSeeds.add(randomSeeds.get(currentSeed));
+			
 			++currentSeed;
 		}
 		
