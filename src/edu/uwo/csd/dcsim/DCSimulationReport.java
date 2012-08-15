@@ -46,7 +46,7 @@ public class DCSimulationReport {
 				
 				//find the metric value
 				for (Metric metric : task.getResults()) {
-					if (metric.getName() == metricName) {
+					if (metric.getName().equals(metricName)) {
 						val = metric.getValue();
 					}
 				}
