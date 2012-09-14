@@ -126,8 +126,8 @@ public class SlaPowerStrategySwitching extends DCSimulationTask {
 		
 		// Set utilization thresholds.
 		double powerLower = 0.6;
-		double powerUpper = 0.95;	// 0.90
-		double powerTarget = 0.90;	// 0.85
+		double powerUpper = 0.9;//0.95;	// 0.90
+		double powerTarget = 0.85;//0.90;	// 0.85
 		
 		// Create and set desired VM Placement policy for the data centre.
 		VMPlacementPolicy powerVMPlacementPolicy = new VMPlacementPolicyFFDGreen(simulation, dc, dcMon, powerLower, powerUpper, powerTarget);
@@ -152,8 +152,8 @@ public class SlaPowerStrategySwitching extends DCSimulationTask {
 		
 		// Set utilization thresholds.
 		double slaLower = 0.6;
-		double slaUpper = 0.85;
-		double slaTarget = 0.8;
+		double slaUpper = 0.9;//0.85;
+		double slaTarget = 0.85;//0.8;
 		
 		// Create and set desired VM Placement policy for the data centre.
 		VMPlacementPolicy slaVMPlacementPolicy = new VMPlacementPolicyFFMSla(simulation, dc, dcMon, slaLower, slaUpper, slaTarget);

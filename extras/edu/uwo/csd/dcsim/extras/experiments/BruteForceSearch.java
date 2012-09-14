@@ -48,12 +48,12 @@ public class BruteForceSearch {
 		Simulation.initializeLogging();
 		
 		// Run brute force search to find parameters for Distance to Goals approach.
-		double minWorstSlaGoal = 0.001;
-		double maxWorstSlaGoal = 0.020;
-		double stepWorstSlaGoal = 0.001;
+		double minWorstSlaGoal = 0.0005;//0.001;
+		double maxWorstSlaGoal = 0.00093;//0.020;
+		double stepWorstSlaGoal = 0.00005;//0.001;
 		double minWorstPowerEffCo = 0.70;
-		double maxWorstPowerEffCo = 0.90;
-		double stepWorstPowerEffCo = 0.01;
+		double maxWorstPowerEffCo = 0.96;//0.90;
+		double stepWorstPowerEffCo = 0.02;//0.01;
 		for (long seed : SEEDS)
 			runDistanceParametersSearch(seed, minWorstSlaGoal, maxWorstSlaGoal, stepWorstSlaGoal, minWorstPowerEffCo, maxWorstPowerEffCo, stepWorstPowerEffCo);
 		
