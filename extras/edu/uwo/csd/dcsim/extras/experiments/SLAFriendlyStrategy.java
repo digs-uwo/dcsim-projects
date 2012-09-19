@@ -59,8 +59,8 @@ public class SLAFriendlyStrategy extends DCSimulationTask {
 	public void setup(DataCentreSimulation simulation) {
 		// Set utilization thresholds.
 		double lower = 0.6;
-		double upper = 0.90;//0.85;
-		double target = 0.85;//0.80;
+		double upper = 0.85;
+		double target = 0.80;
 		
 		// Create data centre (with default VM Placement policy).
 		DataCentre dc = IM2012TestEnvironment.createDataCentre(simulation);

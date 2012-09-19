@@ -59,8 +59,8 @@ public class GreenStrategy extends DCSimulationTask {
 	public void setup(DataCentreSimulation simulation) {
 		// Set utilization thresholds.
 		double lower = 0.6;
-		double upper = 0.90;//0.95;	// 0.90
-		double target = 0.85;//0.90;	// 0.85
+		double upper = 0.95;	// 0.90
+		double target = 0.90;	// 0.85
 		
 		// Create data centre (with default VM Placement policy).
 		DataCentre dc = IM2012TestEnvironment.createDataCentre(simulation);

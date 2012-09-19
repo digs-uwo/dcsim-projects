@@ -14,7 +14,7 @@ public class PseudoEvaluator {
 		
 		StrategyEvaluator stratEval = new StrategyEvaluator(4);
 		
-		stratEval.generateRandomSeeds(5, 6198910678692541341l);	
+		stratEval.generateRandomSeeds(10, 6198910678692541341l);	
 		
 		DescriptiveStatistics slaStats = stratEval.evaluateInChunks(4,
 				new ObjectFactory<DCSimulationTask>() {
@@ -72,11 +72,13 @@ public class PseudoEvaluator {
 
 					@Override
 					public DCSimulationTask newInstance() {
-						//worstSla= 0.01, worstEfficiency= 0.83
-						//return new DistanceToGoalStrategySwitching("goal-dss", 0, 0.01, 0.83);
+						// Parameter values for when SLA and Power are running with their original threshold values.
+						// worstSla= 0.01, worstEfficiency= 0.83
+						return new DistanceToGoalStrategySwitching("goal-dss", 0, 0.01, 0.83);
 						
-						// new values: worstSla=0.0005 , worstEfficiency=0.82
-						return new DistanceToGoalStrategySwitching("goal-dss", 0, 0.0005, 0.82);
+						// Parameter values for when SLA and Power are running with Hybrid's threshold values.
+						// worstSla=0.0005 , worstEfficiency=0.82
+						//return new DistanceToGoalStrategySwitching("goal-dss", 0, 0.0005, 0.82);
 					}
 					
 				});
