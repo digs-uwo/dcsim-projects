@@ -91,7 +91,7 @@ public class DistanceToGoalStrategySwitching extends DCSimulationTask {
 		simulation.addMonitor(hostsMon);
 		
 		// Create CPU load utilization monitor (for use with strategy switching).
-		DCUtilizationMonitor dcMon = new DCUtilizationMonitor(simulation, SimTime.minutes(5), 6, dc);
+		DCUtilizationMonitor dcMon = new DCUtilizationMonitor(simulation, SimTime.minutes(2), 5, dc);
 		simulation.addMonitor(dcMon);
 		
 		// Create and start ServiceProducer.
