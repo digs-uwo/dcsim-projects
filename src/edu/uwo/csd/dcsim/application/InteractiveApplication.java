@@ -172,8 +172,4 @@ public class InteractiveApplication extends Application {
 
 	
 	
-	public double getWork(){
-		return incomingWork;
-	}
-	
 }
