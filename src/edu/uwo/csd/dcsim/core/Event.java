@@ -1,51 +1,79 @@
 package edu.uwo.csd.dcsim.core;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.ArrayList;
 
-public class Event {
+public abstract class Event {
 
-	private int type;
+	protected Simulation simulation = null;
+	private int id = -1;
 	private long time;
-	private Object source;
 	private SimulationEventListener target;
-	private Map<String, Object> data;
 	private long sendOrder;
+	private ArrayList<EventCallbackListener> callbackListeners = new ArrayList<EventCallbackListener>();
 	
-	public Event(int type, long time, Object source, SimulationEventListener target) {
-		this.type = type;
-		this.time = time;
-		this.source = source;
+	public Event(SimulationEventListener target) {
 		this.target = target;
-		data = new HashMap<String, Object>();
 	}
 	
-	public int getType() {
-		return type;
+	public Event addCallbackListener(EventCallbackListener listener) {
+		callbackListeners.add(listener);
+		return this;
 	}
 	
-	public long getTime() {
+	/**
+	 * Provides a hook to run any additional code after the event has been triggered and handled.
+	 */
+	public void postExecute() {
+		//default behaviour is to do nothing
+	}
+	
+	public final void triggerCallback() {
+		for (EventCallbackListener listener : callbackListeners) {
+			listener.eventCallback(this);
+		}
+	}
+	
+	/**
+	 * Provides a hook for events to be logged, if desired
+	 */
+	public void log() {
+		//default behaviour is to do nothing
+	}
+	
+	public final void initialize(Simulation simulation) {
+		//only initialize if this is the first time the event has been sent
+		if (this.simulation == null) {
+			this.simulation = simulation;
+			id = simulation.nextId(Event.class.toString());
+		}
+	}
+	
+	public final int getId() {
+		return id;
+	}
+	
+	public final void setTime(long time) {
+		this.time = time;
+	}
+	
+	public final long getTime() {
 		return time;
 	}
 	
-	public Object getSource() {
-		return source;
-	}
-	
-	public SimulationEventListener getTarget() {
+	public final SimulationEventListener getTarget() {
 		return target;
 	}
 	
-	public Map<String, Object> getData() {
-		return data;
-	}
-	
-	protected void setSendOrder(long sendOrder) {
+	protected final void setSendOrder(long sendOrder) {
 		this.sendOrder = sendOrder;
 	}
 	
-	protected long getSendOrder() {
+	protected final long getSendOrder() {
 		return sendOrder;
+	}
+	
+	public final Simulation getSimulation() {
+		return simulation;
 	}
 	
 }

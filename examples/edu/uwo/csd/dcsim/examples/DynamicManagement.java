@@ -6,11 +6,14 @@ import java.util.Collection;
 import org.apache.log4j.*;
 
 import edu.uwo.csd.dcsim.*;
+import edu.uwo.csd.dcsim.common.SimTime;
 import edu.uwo.csd.dcsim.core.*;
+import edu.uwo.csd.dcsim.examples.management.ConsolidationPolicy;
+import edu.uwo.csd.dcsim.examples.management.RelocationPolicy;
 import edu.uwo.csd.dcsim.management.*;
 import edu.uwo.csd.dcsim.vm.*;
 
-public class DynamicManagement extends DCSimulationTask {
+public class DynamicManagement extends SimulationTask {
 
 	private static Logger logger = Logger.getLogger(DynamicManagement.class);
 	
@@ -18,8 +21,8 @@ public class DynamicManagement extends DCSimulationTask {
 		
 		Simulation.initializeLogging();
 		
-		Collection<DCSimulationTask> completedTasks;
-		SimulationExecutor<DCSimulationTask> executor = new SimulationExecutor<DCSimulationTask>();
+		Collection<SimulationTask> completedTasks;
+		SimulationExecutor executor = new SimulationExecutor();
 		
 		executor.addTask(new DynamicManagement("dynamic-1", 1088501048448116498l));
 //		executor.addTask(new DynamicManagement("dynamic-2", 3081198553457496232l));
@@ -29,11 +32,11 @@ public class DynamicManagement extends DCSimulationTask {
 		
 		completedTasks = executor.execute();
 		
-		for(DCSimulationTask task : completedTasks) {
+		for(SimulationTask task : completedTasks) {
 			logger.info(task.getName());
 			ExampleHelper.printMetrics(task.getResults());
 			
-			DCSimulationTraceWriter traceWriter = new DCSimulationTraceWriter(task);
+			SimulationTraceWriter traceWriter = new SimulationTraceWriter(task);
 			traceWriter.writeTrace();
 		}
 
@@ -46,22 +49,16 @@ public class DynamicManagement extends DCSimulationTask {
 	}
 
 	@Override
-	public void setup(DataCentreSimulation simulation) {
+	public void setup(Simulation simulation) {
 		
-		DataCentre dc = ExampleHelper.createDataCentre(simulation);
-		simulation.addDatacentre(dc);
+		AutonomicManager dcAM = ExampleHelper.createDataCentre(simulation);
 		
 		ArrayList<VMAllocationRequest> vmList = ExampleHelper.createVmList(simulation, false);
 				
-		ExampleHelper.placeVms(vmList, dc);
+		ExampleHelper.placeVms(vmList, dcAM, simulation);
 		
-		/*
-		 * Basic Greedy Relocation & Consolidation together. Relocation same as RelocST03, Consolidation similar but
-		 * evicts ALL VMs from underprovisioned hosts, not 1.
-		 */
-		VMAllocationPolicyGreedy vmAllocationPolicyGreedy = new VMAllocationPolicyGreedy(dc, 0.5, 0.85, 0.85);
-		DaemonScheduler daemon = new FixedIntervalDaemonScheduler(simulation, 600000, vmAllocationPolicyGreedy);
-		daemon.start(600000);
+		dcAM.installPolicy(new RelocationPolicy(0.5, 0.9, 0.85), SimTime.hours(1), SimTime.hours(1) + 1);
+		dcAM.installPolicy(new ConsolidationPolicy(0.5, 0.9, 0.85), SimTime.hours(2), SimTime.hours(2) + 2);
 	}
 	
 }

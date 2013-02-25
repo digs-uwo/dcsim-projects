@@ -7,10 +7,13 @@ import edu.uwo.csd.dcsim.core.*;
 import edu.uwo.csd.dcsim.core.metrics.DCCpuUtilMetric;
 import edu.uwo.csd.dcsim.core.metrics.OptimalPowerRatioMetric;
 import edu.uwo.csd.dcsim.host.*;
-import edu.uwo.csd.dcsim.management.*;
 
 /**
  * Represents a single simulated DataCentre, which consists of a set of Host machines.
+ * 
+ * Represents a single simulated data centre, which consists of a set of 
+ * Clusters, connected through two central switches (data and management 
+ * networks, respectively).
  * 
  * @author Michael Tighe
  *
@@ -21,20 +24,31 @@ public class DataCentre implements SimulationEventListener {
 	public static final String OPTIMAL_POWER_RATIO_METRIC = "optimalPowerEfficiencyRatio";
 
 	private ArrayList<Host> hosts; //the hosts in this datacentre
-	VMPlacementPolicy vmPlacementPolicy; //the placement policy for this datacentre
 	Simulation simulation;
+	
+	private ArrayList<Cluster> clusters = null;				// Clusters in this data centre.
+	
+	private Switch dataNetworkSwitch = null;				// Data network switch.
+	private Switch mgmtNetworkSwitch = null;				// Management network switch.
 	
 	/**
 	 * Creates a new DataCentre, specifying the VMPlacementPolicy that will be used
 	 * to place VMs in the DataCentre
 	 * @param vmPlacementPolicy
 	 */
-	public DataCentre(Simulation simulation, VMPlacementPolicy vmPlacementPolicy) {
+	public DataCentre(Simulation simulation) {
 		hosts = new ArrayList<Host>();
 		this.simulation = simulation;
-		
-		this.vmPlacementPolicy = vmPlacementPolicy;
-		vmPlacementPolicy.setDataCentre(this);
+	}
+	
+	/**
+	 * Creates an instance of DataCentre.
+	 */
+	public DataCentre(Simulation simulation, SwitchFactory switchFactory) {
+		this.simulation = simulation;
+		this.dataNetworkSwitch = switchFactory.newInstance();
+		this.mgmtNetworkSwitch = switchFactory.newInstance();
+		this.clusters = new ArrayList<Cluster>();
 	}
 	
 	/**
@@ -61,23 +75,6 @@ public class DataCentre implements SimulationEventListener {
 		return hosts;
 	}
 	
-	/**
-	 * Get the VMPlacementPolicy in use by this DataCentre to place new VMs
-	 * @return
-	 */
-	public VMPlacementPolicy getVMPlacementPolicy() {
-		return vmPlacementPolicy;
-	}
-	
-	/**
-	 * Set the VMPlacementPolicy to be used by this DataCentre to place new VMs
-	 * onto Hosts
-	 * @param vmPlacementPolicy
-	 */
-	public void setVMPlacementPolicy(VMPlacementPolicy vmPlacementPolicy) {
-		this.vmPlacementPolicy = vmPlacementPolicy;
-	}
-	
 	@Override
 	public void handleEvent(Event e) {
 		//at present, there are no events received by DataCentre. This is left as a hook in case of future need
@@ -93,18 +90,18 @@ public class DataCentre implements SimulationEventListener {
 		for (Host host : hosts) {
 			host.updateMetrics();
 			
-			dcUtilMetric.addHostUse(host.getCpuManager().getCpuInUse(), host.getTotalCpu());
+			dcUtilMetric.addHostUse(host.getResourceManager().getCpuInUse(), host.getTotalCpu());
 		}
 		
 		OptimalPowerRatioMetric.getMetric(simulation, OPTIMAL_POWER_RATIO_METRIC).update(hosts);
 	}
 	
 	/**
-	 * Log information about the DataCentre
+	 * Log state of the DataCentre
 	 */
-	public void logInfo() {
+	public void logState() {
 		for (Host host : hosts) {
-			host.logInfo();
+			host.logState();
 		}
 	}
 	
@@ -114,5 +111,31 @@ public class DataCentre implements SimulationEventListener {
 			power += host.getCurrentPowerConsumption();
 		return power;
 	}
+	
+	/**
+	 * Adds a cluster to the data centre, connecting it to both data and 
+	 * management networks.
+	 */
+	public void addCluster(Cluster cluster) {
+		// Set Data Network.
+		Switch clusterSwitch = cluster.getMainDataSwitch();
+		Link link = new Link(clusterSwitch, dataNetworkSwitch);
+		clusterSwitch.setUpLink(link);
+		dataNetworkSwitch.addPort(link);
+		
+		// Set Management Network.
+		clusterSwitch = cluster.getMainMgmtSwitch();
+		link = new Link(clusterSwitch, mgmtNetworkSwitch);
+		clusterSwitch.setUpLink(link);
+		mgmtNetworkSwitch.addPort(link);
+		
+		clusters.add(cluster);
+	}
+	
+	public ArrayList<Cluster> getClusters() { return clusters; }
+	
+	public Switch getDataNetworkSwitch() { return dataNetworkSwitch; }
+	
+	public Switch getMgmtNetworkSwitch() { return mgmtNetworkSwitch; }
 	
 }
