@@ -44,7 +44,7 @@ public abstract class VmRelocationPolicyGreedy extends Policy {
 	 * Sorts the candidate VMs in the order in which they are to be considered 
 	 * for VM Relocation.
 	 */
-	protected abstract ArrayList<VmStatus> orderSourceVms(ArrayList<VmStatus> sourceVms);
+	protected abstract ArrayList<VmStatus> orderSourceVms(ArrayList<VmStatus> sourceVms, HostData source);
 	
 	/**
 	 * Sorts the source hosts in the order in which they are to be considered 
@@ -86,7 +86,7 @@ public abstract class VmRelocationPolicyGreedy extends Policy {
 		for (HostData source : sources) {
 			
 			boolean found = false;
-			ArrayList<VmStatus> vmList = this.orderSourceVms(source.getCurrentStatus().getVms());
+			ArrayList<VmStatus> vmList = this.orderSourceVms(source.getCurrentStatus().getVms(), source);
 			for (VmStatus vm : vmList) {
 				
 				for (HostData target : targets) {

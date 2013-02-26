@@ -4,8 +4,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 
-import edu.uwo.csd.dcsim.common.Utility;
-import edu.uwo.csd.dcsim.host.Host;
 import edu.uwo.csd.dcsim.management.HostData;
 import edu.uwo.csd.dcsim.management.HostDataComparator;
 import edu.uwo.csd.dcsim.management.HostStatus;
@@ -46,12 +44,11 @@ public class VmRelocationPolicyFFIDDPower extends VmRelocationPolicyGreedy {
 	 * than the CPU load by which the host is stressed.
 	 */
 	@Override
-	protected ArrayList<VmStatus> orderSourceVms(ArrayList<VmStatus> sourceVms) {
+	protected ArrayList<VmStatus> orderSourceVms(ArrayList<VmStatus> sourceVms, HostData source) {
 		ArrayList<VmStatus> sorted = new ArrayList<VmStatus>();
 		
 		// Remove VMs with less CPU load than the CPU load by which the source 
 		// host is stressed.
-		HostData source = sourceVms.get(0).getHost();
 		double cpuExcess = source.getSandboxStatus().getResourcesInUse().getCpu() - source.getHostDescription().getResourceCapacity().getCpu() * this.upperThreshold;
 		for (VmStatus vm : sourceVms)
 			if (vm.getResourcesInUse().getCpu() >= cpuExcess)
