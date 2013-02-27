@@ -59,7 +59,7 @@ public final class Host implements SimulationEventListener {
 	
 	public enum HostState {ON, SUSPENDED, OFF, POWERING_ON, SUSPENDING, POWERING_OFF, FAILED;}
 	private ArrayList<Event> powerOnEventQueue = new ArrayList<Event>();
-	private boolean powerOffAfterMigrations = false;
+	private PowerStateEvent powerOffAfterMigrations = null;
 	
 	private ArrayList<AutonomicManager> autonomicManagers = new ArrayList<AutonomicManager>();
 	
@@ -115,6 +115,17 @@ public final class Host implements SimulationEventListener {
 		//set default state
 		//state = HostState.ON;
 		state = HostState.OFF;
+		
+		//write host description to the trace
+		//FORMAT: 0,#hd,id,cpuCapacity,memCapacity,bwCapacity,storageCapacity,idlePower,peakPower
+		
+		simulation.getTraceLogger().info("#hd," + getId() + "," + this.getTotalCpu() + "," +
+				this.getMemory() + "," + 
+				this.getBandwidth() + "," + 
+				this.getStorage() + "," + 
+				this.getPowerModel().getPowerConsumption(0) + "," +
+				this.getPowerModel().getPowerConsumption(1));
+		
 	}
 	
 	/**
@@ -265,19 +276,19 @@ public final class Host implements SimulationEventListener {
 				if (powerEvent.isComplete()) {
 					completePowerOn();
 				} else {
-					powerOn();
+					powerOn(powerEvent);
 				}
 			} else if (powerEvent.getPowerState() == PowerState.POWER_OFF) {
 				if (powerEvent.isComplete()) {
 					completePowerOff();
 				} else {
-					powerOff();
+					powerOff(powerEvent);
 				}
 			} else if (powerEvent.getPowerState() == PowerState.SUSPEND) {
 				if (powerEvent.isComplete()) {
 					completeSuspend();
 				} else {
-					suspend();
+					suspend(powerEvent);
 				}
 			}
 		} else if (e instanceof MigrateVmEvent) {
@@ -285,9 +296,9 @@ public final class Host implements SimulationEventListener {
 			
 			MigrateVmEvent migrateEvent = (MigrateVmEvent)e;
 			if (migrateEvent.isComplete()) {
-				this.completeMigrationIn(migrateEvent.getVMAllocation(), migrateEvent.getVM(), migrateEvent.getSource());
+				this.completeMigrationIn(migrateEvent);
 			} else {
-				this.migrateIn(migrateEvent.getVMAllocationRequest(), migrateEvent.getVM(), migrateEvent.getSource());
+				this.migrateIn(migrateEvent);
 			}
 			
 		} else {
@@ -310,7 +321,7 @@ public final class Host implements SimulationEventListener {
 	 * VM Allocation
 	 */
 	
-	public void submitVM(VMAllocationRequest vmAllocationRequest) {
+	public VM submitVM(VMAllocationRequest vmAllocationRequest) {
 		
 		VMAllocation newAllocation;
 		
@@ -318,7 +329,6 @@ public final class Host implements SimulationEventListener {
 		try {
 			newAllocation = allocate(vmAllocationRequest);
 		} catch (AllocationFailedException e) {
-//			System.out.println("!!!!! ALLOC FAIL - SUBMIT - Host #" + this.getId());
 			throw new RuntimeException("Allocation failed on Host #" + this.getId() + 
 					" VM submission", e);
 			
@@ -333,6 +343,8 @@ public final class Host implements SimulationEventListener {
 		newVm.setVMAllocation(newAllocation);
 		
 		simulation.getLogger().debug("Host #" + this.getId() + " allocated & created VM #" + newAllocation.getVm().getId());
+		
+		return newVm;
 	}
 
 	
@@ -368,19 +380,6 @@ public final class Host implements SimulationEventListener {
 	 * MIGRATION
 	 */
 	
-	/**
-	 * A helper function which creates a migration event and send it to this host. To be called by another host or management entity
-	 * that wishes to migrate a VM to this host.
-	 * @param vmAllocationRequest
-	 * @param vm
-	 * @param source The host running the VM to be migrated. Note that this may be different than the Event source, since a third entity may trigger the migration.
-	 */
-	public void sendMigrationEvent(VMAllocationRequest vmAllocationRequest, VM vm, Host source) {
-		
-		simulation.sendEvent(new MigrateVmEvent(source, this, vmAllocationRequest, vm));
-
-	}
-	
 	private void markVmForMigration(VM vm) {
 		if (!vmAllocations.contains(vm.getVMAllocation()))
 				throw new IllegalStateException("Attempted to mark VM #" + vm.getId() +" for migration from Host #" + getId() + 
@@ -403,8 +402,12 @@ public final class Host implements SimulationEventListener {
 	 * @param vm
 	 * @param source
 	 */
-	private void migrateIn(VMAllocationRequest vmAllocationRequest, VM vm, Host source) {
+	private void migrateIn(MigrateVmEvent event) {
 
+		VMAllocationRequest vmAllocationRequest = event.getVMAllocationRequest();
+		VM vm = event.getVM();
+		Host source = event.getSource();
+		
 		//verify source
 		if (vm.getVMAllocation().getHost() != source)
 			throw new IllegalStateException("Migration failed: Source (host #" + source.getId() + ") does not match VM (#" + 
@@ -445,7 +448,9 @@ public final class Host implements SimulationEventListener {
 		long timeToMigrate = (long)Math.ceil((((double)vm.getResourcesScheduled().getMemory() * 1024) / ((double)privDomainAllocation.getBandwidth() / 4)) * 1000);
 	
 		//send migration completion message
-		simulation.sendEvent(new MigrateVmEvent(source, this, newAllocation, vm), simulation.getSimulationTime() + timeToMigrate);
+		MigrateVmEvent migCompleteEvent = new MigrateVmEvent(source, this, newAllocation, vm);
+		event.addEventInSequence(migCompleteEvent); //defer completion of the original event until the MigrateVmEvent is complete
+		simulation.sendEvent(migCompleteEvent, simulation.getSimulationTime() + timeToMigrate);
 		
 	}
 	
@@ -476,7 +481,11 @@ public final class Host implements SimulationEventListener {
 	 * @param vm
 	 * @param source
 	 */
-	private void completeMigrationIn(VMAllocation vmAllocation, VM vm, Host source) {
+	private void completeMigrationIn(MigrateVmEvent event) {
+
+		VMAllocation vmAllocation = event.getVMAllocation();
+		VM vm = event.getVM();
+		Host source = event.getSource();
 
 		//first, inform the source host the the VM has completed migrating out
 		source.completeMigrationOut(vm);
@@ -510,8 +519,8 @@ public final class Host implements SimulationEventListener {
 				
 		simulation.getLogger().debug("Host #" + this.getId() + " deallocated migrating out VM #" + vm.getId());
 		
-		if (powerOffAfterMigrations && migratingOut.isEmpty() && pendingOutgoingMigrations.isEmpty())
-			powerOff();
+		if ((powerOffAfterMigrations != null) && migratingOut.isEmpty() && pendingOutgoingMigrations.isEmpty())
+			powerOff(powerOffAfterMigrations);
 
 	}
 	
@@ -519,33 +528,37 @@ public final class Host implements SimulationEventListener {
 	 * HOST STATE OPERATIONS
 	 */
 	
-	public void suspend() {
+	public void suspend(PowerStateEvent event) {
 		if (state != HostState.SUSPENDED && state != HostState.SUSPENDING) {
 			state = HostState.SUSPENDING;
 			long delay = Long.parseLong(Simulation.getProperty("hostSuspendDelay"));
 			
-			simulation.sendEvent(new PowerStateEvent(this, PowerState.SUSPEND, true), simulation.getSimulationTime() + delay);
+			PowerStateEvent completeEvent = new PowerStateEvent(this, PowerState.SUSPEND, true);
+			event.addEventInSequence(completeEvent);
+			simulation.sendEvent(completeEvent, simulation.getSimulationTime() + delay);
 		}
 	}
 	
-	public void powerOff() {
+	public void powerOff(PowerStateEvent event) {
 		if (state != HostState.OFF && state != HostState.POWERING_OFF) {
 			
 			if (migratingOut.size() != 0) {
 				//if migrations are in progress, power off after they are complete
-				powerOffAfterMigrations = true;
+				powerOffAfterMigrations = event;
 			} else {
 				state = HostState.POWERING_OFF;
 				long delay = Long.parseLong(Simulation.getProperty("hostPowerOffDelay"));
 				
-				simulation.sendEvent(new PowerStateEvent(this, PowerState.POWER_OFF, true), simulation.getSimulationTime() + delay);
+				PowerStateEvent completeEvent = new PowerStateEvent(this, PowerState.POWER_OFF, true);
+				event.addEventInSequence(completeEvent);
+				simulation.sendEvent(completeEvent, simulation.getSimulationTime() + delay);
 				
-				powerOffAfterMigrations = false;
+				powerOffAfterMigrations = null;
 			}
 		}
 	}
 	
-	public void powerOn() {
+	public void powerOn(PowerStateEvent event) {
 		if (state != HostState.ON && state != HostState.POWERING_ON) {
 			
 			long delay = 0;
@@ -569,7 +582,9 @@ public final class Host implements SimulationEventListener {
 					break;
 			}
 			
-			simulation.sendEvent(new PowerStateEvent(this, PowerState.POWER_ON, true), simulation.getSimulationTime() + delay);
+			PowerStateEvent completeEvent = new PowerStateEvent(this, PowerState.POWER_ON, true);
+			event.addEventInSequence(completeEvent);
+			simulation.sendEvent(completeEvent, simulation.getSimulationTime() + delay);
 			
 			state = HostState.POWERING_ON;
 			
@@ -617,7 +632,8 @@ public final class Host implements SimulationEventListener {
 	 * If the Host is set to shutdown upon completion its current set of migrations, cancel this shutdown and remain ON.
 	 */
 	public void cancelPendingShutdown() {
-		powerOffAfterMigrations = false;
+		powerOffAfterMigrations.cancelEventInSequence();
+		powerOffAfterMigrations = null;
 	}
 	
 	
@@ -629,38 +645,34 @@ public final class Host implements SimulationEventListener {
 	 */
 	public void logState() {
 
-		if (simulation.getLogger().isDebugEnabled()) {
-			if (state == HostState.ON) {
-				simulation.getLogger().debug("Host #" + getId() + 
-						" CPU[" + (int)Math.round(resourceManager.getCpuInUse()) + "/" + resourceManager.getTotalCpu() + "] " +
-						" BW[" + resourceManager.getAllocatedBandwidth() + "/" + resourceManager.getTotalBandwidth() + "] " +
-						" MEM[" + resourceManager.getAllocatedMemory() + "/" + resourceManager.getTotalMemory() + "] " +
-						" STORAGE[" + resourceManager.getAllocatedStorage() + "/" + resourceManager.getTotalStorage() + "] " +
-						"Power[" + Utility.roundDouble(this.getCurrentPowerConsumption(), 2) + "W]");	
-				privDomainAllocation.getVm().logState();
-			} else {
-				simulation.getLogger().debug("Host #" + getId() + " " + state);
-			}
-			
-			for (VMAllocation vmAllocation : vmAllocations) {
-				if (vmAllocation.getVm() != null) {
-					vmAllocation.getVm().logState();
-				} else {
-					simulation.getLogger().debug("Empty Allocation CPU[" + vmAllocation.getCpu() + "]");
-				}
-			}
-			
-			//VISUALIZATION TOOL OUTPUT TODO REMOVE
-//			simulation.getLogger().debug(",#h," + getId() + "," + state + "," + (int)Math.round(resourceManager.getCpuInUse()) + "," +
-//					resourceManager.getAllocatedBandwidth() + "," + resourceManager.getAllocatedMemory() + "," + resourceManager.getAllocatedStorage() + "," + 
-//					Utility.roundDouble(this.getCurrentPowerConsumption(), 2));
-//			privDomainAllocation.getVm().logState();
-//			
-//			for (VMAllocation vmAllocation : vmAllocations) {
-//				if (vmAllocation.getVm() != null)
-//					vmAllocation.getVm().logState();
-//			}
+		if (state == HostState.ON) {
+			//logger output (human readable) 
+			simulation.getLogger().debug("Host #" + getId() + 
+					" CPU[" + (int)Math.round(resourceManager.getCpuInUse()) + "/" + resourceManager.getTotalCpu() + "] " +
+					" BW[" + resourceManager.getAllocatedBandwidth() + "/" + resourceManager.getTotalBandwidth() + "] " +
+					" MEM[" + resourceManager.getAllocatedMemory() + "/" + resourceManager.getTotalMemory() + "] " +
+					" STORAGE[" + resourceManager.getAllocatedStorage() + "/" + resourceManager.getTotalStorage() + "] " +
+					"Power[" + Utility.roundDouble(this.getCurrentPowerConsumption(), 2) + "W]");	
+		} else {
+			simulation.getLogger().debug("Host #" + getId() + " " + state);
 		}
+		
+		//trace output
+		simulation.getTraceLogger().info("#h," + getId() + "," + state + "," + (int)Math.round(resourceManager.getCpuInUse()) + "," +
+				resourceManager.getAllocatedBandwidth() + "," + resourceManager.getAllocatedMemory() + "," + resourceManager.getAllocatedStorage() + "," + 
+				Utility.roundDouble(this.getCurrentPowerConsumption(), 2));
+		
+		//log priv domain
+		privDomainAllocation.getVm().logState();
+		
+		for (VMAllocation vmAllocation : vmAllocations) {
+			if (vmAllocation.getVm() != null) {
+				vmAllocation.getVm().logState();
+			} else {
+				simulation.getLogger().debug("Empty Allocation CPU[" + vmAllocation.getCpu() + "]");
+			}
+		}
+		
 	}
 	
 	public void updateMetrics() {
@@ -777,6 +789,6 @@ public final class Host implements SimulationEventListener {
 	
 	public double getAverageUtilization() { return utilizationSum / timeActive; }
 	
-	public boolean isShutdownPending() {	return powerOffAfterMigrations; }
+	public boolean isShutdownPending() {	return powerOffAfterMigrations != null; }
 
 }

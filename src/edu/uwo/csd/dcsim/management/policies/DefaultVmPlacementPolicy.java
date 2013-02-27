@@ -1,14 +1,12 @@
 package edu.uwo.csd.dcsim.management.policies;
 
+import java.util.ArrayList;
 import java.util.Collection;
 
-import edu.uwo.csd.dcsim.host.Host;
 import edu.uwo.csd.dcsim.host.Resources;
-import edu.uwo.csd.dcsim.host.events.PowerStateEvent;
-import edu.uwo.csd.dcsim.host.events.PowerStateEvent.PowerState;
 import edu.uwo.csd.dcsim.management.*;
+import edu.uwo.csd.dcsim.management.action.InstantiateVmAction;
 import edu.uwo.csd.dcsim.management.capabilities.HostPoolManager;
-import edu.uwo.csd.dcsim.management.events.InstantiateVmEvent;
 import edu.uwo.csd.dcsim.management.events.ShutdownVmEvent;
 import edu.uwo.csd.dcsim.management.events.VmPlacementEvent;
 import edu.uwo.csd.dcsim.vm.VMAllocationRequest;
@@ -31,8 +29,14 @@ public class DefaultVmPlacementPolicy extends Policy {
 
 		HostPoolManager hostPool = manager.getCapability(HostPoolManager.class);
 		
-		Collection<HostData> hosts = hostPool.getHosts();
-		
+		//filter out invalid host status
+		Collection<HostData> hosts = new ArrayList<HostData>(); 
+		for (HostData host : hostPool.getHosts()) {
+			if (host.isStatusValid()) {
+				hosts.add(host);
+			}
+		}
+				
 		//reset the sandbox host status to the current host status
 		for (HostData host : hosts) {
 			host.resetSandboxStatusToCurrent();
@@ -49,7 +53,7 @@ public class DefaultVmPlacementPolicy extends Policy {
 				reqResources.setMemory(vmAllocationRequest.getMemory());
 				reqResources.setBandwidth(vmAllocationRequest.getBandwidth());
 				reqResources.setStorage(vmAllocationRequest.getStorage());
-	
+
 				if (HostData.canHost(vmAllocationRequest.getVMDescription().getCores(), 
 						vmAllocationRequest.getVMDescription().getCoreCapacity(), 
 						reqResources,
@@ -72,22 +76,12 @@ public class DefaultVmPlacementPolicy extends Policy {
 			}
 			
 			if (allocatedHost != null) {
-				sendVM(vmAllocationRequest, allocatedHost);
+				InstantiateVmAction instantiateVmAction = new InstantiateVmAction(allocatedHost, vmAllocationRequest, event);
+				instantiateVmAction.execute(simulation, this);
 			} else {
 				event.addFailedRequest(vmAllocationRequest); //add a failed request to the event for any event callback listeners to check
 			}
 		}
-	}
-	
-	private long sendVM(VMAllocationRequest vmAllocationRequest, HostData host) {
-		//if the host is not ON or POWERING_ON, then send an event to power on the host
-		if (host.getCurrentStatus().getState() != Host.HostState.ON && host.getCurrentStatus().getState() != Host.HostState.POWERING_ON) {
-			simulation.sendEvent(new PowerStateEvent(host.getHost(), PowerState.POWER_ON));
-			
-		}
-
-		//send event to host to instantiate VM
-		return simulation.sendEvent(new InstantiateVmEvent(host.getHostManager(), vmAllocationRequest));
 	}
 	
 	public void execute(ShutdownVmEvent event) {
@@ -97,7 +91,9 @@ public class DefaultVmPlacementPolicy extends Policy {
 		//mark host status as invalid
 		hostPool.getHost(event.getHostId()).invalidateStatus(simulation.getSimulationTime());
 		
-		simulation.sendEvent(new ShutdownVmEvent(hostManager, event.getHostId(), event.getVmId()));
+		ShutdownVmEvent shutdownEvent = new ShutdownVmEvent(hostManager, event.getHostId(), event.getVmId()); 
+		event.addEventInSequence(shutdownEvent);
+		simulation.sendEvent(shutdownEvent);
 	}
 
 	@Override
