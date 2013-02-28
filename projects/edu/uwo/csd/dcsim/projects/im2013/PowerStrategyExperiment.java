@@ -11,20 +11,20 @@ import edu.uwo.csd.dcsim.management.AutonomicManager;
 import edu.uwo.csd.dcsim.projects.im2013.policies.*;
 
 /**
- * This class serves to test the set of policies that conform the Hybrid Strategy:
+ * This class serves to test the set of policies that conform the Power Strategy:
  * 
- * + VmPlacementPolicyFFMHybrid
- * + VmRelocationPolicyFFIMDHybrid
- * + VmConsolidationPolicyFFDDIHybrid
+ * + VmPlacementPolicyFFDPower
+ * + VmRelocationPolicyFFIDDPower
+ * + VmConsolidationPolicyFFDDIPower
  *   
  * @author Gaston Keller
  *
  */
-public class HybridStrategyExperiment extends SimulationTask {
+public class PowerStrategyExperiment extends SimulationTask {
 
-	private static Logger logger = Logger.getLogger(HybridStrategyExperiment.class);
+	private static Logger logger = Logger.getLogger(PowerStrategyExperiment.class);
 	
-	public HybridStrategyExperiment(String name, long randomSeed) {
+	public PowerStrategyExperiment(String name, long randomSeed) {
 		super(name, SimTime.days(10));					// 10-day simulation
 		this.setMetricRecordStart(SimTime.days(2));		// start on 3rd day (i.e., after 2 days)
 		this.setRandomSeed(randomSeed);
@@ -33,18 +33,18 @@ public class HybridStrategyExperiment extends SimulationTask {
 	@Override
 	public void setup(Simulation simulation) {
 		// Set utilization thresholds.
-		double lower = 0.60;
-		double upper = 0.90;
-		double target = 0.85;
+		double lower = 0.6;
+		double upper = 0.95;	// 0.90
+		double target = 0.90;	// 0.85
 		
 		// Create data centre and its manager.
 		Tuple<DataCentre, AutonomicManager> tuple = IM2013TestEnvironment.createDataCentre(simulation);
 		AutonomicManager dcAM = tuple.b;
 		
 		// Create and install management policies for the data centre.
-		dcAM.installPolicy(new VmPlacementPolicyFFMHybrid(lower, upper, target));
-		dcAM.installPolicy(new VmRelocationPolicyFFIMDHybrid(lower, upper, target), SimTime.minutes(10), SimTime.minutes(10) + 1);
-		dcAM.installPolicy(new VmConsolidationPolicyFFDDIHybrid(lower, upper, target), SimTime.hours(1), SimTime.hours(1) + 2);
+		dcAM.installPolicy(new VmPlacementPolicyFFDPower(lower, upper, target));
+		dcAM.installPolicy(new VmRelocationPolicyFFIDDPower(lower, upper, target), SimTime.minutes(10), SimTime.minutes(10) + 1);
+		dcAM.installPolicy(new VmConsolidationPolicyFFDDIPower(lower, upper, target), SimTime.hours(1), SimTime.hours(1) + 2);
 		
 		// Create and start ServiceProducer.
 //		IM2013TestEnvironment.configureStaticServices(simulation, dcAM);
@@ -59,11 +59,11 @@ public class HybridStrategyExperiment extends SimulationTask {
 		Collection<SimulationTask> completedTasks;
 		SimulationExecutor executor = new SimulationExecutor();
 		
-		executor.addTask(new HybridStrategyExperiment("hybrid-1", 6198910678692541341l));
-//		executor.addTask(new HybridStrategyExperiment("hybrid-2", 5646441053220106016l));
-//		executor.addTask(new HybridStrategyExperiment("hybrid-3", -5705302823151233610l));
-//		executor.addTask(new HybridStrategyExperiment("hybrid-4", 8289672009575825404l));
-//		executor.addTask(new HybridStrategyExperiment("hybrid-5", -4637549055860880177l));
+		executor.addTask(new PowerStrategyExperiment("power-1", 6198910678692541341l));
+//		executor.addTask(new PowerStrategyExperiment("power-2", 5646441053220106016l));
+//		executor.addTask(new PowerStrategyExperiment("power-3", -5705302823151233610l));
+//		executor.addTask(new PowerStrategyExperiment("power-4", 8289672009575825404l));
+//		executor.addTask(new PowerStrategyExperiment("power-5", -4637549055860880177l));
 		
 		completedTasks = executor.execute();
 		
