@@ -6,6 +6,7 @@ import java.util.HashSet;
 
 import edu.uwo.csd.dcsim.common.Utility;
 import edu.uwo.csd.dcsim.host.Host;
+import edu.uwo.csd.dcsim.host.Host.HostState;
 import edu.uwo.csd.dcsim.management.HostData;
 import edu.uwo.csd.dcsim.management.HostStatus;
 import edu.uwo.csd.dcsim.management.Policy;
@@ -69,6 +70,8 @@ public abstract class VmConsolidationPolicyGreedy extends Policy {
 	 * Performs the VM Consolidation process.
 	 */
 	public void execute() {
+		ArrayList<ManagementAction> actions = new ArrayList<ManagementAction>();
+		
 		HostPoolManager hostPool = manager.getCapability(HostPoolManager.class);
 		Collection<HostData> hosts = hostPool.getHosts();
 		
@@ -85,7 +88,16 @@ public abstract class VmConsolidationPolicyGreedy extends Policy {
 		
 		this.classifyHosts(stressed, partiallyUtilized, underUtilized, empty, hosts);
 		
-		// TODO Shut down Empty hosts ???
+		// Shut down Empty hosts. (This addresses the issue of VMs terminating 
+		// and leaving their host empty and powered on.)
+		for (HostData host : empty) {
+			// Ensure that the host is not involved in any migrations and is not powering on.
+			if (host.getCurrentStatus().getIncomingMigrationCount() == 0 && 
+				host.getCurrentStatus().getOutgoingMigrationCount() == 0 && 
+				host.getCurrentStatus().getState() != HostState.POWERING_ON)
+				
+				actions.add(new ShutdownHostAction(host.getHost()));
+		}
 		
 		// Filter out potential source hosts that have incoming migrations.
 		ArrayList<HostData> unsortedSources = new ArrayList<HostData>();
@@ -101,7 +113,6 @@ public abstract class VmConsolidationPolicyGreedy extends Policy {
 		
 		HashSet<HostData> usedSources = new HashSet<HostData>();
 		HashSet<HostData> usedTargets = new HashSet<HostData>();
-		ArrayList<ManagementAction> actions = new ArrayList<ManagementAction>();
 		
 		for (HostData source : sources) {
 			if (!usedTargets.contains(source)) { 	// Check that the source host hasn't been used as a target.
@@ -131,7 +142,7 @@ public abstract class VmConsolidationPolicyGreedy extends Policy {
 									target.getHost(), 
 									vm.getId()));
 							
-							//if the host will be empty after this migration, instruct it to shut down
+							// If the host will be empty after this migration, instruct it to shut down.
 							if (source.getSandboxStatus().getVms().size() == 0) {
 								actions.add(new ShutdownHostAction(source.getHost()));
 							}
@@ -146,7 +157,7 @@ public abstract class VmConsolidationPolicyGreedy extends Policy {
 			}
 		}
 		
-		// Trigger migrations.
+		// Trigger migrations and shutdowns.
 		for (ManagementAction action : actions) {
 			action.execute(simulation, this);
 		}
