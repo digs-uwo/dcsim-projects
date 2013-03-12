@@ -11,8 +11,9 @@ import edu.uwo.csd.dcsim.management.HostData;
 import edu.uwo.csd.dcsim.management.HostStatus;
 import edu.uwo.csd.dcsim.management.Policy;
 import edu.uwo.csd.dcsim.management.VmStatus;
-import edu.uwo.csd.dcsim.management.action.ManagementAction;
+import edu.uwo.csd.dcsim.management.action.ConcurrentManagementActionExecutor;
 import edu.uwo.csd.dcsim.management.action.MigrationAction;
+import edu.uwo.csd.dcsim.management.action.SequentialManagementActionExecutor;
 import edu.uwo.csd.dcsim.management.action.ShutdownHostAction;
 import edu.uwo.csd.dcsim.management.capabilities.HostPoolManager;
 
@@ -70,7 +71,8 @@ public abstract class VmConsolidationPolicyGreedy extends Policy {
 	 * Performs the VM Consolidation process.
 	 */
 	public void execute() {
-		ArrayList<ManagementAction> actions = new ArrayList<ManagementAction>();
+//		ArrayList<ManagementAction> actions = new ArrayList<ManagementAction>();
+		SequentialManagementActionExecutor actionExecutor = new SequentialManagementActionExecutor();
 		
 		HostPoolManager hostPool = manager.getCapability(HostPoolManager.class);
 		Collection<HostData> hosts = hostPool.getHosts();
@@ -90,14 +92,16 @@ public abstract class VmConsolidationPolicyGreedy extends Policy {
 		
 		// Shut down Empty hosts. (This addresses the issue of VMs terminating 
 		// and leaving their host empty and powered on.)
+		ConcurrentManagementActionExecutor shutdownActions = new ConcurrentManagementActionExecutor();
 		for (HostData host : empty) {
 			// Ensure that the host is not involved in any migrations and is not powering on.
 			if (host.getCurrentStatus().getIncomingMigrationCount() == 0 && 
 				host.getCurrentStatus().getOutgoingMigrationCount() == 0 && 
 				host.getCurrentStatus().getState() != HostState.POWERING_ON)
 				
-				actions.add(new ShutdownHostAction(host.getHost()));
+				shutdownActions.addAction(new ShutdownHostAction(host.getHost()));
 		}
+		actionExecutor.addAction(shutdownActions);
 		
 		// Filter out potential source hosts that have incoming migrations.
 		ArrayList<HostData> unsortedSources = new ArrayList<HostData>();
@@ -113,6 +117,9 @@ public abstract class VmConsolidationPolicyGreedy extends Policy {
 		
 		HashSet<HostData> usedSources = new HashSet<HostData>();
 		HashSet<HostData> usedTargets = new HashSet<HostData>();
+		
+		ConcurrentManagementActionExecutor migrations = new ConcurrentManagementActionExecutor();
+		shutdownActions = new ConcurrentManagementActionExecutor();
 		
 		for (HostData source : sources) {
 			if (!usedTargets.contains(source)) { 	// Check that the source host hasn't been used as a target.
@@ -137,14 +144,14 @@ public abstract class VmConsolidationPolicyGreedy extends Policy {
 							source.invalidateStatus(simulation.getSimulationTime());
 							target.invalidateStatus(simulation.getSimulationTime());
 							
-							actions.add(new MigrationAction(source.getHostManager(),
+							migrations.addAction(new MigrationAction(source.getHostManager(),
 									source.getHost(),
 									target.getHost(), 
 									vm.getId()));
 							
 							// If the host will be empty after this migration, instruct it to shut down.
 							if (source.getSandboxStatus().getVms().size() == 0) {
-								actions.add(new ShutdownHostAction(source.getHost()));
+								shutdownActions.addAction(new ShutdownHostAction(source.getHost()));
 							}
 							
 							usedTargets.add(target);
@@ -158,9 +165,9 @@ public abstract class VmConsolidationPolicyGreedy extends Policy {
 		}
 		
 		// Trigger migrations and shutdowns.
-		for (ManagementAction action : actions) {
-			action.execute(simulation, this);
-		}
+		actionExecutor.addAction(migrations);
+		actionExecutor.addAction(shutdownActions);
+		actionExecutor.execute(simulation, this);
 	}
 	
 	/**
