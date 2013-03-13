@@ -4,7 +4,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 
 import edu.uwo.csd.dcsim.host.Host;
+import edu.uwo.csd.dcsim.host.Resources;
 import edu.uwo.csd.dcsim.management.*;
+import edu.uwo.csd.dcsim.management.action.MigrationAction;
 import edu.uwo.csd.dcsim.management.capabilities.*;
 import edu.uwo.csd.dcsim.projects.distributed.capabilities.*;
 import edu.uwo.csd.dcsim.projects.distributed.capabilities.HostManagerBroadcast.ManagementState;
@@ -39,7 +41,7 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 			hostManager.setEvicting(hostManager.getEvicting() - 1);
 			
 			//resend advertise message
-			simulation.sendEvent(new AdvertiseVmEvent(hostManager.getBroadcastingGroup(), hostManager.getEvictingVm()));
+			simulation.sendEvent(new AdvertiseVmEvent(hostManager.getBroadcastingGroup(), hostManager.getEvictingVm(), manager));
 			
 		} else if (hostManager.getManagementState() == ManagementState.SHUTTING_DOWN) {
 			//if shutting down
@@ -74,14 +76,46 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 		} else {
 			//check for received VM advertisements
 			for (AdvertiseVmEvent ad : hostManager.getVmAdvertisements()) {
-				//check if we are capable of hosting this VM
+				Host host = hostManager.getHost();
+				VmStatus vm = ad.getVm();
 				
-				//if yes, then send an accept message
+				//check if we are capable of hosting this VM
+				if (canHost(host, hostStatus, vm) &&
+						(hostStatus.getResourcesInUse().getCpu() + vm.getResourcesInUse().getCpu()) / host.getResourceManager().getTotalCpu() <= target) {
+
+					//send accept message
+					simulation.sendEvent(new AcceptVmEvent(ad.getHostManager(), vm, host));
+
+					//only accept one VM... TODO change this? (will have to modify HostStatus... not a problem)
+					break;
+				}
+
 			}
 		}
 		
 		//clear VM advertisements
 		hostManager.getVmAdvertisements().clear();
+	}
+	
+	private boolean canHost(Host host, HostStatus hostStatus, VmStatus vm) {
+		//check capabilities
+		if (host.getCpuCount() * host.getCoreCount() < vm.getCores() ||
+				host.getCoreCapacity() < vm.getCoreCapacity()) {
+			return false;
+		}
+		
+		//check remaining capacity
+		Resources resourcesInUse = hostStatus.getResourcesInUse();
+		if (host.getResourceManager().getTotalCpu() - resourcesInUse.getCpu() < vm.getResourcesInUse().getCpu())
+			return false;
+		if (host.getResourceManager().getTotalMemory() - resourcesInUse.getMemory() < vm.getResourcesInUse().getMemory())
+			return false;
+		if (host.getResourceManager().getTotalBandwidth() - resourcesInUse.getBandwidth() < vm.getResourcesInUse().getBandwidth())
+			return false;
+		if (host.getResourceManager().getTotalStorage() - resourcesInUse.getStorage() < vm.getResourcesInUse().getStorage())
+			return false;
+		
+		return true;
 	}
 
 	private ArrayList<VmStatus> orderVmsStressed(ArrayList<VmStatus> vms, Host host) {
@@ -131,7 +165,7 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 		hostManager.setEvictingVm(vm);
 				
 		//send advertise message
-		simulation.sendEvent(new AdvertiseVmEvent(hostManager.getBroadcastingGroup(), vm));		
+		simulation.sendEvent(new AdvertiseVmEvent(hostManager.getBroadcastingGroup(), vm, manager));		
 	}
 	
 	private boolean isStressed(HostManagerBroadcast hostManager, HostStatus hostStatus) {
@@ -159,10 +193,20 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 	
 	public void execute(AcceptVmEvent event) {
 		//a Host has accepted your advertised VM
+		HostManagerBroadcast hostManager = manager.getCapability(HostManagerBroadcast.class);
 		
-		//migrate VM
-		
-		//clear eviction counter/data
+		//ensure that this VM is still being advertised
+		if (hostManager.isEvicting() && hostManager.getEvictingVm().equals(event.getVm())) {
+			
+			//trigger migration
+			MigrationAction migAction = new MigrationAction(manager, hostManager.getHost(), event.getHost(), event.getVm().getId());
+			migAction.execute(simulation, this);			
+			
+			//clear eviction state
+			hostManager.setEvicting(0);
+			hostManager.setEvictingVm(null);
+		}
+
 	}
 	
 	public void execute(HostShuttingDownEvent event) {
