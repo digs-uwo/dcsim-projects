@@ -18,6 +18,7 @@ import edu.uwo.csd.dcsim.application.workload.Workload;
 import edu.uwo.csd.dcsim.common.SimTime;
 import edu.uwo.csd.dcsim.common.Tuple;
 import edu.uwo.csd.dcsim.core.Simulation;
+import edu.uwo.csd.dcsim.core.SimulationEventBroadcastGroup;
 import edu.uwo.csd.dcsim.core.metrics.Metric;
 import edu.uwo.csd.dcsim.host.Host;
 import edu.uwo.csd.dcsim.host.HostModels;
@@ -88,6 +89,7 @@ public class DistributedTestEnvironment {
 	private static void createHosts(Simulation simulation, DataCentre dataCentre, AutonomicManager dcAM) {
 		
 		HostPoolManager hostPool = dcAM.getCapability(HostPoolManager.class);
+		SimulationEventBroadcastGroup broadcastingGroup = new SimulationEventBroadcastGroup();
 		
 		for (int i = 0; i < N_HOSTS; ++i) {
 			Host host;
@@ -106,7 +108,9 @@ public class DistributedTestEnvironment {
 				host = proLiantDL160G5E5420.build();
 			}
 			
-			AutonomicManager hostAM = new AutonomicManager(simulation, new HostManagerBroadcast(host));
+			broadcastingGroup.addMember(host);
+			
+			AutonomicManager hostAM = new AutonomicManager(simulation, new HostManagerBroadcast(host, broadcastingGroup));
 			hostAM.installPolicy(new HostOperationsPolicy());
 			hostAM.installPolicy(new HostMonitoringPolicyBroadcast(0.5, 0.9, 0.85), SimTime.minutes(5), 0);
 			

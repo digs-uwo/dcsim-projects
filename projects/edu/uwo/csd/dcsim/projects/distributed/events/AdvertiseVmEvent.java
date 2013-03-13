@@ -1,13 +1,21 @@
 package edu.uwo.csd.dcsim.projects.distributed.events;
 
 import edu.uwo.csd.dcsim.core.SimulationEventListener;
+import edu.uwo.csd.dcsim.management.VmStatus;
 import edu.uwo.csd.dcsim.management.events.MessageEvent;
 
 public class AdvertiseVmEvent extends MessageEvent {
 
-	public AdvertiseVmEvent(SimulationEventListener target) {
+	VmStatus vm;
+	
+	public AdvertiseVmEvent(SimulationEventListener target, VmStatus vm) {
 		super(target);
-		// TODO Auto-generated constructor stub
+		
+		this.vm = vm;
+	}
+	
+	public VmStatus getVm() {
+		return vm;
 	}
 
 }

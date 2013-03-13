@@ -2,17 +2,29 @@ package edu.uwo.csd.dcsim.projects.distributed.capabilities;
 
 import java.util.ArrayList;
 
+import edu.uwo.csd.dcsim.core.SimulationEventBroadcastGroup;
 import edu.uwo.csd.dcsim.host.Host;
 import edu.uwo.csd.dcsim.management.HostStatus;
+import edu.uwo.csd.dcsim.management.VmStatus;
 import edu.uwo.csd.dcsim.management.capabilities.HostManager;
+import edu.uwo.csd.dcsim.projects.distributed.events.AdvertiseVmEvent;
 
 public class HostManagerBroadcast extends HostManager {
 
+	public enum ManagementState {NORMAL, SHUTTING_DOWN;}
+	
+	private SimulationEventBroadcastGroup broadcastingGroup; 
 	private ArrayList<HostStatus> history = new ArrayList<HostStatus>();
 	private int evicting = 0;
+	private VmStatus evictingVm;
+	private ManagementState managementState = ManagementState.NORMAL;
+	private ArrayList<Host> poweredOffHosts = new ArrayList<Host>();
+	private ArrayList<AdvertiseVmEvent> vmAdvertisements = new ArrayList<AdvertiseVmEvent>();
 	
-	public HostManagerBroadcast(Host host) {
+	public HostManagerBroadcast(Host host, SimulationEventBroadcastGroup broadcastingGroup) {
 		super(host);
+		
+		this.broadcastingGroup = broadcastingGroup;
 	}
 	
 	public void addHistoryStatus(HostStatus status, int windowSize) {
@@ -20,6 +32,26 @@ public class HostManagerBroadcast extends HostManager {
 		if (history.size() > windowSize) {
 			history.remove(windowSize - 1);
 		}
+	}
+	
+	public SimulationEventBroadcastGroup getBroadcastingGroup() {
+		return broadcastingGroup;
+	}
+	
+	public ManagementState getManagementState() {
+		return managementState;
+	}
+	
+	public void setManagementState(ManagementState state) {
+		this.managementState = state;
+	}
+	
+	public VmStatus getEvictingVm() {
+		return evictingVm;
+	}
+	
+	public void setEvictingVm(VmStatus evictingVm) {
+		this.evictingVm = evictingVm;
 	}
 	
 	public ArrayList<HostStatus> getHistory() {
@@ -36,6 +68,14 @@ public class HostManagerBroadcast extends HostManager {
 	
 	public void setEvicting(int evicting) {
 		this.evicting = evicting;
+	}
+	
+	public ArrayList<Host> getPoweredOffHosts() {
+		return poweredOffHosts;
+	}
+	
+	public ArrayList<AdvertiseVmEvent> getVmAdvertisements() {
+		return vmAdvertisements;
 	}
 
 }
