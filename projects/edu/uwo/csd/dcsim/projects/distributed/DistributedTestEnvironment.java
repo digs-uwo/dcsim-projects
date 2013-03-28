@@ -31,12 +31,13 @@ import edu.uwo.csd.dcsim.management.policies.HostMonitoringPolicy;
 import edu.uwo.csd.dcsim.management.policies.HostOperationsPolicy;
 import edu.uwo.csd.dcsim.management.policies.HostStatusPolicy;
 import edu.uwo.csd.dcsim.projects.distributed.capabilities.HostManagerBroadcast;
+import edu.uwo.csd.dcsim.projects.distributed.capabilities.HostPoolManagerBroadcast;
 import edu.uwo.csd.dcsim.projects.distributed.policies.HostMonitoringPolicyBroadcast;
 import edu.uwo.csd.dcsim.projects.im2013.IM2013TestEnvironment;
 
 public class DistributedTestEnvironment {
 
-	public static final int N_HOSTS = 200; // 2000
+	public static final int N_HOSTS = 5; // 2000
 	
 	public static final int CPU_OVERHEAD = 200;
 	public static final int[] VM_SIZES = {1500, 2500, 2500};
@@ -71,9 +72,8 @@ public class DistributedTestEnvironment {
 		DataCentre dc = new DataCentre(simulation);
 		simulation.addDatacentre(dc);
 		
-		HostPoolManager hostPool = new HostPoolManager();
+		HostPoolManagerBroadcast hostPool = new HostPoolManagerBroadcast();
 		AutonomicManager dcAM = new AutonomicManager(simulation, hostPool);
-		dcAM.installPolicy(new HostStatusPolicy(5));
 		
 		// Create hosts and add to data centre.
 		createHosts(simulation, dc, dcAM);
@@ -88,8 +88,10 @@ public class DistributedTestEnvironment {
 	 */
 	private static void createHosts(Simulation simulation, DataCentre dataCentre, AutonomicManager dcAM) {
 		
-		HostPoolManager hostPool = dcAM.getCapability(HostPoolManager.class);
+		HostPoolManagerBroadcast hostPool = dcAM.getCapability(HostPoolManagerBroadcast.class);
 		SimulationEventBroadcastGroup broadcastingGroup = new SimulationEventBroadcastGroup();
+		broadcastingGroup.addMember(dcAM);
+		hostPool.setBroadcastingGroup(broadcastingGroup);
 		
 		for (int i = 0; i < N_HOSTS; ++i) {
 			Host host;
@@ -108,21 +110,21 @@ public class DistributedTestEnvironment {
 				host = proLiantDL160G5E5420.build();
 			}
 			
-			broadcastingGroup.addMember(host);
-			
-			AutonomicManager hostAM = new AutonomicManager(simulation, new HostManagerBroadcast(host, broadcastingGroup));
+			//power hosts on by default TODO change
+			host.setState(Host.HostState.ON);
+
+			AutonomicManager hostAM = new AutonomicManager(simulation, new HostManager(host), new HostManagerBroadcast(host, broadcastingGroup));
 			hostAM.installPolicy(new HostOperationsPolicy());
 			hostAM.installPolicy(new HostMonitoringPolicyBroadcast(0.5, 0.9, 0.85), SimTime.minutes(5), 0);
-			
-//			AutonomicManager hostAM = new AutonomicManager(simulation, new HostManager(host));
-//			hostAM.installPolicy(new HostMonitoringPolicy(dcAM), SimTime.minutes(5), SimTime.minutes(simulation.getRandom().nextInt(5)));
-//			hostAM.installPolicy(new HostOperationsPolicy());
 
+			broadcastingGroup.addMember(hostAM);
+			
 			host.installAutonomicManager(hostAM);
 			
 			dataCentre.addHost(host);
-			hostPool.addHost(host, hostAM); //this is the host pool used by the data centre manager
+			hostPool.addHost(host, hostAM);
 		}
+	
 	}
 	
 	/**

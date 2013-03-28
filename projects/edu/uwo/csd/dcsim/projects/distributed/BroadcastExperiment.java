@@ -11,13 +11,14 @@ import edu.uwo.csd.dcsim.common.SimTime;
 import edu.uwo.csd.dcsim.common.Tuple;
 import edu.uwo.csd.dcsim.core.Simulation;
 import edu.uwo.csd.dcsim.management.AutonomicManager;
+import edu.uwo.csd.dcsim.projects.distributed.policies.VmPlacementPolicyBroadcast;
 
 public class BroadcastExperiment extends SimulationTask {
 
 	private static Logger logger = Logger.getLogger(BroadcastExperiment.class);
 	
-	private static final long DURATION = SimTime.days(10);
-	private static final long METRIC_RECORD_START = SimTime.days(2);
+	private static final long DURATION = SimTime.days(5);
+	private static final long METRIC_RECORD_START = SimTime.hours(0);
 	
 	public static void main(String args[]) {
 		Simulation.initializeLogging();
@@ -59,14 +60,14 @@ public class BroadcastExperiment extends SimulationTask {
 		AutonomicManager dcAM = tuple.b;
 		
 		// Create and install management policies for the data centre.
-//		dcAM.installPolicy(new VmPlacementPolicyFFMHybrid(lower, upper, target));
+		dcAM.installPolicy(new VmPlacementPolicyBroadcast());
 //		dcAM.installPolicy(new VmRelocationPolicyFFIMDHybrid(lower, upper, target), SimTime.minutes(10), SimTime.minutes(10) + 1);
 //		dcAM.installPolicy(new VmConsolidationPolicyFFDDIHybrid(lower, upper, target), SimTime.hours(1), SimTime.hours(1) + 2);
 		
 		// Create and start ServiceProducer.
 //		DistributedTestEnvironment.configureStaticServices(simulation, dcAM);
 //		DistributedTestEnvironment.configureDynamicServices(simulation, dcAM);
-		DistributedTestEnvironment.configureRandomServices(simulation, dcAM, 1, 600, 1600);
+		DistributedTestEnvironment.configureRandomServices(simulation, dcAM, 1, 30, 80);
 		
 	}
 

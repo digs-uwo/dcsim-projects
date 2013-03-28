@@ -5,8 +5,11 @@ import java.util.Collections;
 
 import edu.uwo.csd.dcsim.host.Host;
 import edu.uwo.csd.dcsim.host.Resources;
+import edu.uwo.csd.dcsim.host.events.PowerStateEvent;
+import edu.uwo.csd.dcsim.host.events.PowerStateEvent.PowerState;
 import edu.uwo.csd.dcsim.management.*;
 import edu.uwo.csd.dcsim.management.action.MigrationAction;
+import edu.uwo.csd.dcsim.management.action.ShutdownHostAction;
 import edu.uwo.csd.dcsim.management.capabilities.*;
 import edu.uwo.csd.dcsim.projects.distributed.capabilities.*;
 import edu.uwo.csd.dcsim.projects.distributed.capabilities.HostManagerBroadcast.ManagementState;
@@ -21,7 +24,7 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 	private double target;
 	
 	public HostMonitoringPolicyBroadcast(double lower, double upper, double target) {
-		addRequiredCapability(HostManager.class);
+		addRequiredCapability(HostManagerBroadcast.class);
 		
 		this.lower = lower;
 		this.upper = upper;
@@ -47,17 +50,44 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 			//if shutting down
 			
 			//check for failed eviction, if failed, cancel shut down
+			if (hostManager.getEvictingVm() != null) {
+				hostManager.setEvictingVm(null);
+				hostManager.setManagementState(ManagementState.NORMAL);
+			}
 			
 			//if evictions complete, shut down
+			if (hostStatus.getVms().size() != 0) {
+				
+				//sort VMs
+				ArrayList<VmStatus> vmList = orderVmsUnderUtilized(hostStatus.getVms());
+				
+				//evict first VM in list
+				if (!vmList.isEmpty()) {
+					evict(hostManager, vmList.get(0));	
+				}
+				
+			} else {
 			
-			//send shutdown message
-			//simulation.sendEvent(new HostShuttingDownEvent(hostManager.getBroadcastingGroup(), hostManager.getHost()));
+				//send shutdown message
+				simulation.sendEvent(new HostShuttingDownEvent(hostManager.getBroadcastingGroup(), hostManager.getHost()));
+				
+				//shut down
+				ShutdownHostAction shutdownAction = new ShutdownHostAction(hostManager.getHost());
+				shutdownAction.execute(simulation, this);
+			}
 			
 		} else if (isStressed(hostManager, hostStatus)) {
 			//host is stressed, evict a VM
 			
 			//check for failed eviction 
 				//if failed, either try another VM or boot new host and retry eviction
+			if (hostManager.getEvictingVm() != null) {
+				hostManager.setEvictingVm(null);
+				
+				//boot new host
+				Host poweredOffHost = hostManager.getPoweredOffHosts().get(simulation.getRandom().nextInt(hostManager.getPoweredOffHosts().size()));
+				simulation.sendEvent(new PowerStateEvent(poweredOffHost, PowerState.POWER_ON));
+			}
 			
 			//sort VMs
 			ArrayList<VmStatus> vmList = orderVmsStressed(hostStatus.getVms(), hostManager.getHost());
@@ -69,11 +99,24 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 			
 		} else if (isUnderUtilized(hostManager, hostStatus)) {
 			//host is underutilized, decide if should switch to eviction, if so, evict a VM
-			
-			//for now, always switch. TODO add better logic, perhaps a probability, or base it on the number of received other eviction messages
-			//hostManager.setManagementState(ManagementState.SHUTTING_DOWN); 
+			if (simulation.getRandom().nextDouble() < 0.01) {
+				hostManager.setManagementState(ManagementState.SHUTTING_DOWN); 
+				
+				//sort VMs
+				ArrayList<VmStatus> vmList = orderVmsUnderUtilized(hostStatus.getVms());
+				
+				//evict first VM in list
+				if (!vmList.isEmpty()) {
+					evict(hostManager, vmList.get(0));	
+				}
+			}
 
-		} else {
+		} 
+		
+		if (!isStressed(hostManager, hostStatus) && 
+				!(hostManager.getManagementState() == ManagementState.SHUTTING_DOWN) &&
+				!hostManager.isEvicting()) {
+			
 			//check for received VM advertisements
 			for (AdvertiseVmEvent ad : hostManager.getVmAdvertisements()) {
 				Host host = hostManager.getHost();
@@ -84,7 +127,7 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 						(hostStatus.getResourcesInUse().getCpu() + vm.getResourcesInUse().getCpu()) / host.getResourceManager().getTotalCpu() <= target) {
 
 					//send accept message
-					simulation.sendEvent(new AcceptVmEvent(ad.getHostManager(), vm, host));
+					simulation.sendEvent(new AcceptVmEvent(ad.getHostManager(), vm, host, manager));
 
 					//only accept one VM... TODO change this? (will have to modify HostStatus... not a problem)
 					break;
@@ -188,7 +231,9 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 		//received a VM advertisement
 		HostManagerBroadcast hostManager = manager.getCapability(HostManagerBroadcast.class);
 		
-		hostManager.getVmAdvertisements().add(event);
+		//check if event is from this host
+		if (event.getHostManager() != manager)
+			hostManager.getVmAdvertisements().add(event);
 	}
 	
 	public void execute(AcceptVmEvent event) {
@@ -212,7 +257,9 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 	public void execute(HostShuttingDownEvent event) {
 		//store in list of powered off hosts
 		HostManagerBroadcast hostManager = manager.getCapability(HostManagerBroadcast.class);
-		hostManager.getPoweredOffHosts().add(event.getHost());
+		
+		if (event.getHost() != hostManager.getHost())
+			hostManager.getPoweredOffHosts().add(event.getHost());
 	}
 	
 	public void execute(HostPowerOnEvent event) {
