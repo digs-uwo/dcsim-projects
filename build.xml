@@ -27,7 +27,7 @@
             </fileset>
         </copy>
         <copy includeemptydirs="false" todir="bin">
-            <fileset dir="extras">
+            <fileset dir="projects">
                 <exclude name="**/*.java"/>
             </fileset>
         </copy>
@@ -49,7 +49,7 @@
             <classpath refid="dcsim2.classpath"/>
         </javac>
         <javac debug="true" debuglevel="${debuglevel}" destdir="bin" source="${source}" target="${target}">
-            <src path="extras"/>
+            <src path="projects"/>
             <classpath refid="dcsim2.classpath"/>
         </javac>
     </target>
@@ -97,9 +97,9 @@
             <classpath refid="dcsim2.classpath"/>
         </java>
     </target>
-    <target name="StrategyEvaluator">
-        <java classname="edu.uwo.csd.dcsim.extras.experiments.StrategyEvaluator" failonerror="true" fork="yes">
-            <classpath refid="dcsim2.classpath"/>
+    <target name="DynamicServiceSpawning">
+        <java classname="edu.uwo.csd.dcsim.examples.DynamicServiceSpawning" failonerror="true" fork="yes">
+            <classpath refid="dcsim2.classpath" />
         </java>
-    </target>
+    </target>        
 </project>
