@@ -2,6 +2,7 @@ package edu.uwo.csd.dcsim.projects.distributed.policies;
 
 import java.util.Map.Entry;
 
+import edu.uwo.csd.dcsim.core.metrics.CountMetric;
 import edu.uwo.csd.dcsim.host.Host;
 import edu.uwo.csd.dcsim.host.Resources;
 import edu.uwo.csd.dcsim.host.events.PowerStateEvent;
@@ -21,6 +22,10 @@ import edu.uwo.csd.dcsim.vm.VMAllocationRequest;
 
 public class VmPlacementPolicyBroadcast extends Policy {
 
+	public static final String HOST_POWER_ON_METRIC = "hostPowerOn";
+	public static final String SERVICES_RECEIVED = "servicesReceived";
+	public static final String SERVICES_PLACED = "servicesPlaced";
+
 	public VmPlacementPolicyBroadcast() {
 		addRequiredCapability(HostPoolManagerBroadcast.class);
 	}
@@ -39,18 +44,21 @@ public class VmPlacementPolicyBroadcast extends Policy {
 			}
 		}
 		
-		if (bootNewHost) {
+		if (bootNewHost && !hostPool.getPoweredOffHosts().isEmpty()) {
 			for (Entry<VmStatus, Integer> entry : hostPool.getRequestCounter().entrySet()) {
 				entry.setValue(2);
 			}
 			
 			Host poweredOffHost = hostPool.getPoweredOffHosts().get(simulation.getRandom().nextInt(hostPool.getPoweredOffHosts().size()));
 			simulation.sendEvent(new PowerStateEvent(poweredOffHost, PowerState.POWER_ON));
+			CountMetric.getMetric(simulation, HOST_POWER_ON_METRIC + "-" + this.getClass().getSimpleName()).incrementCount();
 		}
 		
 	}
 	
 	public void execute(VmPlacementEvent event) {
+		
+		
 		
 		HostPoolManagerBroadcast hostPool = manager.getCapability(HostPoolManagerBroadcast.class);
 		
@@ -65,10 +73,13 @@ public class VmPlacementPolicyBroadcast extends Policy {
 			VmStatus vm = new VmStatus(request.getVMDescription().getCores(),
 					request.getVMDescription().getCoreCapacity(),
 					resources);
+
 			hostPool.getRequestMap().put(vm, request);
 			hostPool.getRequestCounter().put(vm, 2);
 			
 			simulation.sendEvent(new AdvertiseVmEvent(hostPool.getBroadcastingGroup(), vm, manager));	
+			
+			CountMetric.getMetric(simulation, SERVICES_RECEIVED).incrementCount();
 		}
 	}
 	
@@ -79,6 +90,11 @@ public class VmPlacementPolicyBroadcast extends Policy {
 		if (request != null) {
 			InstantiateVmEvent instantiateEvent = new InstantiateVmEvent(event.getHostManager(), request);
 			simulation.sendEvent(instantiateEvent);
+			
+			hostPool.getRequestMap().remove(event.getVm());
+			hostPool.getRequestCounter().remove(event.getVm());
+			
+			CountMetric.getMetric(simulation, SERVICES_PLACED).incrementCount();
 		}
 		
 	}

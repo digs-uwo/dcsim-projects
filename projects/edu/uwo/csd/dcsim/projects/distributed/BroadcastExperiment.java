@@ -60,7 +60,7 @@ public class BroadcastExperiment extends SimulationTask {
 		AutonomicManager dcAM = tuple.b;
 		
 		// Create and install management policies for the data centre.
-		dcAM.installPolicy(new VmPlacementPolicyBroadcast());
+		dcAM.installPolicy(new VmPlacementPolicyBroadcast(), SimTime.minutes(5), 0);
 //		dcAM.installPolicy(new VmRelocationPolicyFFIMDHybrid(lower, upper, target), SimTime.minutes(10), SimTime.minutes(10) + 1);
 //		dcAM.installPolicy(new VmConsolidationPolicyFFDDIHybrid(lower, upper, target), SimTime.hours(1), SimTime.hours(1) + 2);
 		

@@ -3,6 +3,7 @@ package edu.uwo.csd.dcsim.projects.distributed.policies;
 import java.util.ArrayList;
 import java.util.Collections;
 
+import edu.uwo.csd.dcsim.core.metrics.CountMetric;
 import edu.uwo.csd.dcsim.host.Host;
 import edu.uwo.csd.dcsim.host.Resources;
 import edu.uwo.csd.dcsim.host.events.PowerStateEvent;
@@ -38,13 +39,53 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 		HostStatus hostStatus = new HostStatus(hostManager.getHost(), simulation.getSimulationTime());
 		hostManager.addHistoryStatus(hostStatus, 5);
 		
+		//if a migration is pending, wait until it is complete
+		if ((hostStatus.getIncomingMigrationCount() > 0) || (hostStatus.getOutgoingMigrationCount() > 0)) return;
+		
 		//if evicting, wait until eviction counter runs out
 		if (hostManager.isEvicting()) {
-			//decrement evicting counter
-			hostManager.setEvicting(hostManager.getEvicting() - 1);
 			
-			//resend advertise message
-			simulation.sendEvent(new AdvertiseVmEvent(hostManager.getBroadcastingGroup(), hostManager.getEvictingVm(), manager));
+			//check for accepts
+			if (hostManager.getVmAccepts().size() > 0) {
+				
+				//double check that the VM is still running on the host (could have terminated)
+				if (hostManager.getHost().getVMAllocation(hostManager.getEvictingVm().getId()) == null) {
+					
+					//clear eviction state
+					hostManager.setEvicting(0);
+					hostManager.setEvictingVm(null);
+					
+				} else {
+
+					//accept the request from the host with the highest utilization
+					AcceptVmEvent target = null;
+					double targetUtil = -1;
+					for (AcceptVmEvent acceptEvent : hostManager.getVmAccepts()) {
+						double util = acceptEvent.getHostStatus().getResourcesInUse().getCpu() / acceptEvent.getHost().getTotalCpu();
+						if (util > targetUtil)
+							target = acceptEvent;
+					}
+					if (target != null) {
+						//trigger migration
+						MigrationAction migAction = new MigrationAction(manager, hostManager.getHost(), target.getHost(), target.getVm().getId());
+						migAction.execute(simulation, this);			
+						
+						//clear eviction state
+						hostManager.setEvicting(0);
+						hostManager.setEvictingVm(null);
+					}
+				
+				}
+				//clear VM accepts
+				hostManager.getVmAccepts().clear();
+				
+			} else {
+				//decrement evicting counter
+				hostManager.setEvicting(hostManager.getEvicting() - 1);
+				
+				//resend advertise message
+				simulation.sendEvent(new AdvertiseVmEvent(hostManager.getBroadcastingGroup(), hostManager.getEvictingVm(), manager));
+			}
 			
 		} else if (hostManager.getManagementState() == ManagementState.SHUTTING_DOWN) {
 			//if shutting down
@@ -78,6 +119,7 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 			
 		} else if (isStressed(hostManager, hostStatus)) {
 			//host is stressed, evict a VM
+			System.out.println("Stressed!");
 			
 			//check for failed eviction 
 				//if failed, either try another VM or boot new host and retry eviction
@@ -87,6 +129,8 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 				//boot new host
 				Host poweredOffHost = hostManager.getPoweredOffHosts().get(simulation.getRandom().nextInt(hostManager.getPoweredOffHosts().size()));
 				simulation.sendEvent(new PowerStateEvent(poweredOffHost, PowerState.POWER_ON));
+				
+				CountMetric.getMetric(simulation, VmPlacementPolicyBroadcast.HOST_POWER_ON_METRIC + "-" + this.getClass().getSimpleName()).incrementCount();
 			}
 			
 			//sort VMs
@@ -115,7 +159,9 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 		
 		if (!isStressed(hostManager, hostStatus) && 
 				!(hostManager.getManagementState() == ManagementState.SHUTTING_DOWN) &&
-				!hostManager.isEvicting()) {
+				!hostManager.isEvicting() &&
+				!(hostStatus.getIncomingMigrationCount() > 0) &&
+				!(hostStatus.getOutgoingMigrationCount() > 0)) {
 			
 			//check for received VM advertisements
 			for (AdvertiseVmEvent ad : hostManager.getVmAdvertisements()) {
@@ -127,7 +173,7 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 						(hostStatus.getResourcesInUse().getCpu() + vm.getResourcesInUse().getCpu()) / host.getResourceManager().getTotalCpu() <= target) {
 
 					//send accept message
-					simulation.sendEvent(new AcceptVmEvent(ad.getHostManager(), vm, host, manager));
+					simulation.sendEvent(new AcceptVmEvent(ad.getHostManager(), vm, host, manager, hostStatus));
 
 					//only accept one VM... TODO change this? (will have to modify HostStatus... not a problem)
 					break;
@@ -243,13 +289,7 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 		//ensure that this VM is still being advertised
 		if (hostManager.isEvicting() && hostManager.getEvictingVm().equals(event.getVm())) {
 			
-			//trigger migration
-			MigrationAction migAction = new MigrationAction(manager, hostManager.getHost(), event.getHost(), event.getVm().getId());
-			migAction.execute(simulation, this);			
-			
-			//clear eviction state
-			hostManager.setEvicting(0);
-			hostManager.setEvictingVm(null);
+			hostManager.getVmAccepts().add(event);
 		}
 
 	}
@@ -279,12 +319,14 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 		//send power on message
 		HostManagerBroadcast hostManager = manager.getCapability(HostManagerBroadcast.class);
 		
+		hostManager.setManagementState(ManagementState.NORMAL);
+		
 		simulation.sendEvent(new HostPowerOnEvent(hostManager.getBroadcastingGroup(), hostManager.getHost()));
 	}
 
 	@Override
 	public void onManagerStop() {
-		
+
 	}
 
 }
