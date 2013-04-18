@@ -18,7 +18,7 @@ public class BroadcastExperiment extends SimulationTask {
 	private static Logger logger = Logger.getLogger(BroadcastExperiment.class);
 	
 	private static final long DURATION = SimTime.days(5);
-	private static final long METRIC_RECORD_START = SimTime.hours(0);
+	private static final long METRIC_RECORD_START = SimTime.days(1);
 	
 	public static void main(String args[]) {
 		Simulation.initializeLogging();
@@ -67,7 +67,7 @@ public class BroadcastExperiment extends SimulationTask {
 		// Create and start ServiceProducer.
 //		DistributedTestEnvironment.configureStaticServices(simulation, dcAM);
 //		DistributedTestEnvironment.configureDynamicServices(simulation, dcAM);
-		DistributedTestEnvironment.configureRandomServices(simulation, dcAM, 1, 30, 80);
+		DistributedTestEnvironment.configureRandomServices(simulation, dcAM, 1, 100, 350);
 		
 	}
 

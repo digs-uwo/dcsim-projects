@@ -37,7 +37,7 @@ import edu.uwo.csd.dcsim.projects.im2013.IM2013TestEnvironment;
 
 public class DistributedTestEnvironment {
 
-	public static final int N_HOSTS = 200; // 2000
+	public static final int N_HOSTS = 50; // 2000
 	
 	public static final int CPU_OVERHEAD = 200;
 	public static final int[] VM_SIZES = {1500, 2500, 2500};
@@ -116,7 +116,7 @@ public class DistributedTestEnvironment {
 			AutonomicManager hostAM = new AutonomicManager(simulation, new HostManager(host), new HostManagerBroadcast(host, broadcastingGroup));
 			hostAM.installPolicy(new HostOperationsPolicy());
 			//hostAM.installPolicy(new HostMonitoringPolicyBroadcast(0.5, 0.9, 0.85), SimTime.minutes(5), 0);
-			hostAM.installPolicy(new HostMonitoringPolicyBroadcast(0.5, 0.9, 0.85), SimTime.minutes(5), simulation.getRandom().nextInt((int)SimTime.minutes(5)));
+			hostAM.installPolicy(new HostMonitoringPolicyBroadcast(0.6, 0.9, 0.85), SimTime.minutes(5), simulation.getRandom().nextInt((int)SimTime.minutes(5)));
 
 			broadcastingGroup.addMember(hostAM);
 			

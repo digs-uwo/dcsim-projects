@@ -32,7 +32,9 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 		this.target = target;
 	}
 	
-	//executes on a regular interval to check host status, and take possible action
+	/**
+	 * Execute on a regular interval, handling the operation of the host
+	 */
 	public void execute() {
 		HostManagerBroadcast hostManager = manager.getCapability(HostManagerBroadcast.class);
 		
@@ -42,7 +44,12 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 		//if a migration is pending, wait until it is complete
 		if ((hostStatus.getIncomingMigrationCount() > 0) || (hostStatus.getOutgoingMigrationCount() > 0)) return;
 		
-		//if evicting, wait until eviction counter runs out
+		
+		/*
+		 * EVICTING
+		 * 
+		 * If evicting a VM, wait until the eviction counter runs out.
+		 */
 		if (hostManager.isEvicting()) {
 			
 			//check for accepts
@@ -86,8 +93,15 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 				//resend advertise message
 				simulation.sendEvent(new AdvertiseVmEvent(hostManager.getBroadcastingGroup(), hostManager.getEvictingVm(), manager));
 			}
+		}
 			
-		} else if (hostManager.getManagementState() == ManagementState.SHUTTING_DOWN) {
+		/*
+		 * SHUTTING DOWN 
+		 * 
+		 * Evict all VMs and shut down, or cancel shut down if cannot evict a VM
+		 * 
+		 */
+		else if (hostManager.getManagementState() == ManagementState.SHUTTING_DOWN) {
 			//if shutting down
 			
 			//check for failed eviction, if failed, cancel shut down
@@ -115,11 +129,19 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 				//shut down
 				ShutdownHostAction shutdownAction = new ShutdownHostAction(hostManager.getHost());
 				shutdownAction.execute(simulation, this);
+				
 			}
 			
-		} else if (isStressed(hostManager, hostStatus)) {
+		} 
+		
+		/*
+		 * STRESSED (detect stressed state)
+		 * 
+		 * Trigger a VM eviction
+		 *  
+		 */
+		else if (isStressed(hostManager, hostStatus)) {
 			//host is stressed, evict a VM
-			System.out.println("Stressed!");
 			
 			//check for failed eviction 
 				//if failed, either try another VM or boot new host and retry eviction
@@ -141,7 +163,15 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 				evict(hostManager, vmList.get(0));	
 			}
 			
-		} else if (isUnderUtilized(hostManager, hostStatus)) {
+		} 
+		
+		/*
+		 * UNDERUTILIZED (detect underutilized state)
+		 *
+		 * Decide whether or not to switch into SHUTDOWN
+		 */
+		
+		else if (isUnderUtilized(hostManager, hostStatus)) {
 			//host is underutilized, decide if should switch to eviction, if so, evict a VM
 			if (simulation.getRandom().nextDouble() < 0.01) {
 				hostManager.setManagementState(ManagementState.SHUTTING_DOWN); 
@@ -157,6 +187,12 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 
 		} 
 		
+		/*
+		 * NORMAL STATE (no evictions, not shutting down, not stressed, no current migrations... note the host COULD be underutilized, though)
+		 * 
+		 * Check for received VM advertisements, respond if possible
+		 * 
+		 */
 		if (!isStressed(hostManager, hostStatus) && 
 				!(hostManager.getManagementState() == ManagementState.SHUTTING_DOWN) &&
 				!hostManager.isEvicting() &&
@@ -186,27 +222,59 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 		hostManager.getVmAdvertisements().clear();
 	}
 	
-	private boolean canHost(Host host, HostStatus hostStatus, VmStatus vm) {
-		//check capabilities
-		if (host.getCpuCount() * host.getCoreCount() < vm.getCores() ||
-				host.getCoreCapacity() < vm.getCoreCapacity()) {
-			return false;
-		}
-		
-		//check remaining capacity
-		Resources resourcesInUse = hostStatus.getResourcesInUse();
-		if (host.getResourceManager().getTotalCpu() - resourcesInUse.getCpu() < vm.getResourcesInUse().getCpu())
-			return false;
-		if (host.getResourceManager().getTotalMemory() - resourcesInUse.getMemory() < vm.getResourcesInUse().getMemory())
-			return false;
-		if (host.getResourceManager().getTotalBandwidth() - resourcesInUse.getBandwidth() < vm.getResourcesInUse().getBandwidth())
-			return false;
-		if (host.getResourceManager().getTotalStorage() - resourcesInUse.getStorage() < vm.getResourcesInUse().getStorage())
-			return false;
-		
-		return true;
+	/**
+	 * Evict a single VM from this host
+	 * 
+	 * @param hostManager
+	 * @param vm
+	 */
+	private void evict(HostManagerBroadcast hostManager, VmStatus vm) {
+		//setup eviction counter/data
+		hostManager.setEvicting(EVICTION_TIMEOUT);
+		hostManager.setEvictingVm(vm);
+				
+		//send advertise message
+		simulation.sendEvent(new AdvertiseVmEvent(hostManager.getBroadcastingGroup(), vm, manager));		
 	}
+	
+	/**
+	 * Determine if the host is 'stressed'
+	 * 
+	 * @param hostManager
+	 * @param hostStatus
+	 * @return
+	 */
+	private boolean isStressed(HostManagerBroadcast hostManager, HostStatus hostStatus) {
+		//TODO change to use average over history
+		if (hostManager.getHost().getResourceManager().getCpuInUse() / hostManager.getHost().getTotalCpu() > upper) {
+			return true;
+		}
+		return false;
+	}
+	
+	/**
+	 * Determine if the host is 'underutilized'
+	 * 
+	 * @param hostManager
+	 * @param hostStatus
+	 * @return
+	 */
+	private boolean isUnderUtilized(HostManagerBroadcast hostManager, HostStatus hostStatus) {
+		//TODO change to use average over history
+		if (hostManager.getHost().getResourceManager().getCpuInUse() / hostManager.getHost().getTotalCpu() < lower) {
+			return true;
+		}
+		return false;
+	}
+	
 
+	/**
+	 * Order VMs for eviction, in the case this host is 'stressed'
+	 * 
+	 * @param vms
+	 * @param host
+	 * @return
+	 */
 	private ArrayList<VmStatus> orderVmsStressed(ArrayList<VmStatus> vms, Host host) {
 		ArrayList<VmStatus> sorted = new ArrayList<VmStatus>();
 		
@@ -232,6 +300,12 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 		return sorted;
 	}
 	
+	/**
+	 * Order VMs for evict, in the case this host is 'underutilized'
+	 * 
+	 * @param vms
+	 * @return
+	 */
 	private ArrayList<VmStatus> orderVmsUnderUtilized(ArrayList<VmStatus> vms) {
 		ArrayList<VmStatus> sources = new ArrayList<VmStatus>(vms);
 		
@@ -248,31 +322,12 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 		return sources;
 	}
 	
-	private void evict(HostManagerBroadcast hostManager, VmStatus vm) {
-		//setup eviction counter/data
-		hostManager.setEvicting(EVICTION_TIMEOUT);
-		hostManager.setEvictingVm(vm);
-				
-		//send advertise message
-		simulation.sendEvent(new AdvertiseVmEvent(hostManager.getBroadcastingGroup(), vm, manager));		
-	}
-	
-	private boolean isStressed(HostManagerBroadcast hostManager, HostStatus hostStatus) {
-		//TODO change to use average over history
-		if (hostManager.getHost().getResourceManager().getCpuInUse() / hostManager.getHost().getTotalCpu() > upper) {
-			return true;
-		}
-		return false;
-	}
-	
-	private boolean isUnderUtilized(HostManagerBroadcast hostManager, HostStatus hostStatus) {
-		//TODO change to use average over history
-		if (hostManager.getHost().getResourceManager().getCpuInUse() / hostManager.getHost().getTotalCpu() < lower) {
-			return true;
-		}
-		return false;
-	}
-	
+
+	/**
+	 * Receive a VM advertisement message
+	 * 
+	 * @param event
+	 */
 	public void execute(AdvertiseVmEvent event) {
 		//received a VM advertisement
 		HostManagerBroadcast hostManager = manager.getCapability(HostManagerBroadcast.class);
@@ -282,6 +337,11 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 			hostManager.getVmAdvertisements().add(event);
 	}
 	
+	/**
+	 * Receive a VM accept message
+	 * 
+	 * @param event
+	 */
 	public void execute(AcceptVmEvent event) {
 		//a Host has accepted your advertised VM
 		HostManagerBroadcast hostManager = manager.getCapability(HostManagerBroadcast.class);
@@ -294,6 +354,11 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 
 	}
 	
+	/**
+	 * Receive a Host Shutting Down event, indicating that another host has shut itself down
+	 * 
+	 * @param event
+	 */
 	public void execute(HostShuttingDownEvent event) {
 		//store in list of powered off hosts
 		HostManagerBroadcast hostManager = manager.getCapability(HostManagerBroadcast.class);
@@ -302,10 +367,44 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 			hostManager.getPoweredOffHosts().add(event.getHost());
 	}
 	
+	/**
+	 * Receive a Host Power On event, indicating that another host has powered on
+	 * 
+	 * @param event
+	 */
 	public void execute(HostPowerOnEvent event) {
 		//remove from list of powered off hosts
 		HostManagerBroadcast hostManager = manager.getCapability(HostManagerBroadcast.class);
 		hostManager.getPoweredOffHosts().remove(event.getHost());
+	}
+	
+	/**
+	 * Determine if this host is capable of hosting the given VM
+	 * 
+	 * @param host
+	 * @param hostStatus
+	 * @param vm
+	 * @return
+	 */
+	private boolean canHost(Host host, HostStatus hostStatus, VmStatus vm) {
+		//check capabilities
+		if (host.getCpuCount() * host.getCoreCount() < vm.getCores() ||
+				host.getCoreCapacity() < vm.getCoreCapacity()) {
+			return false;
+		}
+		
+		//check remaining capacity
+		Resources resourcesInUse = hostStatus.getResourcesInUse();
+		if (host.getResourceManager().getTotalCpu() - resourcesInUse.getCpu() < vm.getResourcesInUse().getCpu())
+			return false;
+		if (host.getResourceManager().getTotalMemory() - resourcesInUse.getMemory() < vm.getResourcesInUse().getMemory())
+			return false;
+		if (host.getResourceManager().getTotalBandwidth() - resourcesInUse.getBandwidth() < vm.getResourcesInUse().getBandwidth())
+			return false;
+		if (host.getResourceManager().getTotalStorage() - resourcesInUse.getStorage() < vm.getResourcesInUse().getStorage())
+			return false;
+		
+		return true;
 	}
 	
 	@Override
