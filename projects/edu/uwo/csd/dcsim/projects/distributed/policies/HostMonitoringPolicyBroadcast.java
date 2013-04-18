@@ -38,6 +38,9 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 	public void execute() {
 		HostManagerBroadcast hostManager = manager.getCapability(HostManagerBroadcast.class);
 		
+		/*
+		 * Monitoring
+		 */
 		HostStatus hostStatus = new HostStatus(hostManager.getHost(), simulation.getSimulationTime());
 		hostManager.addHistoryStatus(hostStatus, 5);
 		
@@ -140,7 +143,7 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 		 * Trigger a VM eviction
 		 *  
 		 */
-		else if (isStressed(hostManager, hostStatus)) {
+		else if (isStressed(hostManager)) {
 			//host is stressed, evict a VM
 			
 			//check for failed eviction 
@@ -193,7 +196,7 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 		 * Check for received VM advertisements, respond if possible
 		 * 
 		 */
-		if (!isStressed(hostManager, hostStatus) && 
+		if (!isStressed(hostManager) && 
 				!(hostManager.getManagementState() == ManagementState.SHUTTING_DOWN) &&
 				!hostManager.isEvicting() &&
 				!(hostStatus.getIncomingMigrationCount() > 0) &&
@@ -244,9 +247,8 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 	 * @param hostStatus
 	 * @return
 	 */
-	private boolean isStressed(HostManagerBroadcast hostManager, HostStatus hostStatus) {
-		//TODO change to use average over history
-		if (hostManager.getHost().getResourceManager().getCpuInUse() / hostManager.getHost().getTotalCpu() > upper) {
+	private boolean isStressed(HostManagerBroadcast hostManager) {
+		if (getAvgCpuUtil(hostManager) > upper) {
 			return true;
 		}
 		return false;
@@ -260,14 +262,24 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 	 * @return
 	 */
 	private boolean isUnderUtilized(HostManagerBroadcast hostManager, HostStatus hostStatus) {
-		//TODO change to use average over history
-		if (hostManager.getHost().getResourceManager().getCpuInUse() / hostManager.getHost().getTotalCpu() < lower) {
+		if (getAvgCpuUtil(hostManager) < lower) {
 			return true;
 		}
 		return false;
 	}
 	
 
+	private double getAvgCpuUtil(HostManagerBroadcast hostManager) {
+		double avgCpu = 0;
+		for (HostStatus status : hostManager.getHistory()) {
+			avgCpu += status.getResourcesInUse().getCpu();
+		}
+		avgCpu = avgCpu / hostManager.getHistory().size();
+		avgCpu = avgCpu / hostManager.getHost().getTotalCpu();
+		
+		return avgCpu;
+	}
+	
 	/**
 	 * Order VMs for eviction, in the case this host is 'stressed'
 	 * 
@@ -419,6 +431,7 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 		HostManagerBroadcast hostManager = manager.getCapability(HostManagerBroadcast.class);
 		
 		hostManager.setManagementState(ManagementState.NORMAL);
+		hostManager.getHistory().clear(); //clear monitoring history
 		
 		simulation.sendEvent(new HostPowerOnEvent(hostManager.getBroadcastingGroup(), hostManager.getHost()));
 	}
