@@ -239,7 +239,7 @@ public final class Host implements SimulationEventListener {
 		/**if the Host is in the process of powering on, queue any received events. This effectively
 		 * simulates the event sender retrying until the host has powered on, in a simplified fashion.
 		 */
-		
+
 		//determine if we should queue the event (all events except the POWER_ON completion event are queued
 		boolean queueEvent = false; //assume no queuing
 		if (state == Host.HostState.POWERING_ON) {
@@ -300,7 +300,8 @@ public final class Host implements SimulationEventListener {
 			} else {
 				this.migrateIn(migrateEvent);
 			}
-			
+		} else if (e instanceof SubmitVmEvent) {
+			submitVm((SubmitVmEvent)e);
 		} else {
 			//unknown event
 			throw new RuntimeException("Host #" + getId() + " received unknown event type "+ e.getClass());
@@ -321,7 +322,9 @@ public final class Host implements SimulationEventListener {
 	 * VM Allocation
 	 */
 	
-	public VM submitVM(VMAllocationRequest vmAllocationRequest) {
+	public void submitVm(SubmitVmEvent event) {
+		
+		VMAllocationRequest vmAllocationRequest = event.getVmAllocationRequest();
 		
 		VMAllocation newAllocation;
 		
@@ -342,9 +345,8 @@ public final class Host implements SimulationEventListener {
 		newAllocation.setVm(newVm);
 		newVm.setVMAllocation(newAllocation);
 		
-		simulation.getLogger().debug("Host #" + this.getId() + " allocated & created VM #" + newAllocation.getVm().getId());
-		
-		return newVm;
+		simulation.getLogger().debug(simulation.getSimulationTime() + " Host #" + this.getId() + " allocated & created VM #" + newAllocation.getVm().getId());
+		simulation.getTraceLogger().info("#vs," + newVm.getId() + "," + newVm.getVMAllocation().getHost().getId());
 	}
 
 	
@@ -559,6 +561,7 @@ public final class Host implements SimulationEventListener {
 	}
 	
 	public void powerOn(PowerStateEvent event) {
+
 		if (state != HostState.ON && state != HostState.POWERING_ON) {
 			
 			long delay = 0;

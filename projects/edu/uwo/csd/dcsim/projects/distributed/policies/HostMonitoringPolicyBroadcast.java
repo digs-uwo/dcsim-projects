@@ -60,7 +60,6 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 				
 				//double check that the VM is still running on the host (could have terminated)
 				if (hostManager.getHost().getVMAllocation(hostManager.getEvictingVm().getId()) == null) {
-					
 					//clear eviction state
 					hostManager.setEvicting(0);
 					hostManager.setEvictingVm(null);
@@ -72,10 +71,28 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 					double targetUtil = -1;
 					for (AcceptVmEvent acceptEvent : hostManager.getVmAccepts()) {
 						double util = acceptEvent.getHostStatus().getResourcesInUse().getCpu() / acceptEvent.getHost().getTotalCpu();
-						if (util > targetUtil)
+						if (util > targetUtil) {
 							target = acceptEvent;
+							targetUtil = util;
+						}
 					}
+					//accept the request from the host with the lowest utilization above the lower threshold, if possible
+//					for (AcceptVmEvent acceptEvent : hostManager.getVmAccepts()) {
+//						double util = acceptEvent.getHostStatus().getResourcesInUse().getCpu() / acceptEvent.getHost().getTotalCpu();
+//						if (targetUtil == -1) {
+//							target = acceptEvent;
+//							targetUtil = util;
+//						} else if (util < targetUtil && util >= lower) {
+//							target = acceptEvent;
+//							targetUtil = util;
+//						} else if (util > targetUtil && targetUtil < lower) {
+//							target = acceptEvent;
+//							targetUtil = util;
+//						}
+//					}
+					
 					if (target != null) {
+
 						//trigger migration
 						MigrationAction migAction = new MigrationAction(manager, hostManager.getHost(), target.getHost(), target.getVm().getId());
 						migAction.execute(simulation, this);			
@@ -90,6 +107,7 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 				hostManager.getVmAccepts().clear();
 				
 			} else {
+				
 				//decrement evicting counter
 				hostManager.setEvicting(hostManager.getEvicting() - 1);
 				
@@ -150,12 +168,14 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 				//if failed, either try another VM or boot new host and retry eviction
 			if (hostManager.getEvictingVm() != null) {
 				hostManager.setEvictingVm(null);
-				
+
 				//boot new host
-				Host poweredOffHost = hostManager.getPoweredOffHosts().get(simulation.getRandom().nextInt(hostManager.getPoweredOffHosts().size()));
-				simulation.sendEvent(new PowerStateEvent(poweredOffHost, PowerState.POWER_ON));
-				
-				CountMetric.getMetric(simulation, VmPlacementPolicyBroadcast.HOST_POWER_ON_METRIC + "-" + this.getClass().getSimpleName()).incrementCount();
+				if (hostManager.getPoweredOffHosts().size() > 0) {
+					Host poweredOffHost = hostManager.getPoweredOffHosts().get(simulation.getRandom().nextInt(hostManager.getPoweredOffHosts().size()));
+					simulation.sendEvent(new PowerStateEvent(poweredOffHost, PowerState.POWER_ON));
+					
+					CountMetric.getMetric(simulation, VmPlacementPolicyBroadcast.HOST_POWER_ON_METRIC + "-" + this.getClass().getSimpleName()).incrementCount();
+				}
 			}
 			
 			//sort VMs
@@ -176,7 +196,7 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 		
 		else if (isUnderUtilized(hostManager, hostStatus)) {
 			//host is underutilized, decide if should switch to eviction, if so, evict a VM
-			if (simulation.getRandom().nextDouble() < 0.01) {
+			if (simulation.getRandom().nextDouble() < 0.005) {
 				hostManager.setManagementState(ManagementState.SHUTTING_DOWN); 
 				
 				//sort VMs
@@ -232,6 +252,7 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 	 * @param vm
 	 */
 	private void evict(HostManagerBroadcast hostManager, VmStatus vm) {
+
 		//setup eviction counter/data
 		hostManager.setEvicting(EVICTION_TIMEOUT);
 		hostManager.setEvictingVm(vm);
@@ -278,6 +299,10 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 		avgCpu = avgCpu / hostManager.getHost().getTotalCpu();
 		
 		return avgCpu;
+	}
+	
+	private double getCpuUtil(HostManagerBroadcast hostManager) {
+		return hostManager.getHistory().get(0).getResourcesInUse().getCpu() / hostManager.getHost().getTotalCpu();
 	}
 	
 	/**

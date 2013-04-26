@@ -49,7 +49,7 @@ public class HybridStrategyExperiment extends SimulationTask {
 		// Create and start ServiceProducer.
 //		IM2013TestEnvironment.configureStaticServices(simulation, dcAM);
 //		IM2013TestEnvironment.configureDynamicServices(simulation, dcAM);
-		IM2013TestEnvironment.configureRandomServices(simulation, dcAM, 1, 600, 1600);
+		IM2013TestEnvironment.configureRandomServices(simulation, dcAM, 1, 100, 350);
 	}
 	
 	public static void main(String args[]) {

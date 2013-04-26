@@ -32,7 +32,7 @@ public class IM2013TestEnvironment {
 	// The data centre is intended to be organized in the future in 5 clusters 
 	// of 10 racks each, with each rack containing 40 servers, for a total 
 	// count of 2000 servers.
-	public static final int N_HOSTS = 200; // 2000
+	public static final int N_HOSTS = 50; // 2000
 	
 	public static final int CPU_OVERHEAD = 200;
 	public static final int[] VM_SIZES = {1500, 2500, 2500};

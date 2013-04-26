@@ -116,7 +116,7 @@ public class DistributedTestEnvironment {
 			AutonomicManager hostAM = new AutonomicManager(simulation, new HostManager(host), new HostManagerBroadcast(host, broadcastingGroup));
 			hostAM.installPolicy(new HostOperationsPolicy());
 			//hostAM.installPolicy(new HostMonitoringPolicyBroadcast(0.5, 0.9, 0.85), SimTime.minutes(5), 0);
-			hostAM.installPolicy(new HostMonitoringPolicyBroadcast(0.6, 0.9, 0.85), SimTime.minutes(5), simulation.getRandom().nextInt((int)SimTime.minutes(5)));
+			hostAM.installPolicy(new HostMonitoringPolicyBroadcast(0.3, 0.85, 0.80), SimTime.minutes(5), simulation.getRandom().nextInt((int)SimTime.minutes(5)));
 
 			broadcastingGroup.addMember(hostAM);
 			
@@ -136,7 +136,8 @@ public class DistributedTestEnvironment {
 	public static void configureStaticServices(Simulation simulation, AutonomicManager dcAM) {
 		// Create a service rate _trace_ for the ServiceProducer.
 		ArrayList<Tuple<Long, Double>> serviceRates = new ArrayList<Tuple<Long, Double>>();
-		serviceRates.add(new Tuple<Long, Double>(1000l, 10d));		// Create ~400 VMs.
+		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), 10d));		// Create ~400 VMs.
+		serviceRates.add(new Tuple<Long, Double>(SimTime.days(1), 0d));		// Create ~400 VMs.
 //		serviceRates.add(new Tuple<Long, Double>(1000l, 30d));		// Create ~1200 VMs.
 //		serviceRates.add(new Tuple<Long, Double>(1000l, 40d));		// Create ~1600 VMs.
 		serviceRates.add(new Tuple<Long, Double>(144000000l, 0d));	// 40 hours

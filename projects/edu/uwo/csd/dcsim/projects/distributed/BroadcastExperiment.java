@@ -68,9 +68,11 @@ public class BroadcastExperiment extends SimulationTask {
 //		DistributedTestEnvironment.configureStaticServices(simulation, dcAM);
 //		DistributedTestEnvironment.configureDynamicServices(simulation, dcAM);
 		DistributedTestEnvironment.configureRandomServices(simulation, dcAM, 1, 100, 350);
+//		DistributedTestEnvironment.configureRandomServices(simulation, dcAM, 1, 20, 70);
 		
 	}
 
 	
 	
 }
+
