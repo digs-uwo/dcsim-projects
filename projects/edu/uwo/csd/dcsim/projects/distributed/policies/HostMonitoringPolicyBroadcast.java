@@ -19,12 +19,14 @@ import edu.uwo.csd.dcsim.projects.distributed.events.*;
 public class HostMonitoringPolicyBroadcast extends Policy {
 
 	private static final int EVICTION_ATTEMPT_TIMEOUT = 2; //the number of attempts to evict a VM
-	private static final int EVICTION_WAIT_TIME = 1000; //the number of milliseconds to wait to evict a VM
+	private static final int EVICTION_WAIT_TIME = 500; //the number of milliseconds to wait to evict a VM
 	private static final int EVICTION_WAIT_BACKOFF_MULTIPLE = 1; //multiply eviction wait time by this value after a failed attempt
-	
+	private static final int MONITOR_WINDOW = 5;
 	
 	public static final String STRESS_EVICT_FAIL = "stressEvictionFailed";
 	public static final String SHUTDOWN_EVICT_FAIL = "shutdownEvictionFailed";
+	public static final String STRESS_EVICT = "stressEviction";
+	public static final String SHUTDOWN_EVICT = "shutdownEviction";
 	
 	private double lower;
 	private double upper;
@@ -43,12 +45,12 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 	 */
 	public void execute() {
 		HostManagerBroadcast hostManager = manager.getCapability(HostManagerBroadcast.class);
-		
+
 		/*
 		 * Monitoring
 		 */
 		HostStatus hostStatus = new HostStatus(hostManager.getHost(), simulation.getSimulationTime());
-		hostManager.addHistoryStatus(hostStatus, 5);
+		hostManager.addHistoryStatus(hostStatus, MONITOR_WINDOW);
 		
 		//if a migration is pending, wait until it is complete
 		if ((hostStatus.getIncomingMigrationCount() > 0) || (hostStatus.getOutgoingMigrationCount() > 0)) return;
@@ -70,6 +72,7 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 				
 				//evict first VM in list
 				if (!vmList.isEmpty()) {
+					CountMetric.getMetric(simulation, SHUTDOWN_EVICT).incrementCount();
 					evict(hostManager, vmList.get(0));	
 				}
 				
@@ -106,6 +109,7 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 				
 				//evict first VM in list
 				if (!vmList.isEmpty()) {
+					CountMetric.getMetric(simulation, STRESS_EVICT).incrementCount();
 					evict(hostManager, vmList.get(0));	
 				}
 				
@@ -127,6 +131,7 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 					
 					//evict first VM in list
 					if (!vmList.isEmpty()) {
+						CountMetric.getMetric(simulation, SHUTDOWN_EVICT).incrementCount();
 						evict(hostManager, vmList.get(0));	
 					}
 				}
@@ -282,7 +287,7 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 		HostManagerBroadcast hostManager = manager.getCapability(HostManagerBroadcast.class);
 		Host host = hostManager.getHost();
 		HostStatus hostStatus = new HostStatus(hostManager.getHost(), simulation.getSimulationTime());
-		
+
 		if (hostManager.getManagementState() == ManagementState.NORMAL && !hostManager.isEvicting()) {
 			if (event.getHostManager() != manager &&
 					!isStressed(hostManager) && 
@@ -356,7 +361,9 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 	 * @return
 	 */
 	private boolean isStressed(HostManagerBroadcast hostManager) {
-		if (getAvgCpuUtil(hostManager) > upper) {
+		double util = getAvgCpuUtil(hostManager);
+
+		if (util > upper) {
 			return true;
 		}
 		return false;
@@ -379,17 +386,21 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 
 	private double getAvgCpuUtil(HostManagerBroadcast hostManager) {
 		double avgCpu = 0;
+			
 		for (HostStatus status : hostManager.getHistory()) {
-			avgCpu += status.getResourcesInUse().getCpu();
+			avgCpu += status.getResourcesInUse().getCpu() / hostManager.getHost().getTotalCpu();
 		}
 		avgCpu = avgCpu / hostManager.getHistory().size();
-		avgCpu = avgCpu / hostManager.getHost().getTotalCpu();
-		
+
 		return avgCpu;
 	}
 	
 	private double getCpuUtil(HostManagerBroadcast hostManager) {
-		return hostManager.getHistory().get(0).getResourcesInUse().getCpu() / hostManager.getHost().getTotalCpu();
+		if (hostManager.getHistory().size() > 0) {
+			return hostManager.getHistory().get(0).getResourcesInUse().getCpu() / hostManager.getHost().getTotalCpu();
+		}
+		
+		return 0;
 	}
 	
 	/**
@@ -477,7 +488,7 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 	
 	@Override
 	public void onInstall() {
-		
+
 	}
 
 	@Override

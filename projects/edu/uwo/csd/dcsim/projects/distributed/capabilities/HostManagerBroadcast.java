@@ -30,8 +30,8 @@ public class HostManagerBroadcast extends HostManager {
 	
 	public void addHistoryStatus(HostStatus status, int windowSize) {
 		history.add(0, status);
-		if (history.size() > windowSize) {
-			history.remove(windowSize - 1);
+		while (history.size() > windowSize) {
+			history.remove(history.size() - 1);
 		}
 	}
 	

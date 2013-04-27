@@ -35,7 +35,7 @@ public class VmPlacementPolicyBroadcast extends Policy {
 	public static final String SERVICE_PLACEMENT_FAILED = "servicePlacementsFailed";
 	
 	private static final int PLACEMENT_ATTEMPT_TIMEOUT = 2; //the number of attempts to place a VM
-	private static final int PLACEMENT_WAIT_TIME = 1000; //the number of milliseconds to wait to place a VM
+	private static final int PLACEMENT_WAIT_TIME = 500; //the number of milliseconds to wait to place a VM
 	private static final int BOOT_WAIT_TIME = 45000; //the number of milliseconds to wait to place a VM
 
 	private double lower;
@@ -179,7 +179,7 @@ public class VmPlacementPolicyBroadcast extends Policy {
 				simulation.sendEvent(new AdvertiseVmEvent(hostPool.getBroadcastingGroup(), event.getVm(), manager));
 				simulation.sendEvent(new EvictionEvent(manager, event.getVm()), simulation.getSimulationTime() + PLACEMENT_WAIT_TIME);
 				
-				if (hostPool.getLastBoot() < simulation.getSimulationTime() + BOOT_WAIT_TIME) {
+				if (hostPool.getLastBoot() < simulation.getSimulationTime() + BOOT_WAIT_TIME && hostPool.getPoweredOffHosts().size() > 0) {
 					Host poweredOffHost = hostPool.getPoweredOffHosts().get(simulation.getRandom().nextInt(hostPool.getPoweredOffHosts().size()));
 					simulation.sendEvent(new PowerStateEvent(poweredOffHost, PowerState.POWER_ON));
 					CountMetric.getMetric(simulation, HOST_POWER_ON_METRIC + "-" + this.getClass().getSimpleName()).incrementCount();
@@ -233,6 +233,8 @@ public class VmPlacementPolicyBroadcast extends Policy {
 	public void execute(ShutdownVmEvent event) {
 		HostPoolManagerBroadcast hostPool = manager.getCapability(HostPoolManagerBroadcast.class);
 		AutonomicManager hostManager = hostPool.getHost(event.getHostId()).getHostManager();
+		
+		event.setLog(false);
 		
 		ShutdownVmEvent shutdownEvent = new ShutdownVmEvent(hostManager, event.getHostId(), event.getVmId()); 
 		event.addEventInSequence(shutdownEvent);

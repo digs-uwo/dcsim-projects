@@ -37,7 +37,7 @@ import edu.uwo.csd.dcsim.projects.im2013.IM2013TestEnvironment;
 
 public class DistributedTestEnvironment {
 
-	public static final int N_HOSTS = 10; // 2000
+	public static final int N_HOSTS = 50; // 2000
 	
 	public static final int CPU_OVERHEAD = 200;
 	public static final int[] VM_SIZES = {1500, 2500, 2500};

@@ -52,8 +52,8 @@ public class BroadcastExperiment extends SimulationTask {
 		
 		// Set utilization thresholds.
 		double lower = 0.40;
-		double upper = 0.85;
-		double target = 0.80;
+		double upper = 0.90;
+		double target = 0.85;
 		
 		// Create data centre and its manager.
 		Tuple<DataCentre, AutonomicManager> tuple = DistributedTestEnvironment.createDataCentre(simulation, lower, upper, target);
@@ -67,8 +67,8 @@ public class BroadcastExperiment extends SimulationTask {
 		// Create and start ServiceProducer.
 //		DistributedTestEnvironment.configureStaticServices(simulation, dcAM);
 //		DistributedTestEnvironment.configureDynamicServices(simulation, dcAM);
-//		DistributedTestEnvironment.configureRandomServices(simulation, dcAM, 1, 100, 350);
-		DistributedTestEnvironment.configureRandomServices(simulation, dcAM, 1, 40, 90);
+		DistributedTestEnvironment.configureRandomServices(simulation, dcAM, 1, 100, 350);
+//		DistributedTestEnvironment.configureRandomServices(simulation, dcAM, 1, 40, 90);
 		
 	}
 
