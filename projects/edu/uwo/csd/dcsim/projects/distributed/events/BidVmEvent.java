@@ -7,14 +7,14 @@ import edu.uwo.csd.dcsim.management.HostStatus;
 import edu.uwo.csd.dcsim.management.VmStatus;
 import edu.uwo.csd.dcsim.management.events.MessageEvent;
 
-public class AcceptVmEvent extends MessageEvent {
+public class BidVmEvent extends MessageEvent {
 
 	private VmStatus vm;
 	private Host host;
 	private AutonomicManager hostManager;
 	private HostStatus hostStatus;
 	
-	public AcceptVmEvent(SimulationEventListener target, VmStatus vm, Host host, AutonomicManager hostManager, HostStatus hostStatus) {
+	public BidVmEvent(SimulationEventListener target, VmStatus vm, Host host, AutonomicManager hostManager, HostStatus hostStatus) {
 		super(target);
 		
 		this.vm = vm;

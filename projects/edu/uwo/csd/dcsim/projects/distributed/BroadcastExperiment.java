@@ -51,24 +51,24 @@ public class BroadcastExperiment extends SimulationTask {
 	public void setup(Simulation simulation) {
 		
 		// Set utilization thresholds.
-//		double lower = 0.60;
-//		double upper = 0.90;
-//		double target = 0.85;
+		double lower = 0.40;
+		double upper = 0.85;
+		double target = 0.80;
 		
 		// Create data centre and its manager.
-		Tuple<DataCentre, AutonomicManager> tuple = DistributedTestEnvironment.createDataCentre(simulation);
+		Tuple<DataCentre, AutonomicManager> tuple = DistributedTestEnvironment.createDataCentre(simulation, lower, upper, target);
 		AutonomicManager dcAM = tuple.b;
 		
 		// Create and install management policies for the data centre.
-		dcAM.installPolicy(new VmPlacementPolicyBroadcast(), SimTime.minutes(5), 0);
+		dcAM.installPolicy(new VmPlacementPolicyBroadcast(lower, upper, target), SimTime.minutes(5), 0);
 //		dcAM.installPolicy(new VmRelocationPolicyFFIMDHybrid(lower, upper, target), SimTime.minutes(10), SimTime.minutes(10) + 1);
 //		dcAM.installPolicy(new VmConsolidationPolicyFFDDIHybrid(lower, upper, target), SimTime.hours(1), SimTime.hours(1) + 2);
 		
 		// Create and start ServiceProducer.
 //		DistributedTestEnvironment.configureStaticServices(simulation, dcAM);
 //		DistributedTestEnvironment.configureDynamicServices(simulation, dcAM);
-		DistributedTestEnvironment.configureRandomServices(simulation, dcAM, 1, 100, 350);
-//		DistributedTestEnvironment.configureRandomServices(simulation, dcAM, 1, 20, 70);
+//		DistributedTestEnvironment.configureRandomServices(simulation, dcAM, 1, 100, 350);
+		DistributedTestEnvironment.configureRandomServices(simulation, dcAM, 1, 40, 90);
 		
 	}
 

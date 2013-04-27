@@ -37,7 +37,7 @@ import edu.uwo.csd.dcsim.projects.im2013.IM2013TestEnvironment;
 
 public class DistributedTestEnvironment {
 
-	public static final int N_HOSTS = 50; // 2000
+	public static final int N_HOSTS = 10; // 2000
 	
 	public static final int CPU_OVERHEAD = 200;
 	public static final int[] VM_SIZES = {1500, 2500, 2500};
@@ -67,7 +67,7 @@ public class DistributedTestEnvironment {
 	 * @param simulation
 	 * @return		the built data centre
 	 */
-	public static Tuple<DataCentre, AutonomicManager> createDataCentre(Simulation simulation) {
+	public static Tuple<DataCentre, AutonomicManager> createDataCentre(Simulation simulation, double lower, double upper, double target) {
 		// Create data centre.
 		DataCentre dc = new DataCentre(simulation);
 		simulation.addDatacentre(dc);
@@ -76,7 +76,7 @@ public class DistributedTestEnvironment {
 		AutonomicManager dcAM = new AutonomicManager(simulation, hostPool);
 		
 		// Create hosts and add to data centre.
-		createHosts(simulation, dc, dcAM);
+		createHosts(simulation, dc, dcAM, lower, upper, target);
 		
 		return new Tuple<DataCentre, AutonomicManager>(dc, dcAM);
 	}
@@ -86,7 +86,7 @@ public class DistributedTestEnvironment {
 	 * equally divided between the two available models: proLiantDL360G5E5450 
 	 * and proLiantDL160G5E5420.
 	 */
-	private static void createHosts(Simulation simulation, DataCentre dataCentre, AutonomicManager dcAM) {
+	private static void createHosts(Simulation simulation, DataCentre dataCentre, AutonomicManager dcAM, double lower, double upper, double target) {
 		
 		HostPoolManagerBroadcast hostPool = dcAM.getCapability(HostPoolManagerBroadcast.class);
 		SimulationEventBroadcastGroup broadcastingGroup = new SimulationEventBroadcastGroup();
@@ -116,7 +116,7 @@ public class DistributedTestEnvironment {
 			AutonomicManager hostAM = new AutonomicManager(simulation, new HostManager(host), new HostManagerBroadcast(host, broadcastingGroup));
 			hostAM.installPolicy(new HostOperationsPolicy());
 			//hostAM.installPolicy(new HostMonitoringPolicyBroadcast(0.5, 0.9, 0.85), SimTime.minutes(5), 0);
-			hostAM.installPolicy(new HostMonitoringPolicyBroadcast(0.3, 0.85, 0.80), SimTime.minutes(5), simulation.getRandom().nextInt((int)SimTime.minutes(5)));
+			hostAM.installPolicy(new HostMonitoringPolicyBroadcast(lower, upper, target), SimTime.minutes(5), simulation.getRandom().nextInt((int)SimTime.minutes(5)));
 
 			broadcastingGroup.addMember(hostAM);
 			
