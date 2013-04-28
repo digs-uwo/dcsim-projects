@@ -21,6 +21,7 @@ public class HostManagerBroadcast extends HostManager {
 	private ManagementState managementState = ManagementState.NORMAL;
 	private ArrayList<Host> poweredOffHosts = new ArrayList<Host>();
 	private ArrayList<BidVmEvent> vmAccepts = new ArrayList<BidVmEvent>();
+	private long lastShutdownEvent = 0;
 	
 	public HostManagerBroadcast(Host host, SimulationEventBroadcastGroup broadcastingGroup) {
 		super(host);
@@ -79,4 +80,12 @@ public class HostManagerBroadcast extends HostManager {
 		return vmAccepts;
 	}
 
+	public long getLastShutdownEvent() {
+		return lastShutdownEvent;
+	}
+	
+	public void setLastShutdownEvent(long lastShutdownEvent) {
+		this.lastShutdownEvent = lastShutdownEvent;
+	}
+	
 }
