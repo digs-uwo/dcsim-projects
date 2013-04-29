@@ -8,7 +8,6 @@ import edu.uwo.csd.dcsim.management.HostStatus;
 import edu.uwo.csd.dcsim.management.VmStatus;
 import edu.uwo.csd.dcsim.management.capabilities.HostManager;
 import edu.uwo.csd.dcsim.projects.distributed.events.BidVmEvent;
-import edu.uwo.csd.dcsim.projects.distributed.events.AdvertiseVmEvent;
 
 public class HostManagerBroadcast extends HostManager {
 
@@ -87,5 +86,8 @@ public class HostManagerBroadcast extends HostManager {
 	public void setLastShutdownEvent(long lastShutdownEvent) {
 		this.lastShutdownEvent = lastShutdownEvent;
 	}
+	
+	public long getGroupSize() {
+		return broadcastingGroup.size();	}
 	
 }

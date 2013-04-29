@@ -176,21 +176,28 @@ public class VmPlacementPolicyBroadcast extends Policy {
 				//decrement evicting counter
 				hostPool.getRequestCounter().put(event.getVm(), hostPool.getRequestCounter().get(event.getVm()) - 1);
 
-				long nextAdTime = simulation.getSimulationTime();
 				if (hostPool.getLastBoot() < simulation.getSimulationTime() + BOOT_WAIT_TIME && hostPool.getPoweredOffHosts().size() > 0) {
 					Host poweredOffHost = hostPool.getPoweredOffHosts().get(simulation.getRandom().nextInt(hostPool.getPoweredOffHosts().size()));
+
 					simulation.sendEvent(new PowerStateEvent(poweredOffHost, PowerState.POWER_ON));
+					InstantiateVmEvent instantiateEvent = new InstantiateVmEvent(poweredOffHost.getAutonomicManager(), request);
+					simulation.sendEvent(instantiateEvent);
+					
+					hostPool.getRequestMap().remove(event.getVm());
+					hostPool.getRequestCounter().remove(event.getVm());
+					hostPool.getVmBidMap().remove(event.getVm());
+					
+					CountMetric.getMetric(simulation, SERVICES_PLACED).incrementCount();
+					
 					CountMetric.getMetric(simulation, HOST_POWER_ON_METRIC + "-" + this.getClass().getSimpleName()).incrementCount();
 					
 					hostPool.setLastBoot(simulation.getSimulationTime());
-					hostPool.getRequestCounter().put(event.getVm(), PLACEMENT_ATTEMPT_TIMEOUT);
-					
-					nextAdTime += BOOT_AD_WAIT_TIME;
+
+				} else {
+					//resend advertise message
+					simulation.sendEvent(new AdvertiseVmEvent(hostPool.getBroadcastingGroup(), event.getVm(), manager, AdvertiseVmEvent.AdvertiseReason.PLACEMENT));
+					simulation.sendEvent(new EvictionEvent(manager, event.getVm()), simulation.getSimulationTime() + PLACEMENT_WAIT_TIME);
 				}
-				
-				//resend advertise message
-				simulation.sendEvent(new AdvertiseVmEvent(hostPool.getBroadcastingGroup(), event.getVm(), manager, AdvertiseVmEvent.AdvertiseReason.PLACEMENT), nextAdTime);
-				simulation.sendEvent(new EvictionEvent(manager, event.getVm()), nextAdTime + PLACEMENT_WAIT_TIME);
 				
 			} else {
 				//placement has failed

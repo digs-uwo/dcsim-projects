@@ -61,7 +61,7 @@ public final class Host implements SimulationEventListener {
 	private ArrayList<Event> powerOnEventQueue = new ArrayList<Event>();
 	private PowerStateEvent powerOffAfterMigrations = null;
 	
-	private ArrayList<AutonomicManager> autonomicManagers = new ArrayList<AutonomicManager>();
+	private AutonomicManager autonomicManager = null;
 	
 	/*
 	 * Simulation metrics
@@ -220,17 +220,17 @@ public final class Host implements SimulationEventListener {
 	}
 	
 	public void installAutonomicManager(AutonomicManager manager) {
-		autonomicManagers.add(manager);
+		autonomicManager = manager;
 		manager.setContainer(this);
 	}
 	
-	public void uninstallAutonomicManager(AutonomicManager manager) {
-		autonomicManagers.remove(manager);
-		manager.setContainer(null);
+	public void uninstallAutonomicManager() {
+		autonomicManager.setContainer(null);
+		autonomicManager = null;
 	}
 	
-	public ArrayList<AutonomicManager> getAutonomicManagers() {
-		return autonomicManagers;
+	public AutonomicManager getAutonomicManager() {
+		return autonomicManager;
 	}
 	
 	@Override
@@ -592,9 +592,8 @@ public final class Host implements SimulationEventListener {
 			state = HostState.POWERING_ON;
 			
 			//inform any managers that the host is turning on
-			for (AutonomicManager manager : autonomicManagers) {
-				manager.onContainerStart();
-			}
+			if (autonomicManager != null)
+				autonomicManager.onContainerStart();
 		}
 	}
 	
@@ -612,19 +611,15 @@ public final class Host implements SimulationEventListener {
 	private void completePowerOff() {
 		state = HostState.OFF;
 		
-		//inform any managers that the host is shutting down
-		for (AutonomicManager manager : autonomicManagers) {
-			manager.onContainerStop();
-		}
+		if (autonomicManager != null)
+			autonomicManager.onContainerStop();
 	}
 	
 	private void completeSuspend() {
 		state = HostState.SUSPENDED;
 		
-		//inform any managers that the host is shutting down
-		for (AutonomicManager manager : autonomicManagers) {
-			manager.onContainerStop();
-		}
+		if (autonomicManager != null)
+			autonomicManager.onContainerStop();
 	}
 	
 	public void fail() {

@@ -14,6 +14,10 @@ public class SimulationEventBroadcastGroup implements SimulationEventListener {
 		members.remove(member);
 	}
 	
+	public long size() {
+		return members.size();
+	}
+	
 	@Override
 	public void handleEvent(Event e) {
 		for (SimulationEventListener member : members) {

@@ -12,6 +12,7 @@ import edu.uwo.csd.dcsim.management.*;
 import edu.uwo.csd.dcsim.management.action.MigrationAction;
 import edu.uwo.csd.dcsim.management.action.ShutdownHostAction;
 import edu.uwo.csd.dcsim.management.capabilities.*;
+import edu.uwo.csd.dcsim.management.events.InstantiateVmEvent;
 import edu.uwo.csd.dcsim.projects.distributed.capabilities.*;
 import edu.uwo.csd.dcsim.projects.distributed.capabilities.HostManagerBroadcast.ManagementState;
 import edu.uwo.csd.dcsim.projects.distributed.events.*;
@@ -123,9 +124,12 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 			 */
 			
 			else if (isUnderUtilized(hostManager, hostStatus)) {
+				
 				//host is underutilized, decide if should switch to eviction, if so, evict a VM
+				
 				//if (simulation.getRandom().nextDouble() < 0.01) {
-				if (hostManager.getLastShutdownEvent() + SHUTDOWN_WAIT_TIME <= simulation.getSimulationTime()) {
+				if (hostManager.getLastShutdownEvent() + SHUTDOWN_WAIT_TIME <= simulation.getSimulationTime() &&
+						getActiveHostCount(hostManager) > 1) {
 					hostManager.setManagementState(ManagementState.SHUTTING_DOWN); 
 					
 					//sort VMs
@@ -258,13 +262,21 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 					
 					//boot new host
 					if (hostManager.getPoweredOffHosts().size() > 0) {
+						
 						Host poweredOffHost = hostManager.getPoweredOffHosts().get(simulation.getRandom().nextInt(hostManager.getPoweredOffHosts().size()));
-						simulation.sendEvent(new PowerStateEvent(poweredOffHost, PowerState.POWER_ON));
+					
+						//trigger migration (MirationAction will boot host)
+						MigrationAction migAction = new MigrationAction(manager, hostManager.getHost(), poweredOffHost, event.getVm().getId());
+						migAction.execute(simulation, this);
+						
+						//clear eviction state
+						hostManager.setEvicting(0);
+						hostManager.setEvictingVm(null);
 						
 						CountMetric.getMetric(simulation, VmPlacementPolicyBroadcast.HOST_POWER_ON_METRIC + "-" + this.getClass().getSimpleName()).incrementCount();
+					} else {
+						CountMetric.getMetric(simulation, STRESS_EVICT_FAIL).incrementCount();						
 					}
-					
-					CountMetric.getMetric(simulation, STRESS_EVICT_FAIL).incrementCount();
 				}
 				
 			}
@@ -307,11 +319,12 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 					!(hostStatus.getOutgoingMigrationCount() > 0)) {
 
 				VmStatus vm = event.getVm();
-				
+							
 				//check if we are capable of hosting this VM
-				if (canHost(host, hostStatus, vm) &&
-						(hostStatus.getResourcesInUse().getCpu() + vm.getResourcesInUse().getCpu()) / host.getResourceManager().getTotalCpu() <= target) {
-
+				if (canHost(host, hostStatus, vm) && //check capability
+						((hostStatus.getResourcesInUse().getCpu() + vm.getResourcesInUse().getCpu()) / host.getResourceManager().getTotalCpu() <= target) && //check current util < target
+						((getAvgCpu(hostManager) + vm.getResourcesInUse().getCpu()) / host.getResourceManager().getTotalCpu() <= target)) { //get average util < target
+					
 					//send accept message
 					simulation.sendEvent(new BidVmEvent(event.getHostManager(), vm, host, manager, hostStatus));
 					hostManager.setManagementState(ManagementState.BIDDING);
@@ -408,6 +421,17 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 		return avgCpu;
 	}
 	
+	private double getAvgCpu(HostManagerBroadcast hostManager) {
+		double avgCpu = 0;
+			
+		for (HostStatus status : hostManager.getHistory()) {
+			avgCpu += status.getResourcesInUse().getCpu();
+		}
+		avgCpu = avgCpu / hostManager.getHistory().size();
+
+		return avgCpu;
+	}
+	
 	private double getCpuUtil(HostManagerBroadcast hostManager) {
 		if (hostManager.getHistory().size() > 0) {
 			return hostManager.getHistory().get(0).getResourcesInUse().getCpu() / hostManager.getHost().getTotalCpu();
@@ -497,6 +521,10 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 			return false;
 		
 		return true;
+	}
+	
+	private long getActiveHostCount(HostManagerBroadcast hostManager) {
+		return hostManager.getGroupSize() - hostManager.getPoweredOffHosts().size();
 	}
 	
 	@Override
