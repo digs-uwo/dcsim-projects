@@ -1,0 +1,50 @@
+package edu.uwo.csd.dcsim.projects.centralized.policies;
+
+import java.util.ArrayList;
+
+import edu.uwo.csd.dcsim.core.Event;
+import edu.uwo.csd.dcsim.management.*;
+import edu.uwo.csd.dcsim.management.capabilities.HostPoolManager;
+import edu.uwo.csd.dcsim.management.events.HostStatusEvent;
+import edu.uwo.csd.dcsim.projects.centralized.events.VmRelocationEvent;
+
+public class HostStatusPolicy extends Policy {
+
+	ArrayList<Class<? extends Event>> triggerEvents = new ArrayList<Class<? extends Event>>();
+	
+	private int windowSize;
+	
+	public HostStatusPolicy(int windowSize) {
+		addRequiredCapability(HostPoolManager.class);
+		
+		this.windowSize = windowSize;
+	}
+
+	public void execute(HostStatusEvent event) {		
+		HostPoolManager hostPool = manager.getCapability(HostPoolManager.class);
+		
+		hostPool.getHost(event.getHostStatus().getId()).addHostStatus(event.getHostStatus(), windowSize);
+		
+		// Send event to trigger VM Relocation policy (for this host).
+		simulation.sendEvent(new VmRelocationEvent(manager, event.getHostStatus().getId()));
+	}
+
+	@Override
+	public void onInstall() {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void onManagerStart() {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void onManagerStop() {
+		// TODO Auto-generated method stub
+		
+	}
+
+}
