@@ -51,8 +51,8 @@ public class BroadcastExperiment extends SimulationTask {
 	public void setup(Simulation simulation) {
 		
 		// Set utilization thresholds.
-		double lower = 0.40;
-		double upper = 0.90;
+		double lower = 0.4;
+		double upper = 0.9;
 		double target = 0.85;
 		
 		// Create data centre and its manager.

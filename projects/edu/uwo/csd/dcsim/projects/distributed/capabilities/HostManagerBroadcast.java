@@ -11,16 +11,28 @@ import edu.uwo.csd.dcsim.projects.distributed.events.BidVmEvent;
 
 public class HostManagerBroadcast extends HostManager {
 
-	public enum ManagementState {NORMAL, SHUTTING_DOWN, BIDDING;}
-	
+	public enum ManagementState {NORMAL, EVICTING, BIDDING;}
+		
 	private SimulationEventBroadcastGroup broadcastingGroup; 
 	private ArrayList<HostStatus> history = new ArrayList<HostStatus>();
 	private int evicting = 0;
 	private VmStatus evictingVm;
-	private ManagementState managementState = ManagementState.NORMAL;
+	
 	private ArrayList<Host> poweredOffHosts = new ArrayList<Host>();
 	private ArrayList<BidVmEvent> vmAccepts = new ArrayList<BidVmEvent>();
 	private long lastShutdownEvent = 0;
+	
+	//Host state
+	private ManagementState managementState = ManagementState.NORMAL;
+	private boolean shuttingDown = false;
+	
+	private boolean bidFreeze = false;
+	private long bidFreezeExpiry = -1;
+	private boolean evictionFreeze = false;
+	private long evictionFreezeExpiry = -1;
+	private boolean shutdownFreeze = false;
+	private long shutdownFreezeExpiry = -1;
+	
 	
 	public HostManagerBroadcast(Host host, SimulationEventBroadcastGroup broadcastingGroup) {
 		super(host);
@@ -63,10 +75,6 @@ public class HostManagerBroadcast extends HostManager {
 		return evicting;
 	}
 	
-	public boolean isEvicting() {
-		return evicting != 0;
-	}
-	
 	public void setEvicting(int evicting) {
 		this.evicting = evicting;
 	}
@@ -90,4 +98,63 @@ public class HostManagerBroadcast extends HostManager {
 	public long getGroupSize() {
 		return broadcastingGroup.size();	}
 	
+	
+	public boolean isShuttingDown() {
+		return shuttingDown;
+	}
+	
+	public void setShuttingDown(boolean shuttingDown) {
+		this.shuttingDown = shuttingDown;
+	}
+	
+	public boolean bidsFrozen() {
+		return bidFreeze;
+	}
+	
+	public long getBidFreezeExpiry() {
+		return bidFreezeExpiry;
+	}
+	
+	public void enactBidFreeze(long bidFreezeExpiry) {
+		this.bidFreeze = true;
+		this.bidFreezeExpiry = bidFreezeExpiry;
+	}
+	
+	public void expireBidFreeze() {
+		this.bidFreeze = false;
+	}
+	
+	public boolean evictionFrozen() {
+		return evictionFreeze;
+	}
+	
+	public long getEvictionFreezeExpiry() {
+		return evictionFreezeExpiry;
+	}
+	
+	public void enactEvictionFreeze(long evictionFreezeExpiry) {
+		this.evictionFreeze = true;
+		this.evictionFreezeExpiry = evictionFreezeExpiry;
+	}
+	
+	public void expireEvictionFreeze() {
+		this.evictionFreeze = false;
+	}
+	
+	public boolean shutdownFrozen() {
+		return shutdownFreeze;
+	}
+	
+	public long getShutdownFreezeExpiry() {
+		return shutdownFreezeExpiry;
+	}
+	
+	public void enactShutdownFreeze(long shutdownFreezeExpiry) {
+		this.shutdownFreeze = true;
+		this.shutdownFreezeExpiry = shutdownFreezeExpiry;
+	}
+	
+	public void expireShutdownFreeze() {
+		this.shutdownFreeze = false;
+	}
 }

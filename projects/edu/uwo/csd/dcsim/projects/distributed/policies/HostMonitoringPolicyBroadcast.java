@@ -3,16 +3,13 @@ package edu.uwo.csd.dcsim.projects.distributed.policies;
 import java.util.ArrayList;
 import java.util.Collections;
 
+import edu.uwo.csd.dcsim.common.SimTime;
 import edu.uwo.csd.dcsim.core.metrics.CountMetric;
 import edu.uwo.csd.dcsim.host.Host;
 import edu.uwo.csd.dcsim.host.Resources;
-import edu.uwo.csd.dcsim.host.events.PowerStateEvent;
-import edu.uwo.csd.dcsim.host.events.PowerStateEvent.PowerState;
 import edu.uwo.csd.dcsim.management.*;
 import edu.uwo.csd.dcsim.management.action.MigrationAction;
 import edu.uwo.csd.dcsim.management.action.ShutdownHostAction;
-import edu.uwo.csd.dcsim.management.capabilities.*;
-import edu.uwo.csd.dcsim.management.events.InstantiateVmEvent;
 import edu.uwo.csd.dcsim.projects.distributed.capabilities.*;
 import edu.uwo.csd.dcsim.projects.distributed.capabilities.HostManagerBroadcast.ManagementState;
 import edu.uwo.csd.dcsim.projects.distributed.events.*;
@@ -23,7 +20,12 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 	private static final int EVICTION_WAIT_TIME = 500; //the number of milliseconds to wait to evict a VM
 	private static final int EVICTION_WAIT_BACKOFF_MULTIPLE = 1; //multiply eviction wait time by this value after a failed attempt
 	private static final int MONITOR_WINDOW = 5;
-	private static final int SHUTDOWN_WAIT_TIME = 60000;
+	private static final long SHUTDOWN_WAIT_TIME = SimTime.minutes(1);
+
+	
+	private static final long SHUTDOWN_FREEZE_DURATION = SimTime.minutes(30);
+	private static final long EVICTION_FREEZE_DURATION = SimTime.minutes(30);
+	private static final long BID_FREEZE_DURATION = SimTime.minutes(30);
 	
 	public static final String STRESS_EVICT_FAIL = "stressEvictionFailed";
 	public static final String SHUTDOWN_EVICT_FAIL = "shutdownEvictionFailed";
@@ -57,80 +59,21 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 		//if a migration is pending, wait until it is complete
 		if ((hostStatus.getIncomingMigrationCount() > 0) || (hostStatus.getOutgoingMigrationCount() > 0)) return;
 		
-		/*
-		 * SHUTTING DOWN 
-		 * 
-		 * Evict all VMs and shut down, or cancel shut down if cannot evict a VM
-		 * 
-		 */
-		if (hostManager.getManagementState() == ManagementState.SHUTTING_DOWN) {
-			//if shutting down
+		
+		if (hostManager.getManagementState() == ManagementState.NORMAL) {
 			
-			//if evictions complete, shut down
-			if (hostStatus.getVms().size() != 0) {
-				
-				//sort VMs
-				ArrayList<VmStatus> vmList = orderVmsUnderUtilized(hostStatus.getVms());
-				
-				//evict first VM in list
-				if (!vmList.isEmpty()) {
-					CountMetric.getMetric(simulation, SHUTDOWN_EVICT).incrementCount();
-					evict(hostManager, vmList.get(0), AdvertiseVmEvent.AdvertiseReason.SHUTDOWN);	
-				}
-				
-			} else {
-			
-				//send shutdown message
-				simulation.sendEvent(new HostShuttingDownEvent(hostManager.getBroadcastingGroup(), hostManager.getHost()));
-				
-				//shut down
-				ShutdownHostAction shutdownAction = new ShutdownHostAction(hostManager.getHost());
-				shutdownAction.execute(simulation, this);
-				
-			}
-			
-
-			/*
-			 * NORMAL STATE (no evictions, not shutting down, not bidding)
-			 * 
-			 * Detect stress and underutilization
-			 * 
-			 */
-		} else if (!hostManager.isEvicting() && hostManager.getManagementState() == ManagementState.NORMAL) {
-			/*
-			 * STRESSED (detect stressed state)
-			 * 
-			 * Trigger a VM eviction
-			 *  
-			 */
-			if (isStressed(hostManager)) {
-				//host is stressed, evict a VM
-
-				//sort VMs
-				ArrayList<VmStatus> vmList = orderVmsStressed(hostStatus.getVms(), hostManager.getHost());
-				
-				//evict first VM in list
-				if (!vmList.isEmpty()) {
-					CountMetric.getMetric(simulation, STRESS_EVICT).incrementCount();
-					evict(hostManager, vmList.get(0), AdvertiseVmEvent.AdvertiseReason.STRESS);	
-				}
-				
-			} 
 			
 			/*
-			 * UNDERUTILIZED (detect underutilized state)
-			 *
-			 * Decide whether or not to switch into SHUTDOWN
+			 * SHUTTING DOWN 
+			 * 
+			 * Evict all VMs and shut down, or cancel shut down if cannot evict a VM
+			 * 
 			 */
-			
-			else if (isUnderUtilized(hostManager, hostStatus)) {
+			if (hostManager.isShuttingDown()) {
+				//if shutting down
 				
-				//host is underutilized, decide if should switch to eviction, if so, evict a VM
-				
-				//if (simulation.getRandom().nextDouble() < 0.01) {
-				if (hostManager.getLastShutdownEvent() + SHUTDOWN_WAIT_TIME <= simulation.getSimulationTime() &&
-						getActiveHostCount(hostManager) > 1) {
-					hostManager.setManagementState(ManagementState.SHUTTING_DOWN); 
+				//if evictions complete, shut down
+				if (hostStatus.getVms().size() != 0) {
 					
 					//sort VMs
 					ArrayList<VmStatus> vmList = orderVmsUnderUtilized(hostStatus.getVms());
@@ -140,11 +83,78 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 						CountMetric.getMetric(simulation, SHUTDOWN_EVICT).incrementCount();
 						evict(hostManager, vmList.get(0), AdvertiseVmEvent.AdvertiseReason.SHUTDOWN);	
 					}
+					
+				} else {
+				
+					//send shutdown message
+					simulation.sendEvent(new HostShuttingDownEvent(hostManager.getBroadcastingGroup(), hostManager.getHost()));
+					
+					//shut down
+					ShutdownHostAction shutdownAction = new ShutdownHostAction(hostManager.getHost());
+					shutdownAction.execute(simulation, this);
+					
 				}
-
+				
+	
+				/*
+				 * NORMAL STATE (no evictions, not shutting down, not bidding)
+				 * 
+				 * Detect stress and underutilization
+				 * 
+				 */
+			} else {
+				
+				/*
+				 * STRESSED (detect stressed state)
+				 * 
+				 * Trigger a VM eviction
+				 *  
+				 */
+				if (isStressed(hostManager) && !evictionFrozen(hostManager)) {
+					//host is stressed, evict a VM
+	
+					//sort VMs
+					ArrayList<VmStatus> vmList = orderVmsStressed(hostStatus.getVms(), hostManager.getHost());
+					
+					//evict first VM in list
+					if (!vmList.isEmpty()) {
+						CountMetric.getMetric(simulation, STRESS_EVICT).incrementCount();
+						evict(hostManager, vmList.get(0), AdvertiseVmEvent.AdvertiseReason.STRESS);	
+						
+						//freeze VM bidding
+						hostManager.enactBidFreeze(BID_FREEZE_DURATION);
+					}
+					
+				} 
+				
+				/*
+				 * UNDERUTILIZED (detect underutilized state)
+				 *
+				 * Decide whether or not to switch into SHUTDOWN
+				 */
+				
+				else if (isUnderUtilized(hostManager, hostStatus) && !shutdownFrozen(hostManager)) {
+					
+					//host is underutilized, decide if should switch to eviction, if so, evict a VM
+					
+					//if (simulation.getRandom().nextDouble() < 0.01) {
+					if (hostManager.getLastShutdownEvent() + SHUTDOWN_WAIT_TIME <= simulation.getSimulationTime() &&
+							getActiveHostCount(hostManager) > 1) {
+						hostManager.setShuttingDown(true); 
+						
+						//sort VMs
+						ArrayList<VmStatus> vmList = orderVmsUnderUtilized(hostStatus.getVms());
+						
+						//evict first VM in list
+						if (!vmList.isEmpty()) {
+							CountMetric.getMetric(simulation, SHUTDOWN_EVICT).incrementCount();
+							evict(hostManager, vmList.get(0), AdvertiseVmEvent.AdvertiseReason.SHUTDOWN);	
+						}
+					}
+	
+				}
 			}
 		}
-		
 
 
 	}
@@ -159,6 +169,7 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 		//setup eviction counter/data
 		hostManager.setEvicting(EVICTION_ATTEMPT_TIMEOUT);
 		hostManager.setEvictingVm(vm);
+		hostManager.setManagementState(ManagementState.EVICTING);
 		
 		//send advertise message
 		simulation.sendEvent(new AdvertiseVmEvent(hostManager.getBroadcastingGroup(), vm, manager, reason));	
@@ -216,6 +227,7 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 					//clear eviction state
 					hostManager.setEvicting(0);
 					hostManager.setEvictingVm(null);
+					hostManager.setManagementState(ManagementState.NORMAL);
 				} else {
 					//Should not happen, exists to catch programming error
 					throw new RuntimeException("Failed to select target VM from acception Hosts. Should not happen.");
@@ -242,7 +254,7 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 				
 				//resend advertise message
 				AdvertiseVmEvent.AdvertiseReason reason;
-				if (hostManager.getManagementState() == ManagementState.SHUTTING_DOWN) {
+				if (hostManager.isShuttingDown()) {
 					reason = AdvertiseVmEvent.AdvertiseReason.SHUTDOWN;
 				} else {
 					reason = AdvertiseVmEvent.AdvertiseReason.STRESS;
@@ -253,8 +265,13 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 				//eviction has failed			
 
 				//if shutting down, cancel the shutdown
-				if (hostManager.getManagementState() == ManagementState.SHUTTING_DOWN) {
+				if (hostManager.isShuttingDown()) {
+					
+					//prevent repeated shutdown events
+					hostManager.enactShutdownFreeze(simulation.getSimulationTime() + SHUTDOWN_FREEZE_DURATION);
+					
 					hostManager.setManagementState(ManagementState.NORMAL);
+					hostManager.setShuttingDown(false);
 					
 					CountMetric.getMetric(simulation, SHUTDOWN_EVICT_FAIL).incrementCount();
 				} else {
@@ -272,6 +289,7 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 						//clear eviction state
 						hostManager.setEvicting(0);
 						hostManager.setEvictingVm(null);
+						hostManager.setManagementState(ManagementState.NORMAL);
 						
 						CountMetric.getMetric(simulation, VmPlacementPolicyBroadcast.HOST_POWER_ON_METRIC + "-" + this.getClass().getSimpleName()).incrementCount();
 					} else {
@@ -283,11 +301,18 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 		}
 	}
 	
-	
+	/*
+	 * 
+	 * VM Bid Reply handling
+	 * 
+	 */
 	public void execute(AcceptOfferEvent event) {
 		HostManagerBroadcast hostManager = manager.getCapability(HostManagerBroadcast.class);
 		
 		hostManager.setManagementState(ManagementState.NORMAL);
+		
+		//freeze eviction
+		hostManager.enactEvictionFreeze(EVICTION_FREEZE_DURATION);
 	}
 	
 	public void execute(RejectOfferEvent event) {
@@ -302,17 +327,22 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 	 * 
 	 * @param event
 	 */
-	public void execute(AdvertiseVmEvent event) {
+	public void execute(AdvertiseVmEvent event) {	
 		//received a VM advertisement
 		HostManagerBroadcast hostManager = manager.getCapability(HostManagerBroadcast.class);
 		Host host = hostManager.getHost();
 		HostStatus hostStatus = new HostStatus(hostManager.getHost(), simulation.getSimulationTime());
 		
+		//check if bids are frozen
+		if (bidsFrozen(hostManager)) {
+			return;
+		}
+		
 		if (event.getReason() == AdvertiseVmEvent.AdvertiseReason.SHUTDOWN) {
 			hostManager.setLastShutdownEvent(simulation.getSimulationTime());
 		}
 
-		if (hostManager.getManagementState() == ManagementState.NORMAL && !hostManager.isEvicting()) {
+		if (hostManager.getManagementState() == ManagementState.NORMAL && !hostManager.isShuttingDown()) {
 			if (event.getHostManager() != manager &&
 					!isStressed(hostManager) && 
 					!(hostStatus.getIncomingMigrationCount() > 0) &&
@@ -345,7 +375,7 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 		HostManagerBroadcast hostManager = manager.getCapability(HostManagerBroadcast.class);
 		
 		//ensure that this VM is still being advertised
-		if ((hostManager.isEvicting()) && hostManager.getEvictingVm().equals(event.getVm())) {
+		if ((hostManager.getManagementState() == ManagementState.EVICTING) && hostManager.getEvictingVm().equals(event.getVm())) {
 			hostManager.getVmAccepts().add(event);
 		}
 
@@ -527,6 +557,33 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 		return hostManager.getGroupSize() - hostManager.getPoweredOffHosts().size();
 	}
 	
+	public boolean bidsFrozen(HostManagerBroadcast hostManager) {
+		if (hostManager.bidsFrozen()) {
+			if (simulation.getSimulationTime() >= hostManager.getBidFreezeExpiry()) {
+				hostManager.expireBidFreeze();
+			}
+		}
+		return hostManager.bidsFrozen();
+	}
+	
+	public boolean evictionFrozen(HostManagerBroadcast hostManager) {
+		if(hostManager.evictionFrozen()) {
+			if (simulation.getSimulationTime() >= hostManager.getEvictionFreezeExpiry()) {
+				hostManager.expireEvictionFreeze();
+			}
+		}
+		return hostManager.evictionFrozen();
+	}
+	
+	public boolean shutdownFrozen(HostManagerBroadcast hostManager) {
+		if (hostManager.shutdownFrozen()) {
+			if (simulation.getSimulationTime() >= hostManager.getShutdownFreezeExpiry()) {
+				hostManager.expireShutdownFreeze();
+			}
+		}
+		return hostManager.shutdownFrozen();
+	}
+	
 	@Override
 	public void onInstall() {
 
@@ -538,6 +595,7 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 		HostManagerBroadcast hostManager = manager.getCapability(HostManagerBroadcast.class);
 		
 		hostManager.setManagementState(ManagementState.NORMAL);
+		hostManager.setShuttingDown(false);
 		hostManager.getHistory().clear(); //clear monitoring history
 		hostManager.setLastShutdownEvent(simulation.getSimulationTime());
 		
