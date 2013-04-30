@@ -8,10 +8,11 @@ import edu.uwo.csd.dcsim.*;
 import edu.uwo.csd.dcsim.common.*;
 import edu.uwo.csd.dcsim.core.Simulation;
 import edu.uwo.csd.dcsim.management.AutonomicManager;
-import edu.uwo.csd.dcsim.projects.im2013.policies.*;
+import edu.uwo.csd.dcsim.projects.centralized.policies.*;
+import edu.uwo.csd.dcsim.management.policies.HostStatusPolicy;
 
 /**
- * This class serves to test the set of policies that conform the Hybrid Strategy:
+ * This class serves to test the set of policies that conform the Periodic Hybrid Strategy:
  * 
  * + VmPlacementPolicyFFMHybrid
  * + VmRelocationPolicyFFIMDHybrid
@@ -20,11 +21,11 @@ import edu.uwo.csd.dcsim.projects.im2013.policies.*;
  * @author Gaston Keller
  *
  */
-public class HybridStrategyExperiment extends SimulationTask {
+public class PeriodicHybridStrategyExperiment extends SimulationTask {
 
-	private static Logger logger = Logger.getLogger(HybridStrategyExperiment.class);
+	private static Logger logger = Logger.getLogger(PeriodicHybridStrategyExperiment.class);
 	
-	public HybridStrategyExperiment(String name, long randomSeed) {
+	public PeriodicHybridStrategyExperiment(String name, long randomSeed) {
 		super(name, SimTime.days(5));					// 10-day simulation
 		this.setMetricRecordStart(SimTime.days(1));		// start on 3rd day (i.e., after 2 days)
 		this.setRandomSeed(randomSeed);
@@ -38,8 +39,9 @@ public class HybridStrategyExperiment extends SimulationTask {
 		double target = 0.85;
 		
 		// Create data centre and its manager.
-		Tuple<DataCentre, AutonomicManager> tuple = IM2013TestEnvironment.createDataCentre(simulation);
+		Tuple<DataCentre, AutonomicManager> tuple = CentralizedTestEnvironment.createDataCentre(simulation);
 		AutonomicManager dcAM = tuple.b;
+		dcAM.installPolicy(new HostStatusPolicy(5));
 		
 		// Create and install management policies for the data centre.
 		dcAM.installPolicy(new VmPlacementPolicyFFMHybrid(lower, upper, target));
@@ -49,7 +51,7 @@ public class HybridStrategyExperiment extends SimulationTask {
 		// Create and start ServiceProducer.
 //		IM2013TestEnvironment.configureStaticServices(simulation, dcAM);
 //		IM2013TestEnvironment.configureDynamicServices(simulation, dcAM);
-		IM2013TestEnvironment.configureRandomServices(simulation, dcAM, 1, 600, 1600);
+		CentralizedTestEnvironment.configureRandomServices(simulation, dcAM, 1, 600, 1600);
 	}
 	
 	public static void main(String args[]) {
@@ -59,17 +61,17 @@ public class HybridStrategyExperiment extends SimulationTask {
 		Collection<SimulationTask> completedTasks;
 		SimulationExecutor executor = new SimulationExecutor();
 		
-		executor.addTask(new HybridStrategyExperiment("hybrid-1", 6198910678692541341l));
-//		executor.addTask(new HybridStrategyExperiment("hybrid-2", 5646441053220106016l));
-//		executor.addTask(new HybridStrategyExperiment("hybrid-3", -5705302823151233610l));
-//		executor.addTask(new HybridStrategyExperiment("hybrid-4", 8289672009575825404l));
-//		executor.addTask(new HybridStrategyExperiment("hybrid-5", -4637549055860880177l));
+		executor.addTask(new PeriodicHybridStrategyExperiment("periodic-hybrid-1", 6198910678692541341l));
+//		executor.addTask(new HybridStrategyExperiment("periodic-hybrid-2", 5646441053220106016l));
+//		executor.addTask(new HybridStrategyExperiment("periodic-hybrid-3", -5705302823151233610l));
+//		executor.addTask(new HybridStrategyExperiment("periodic-hybrid-4", 8289672009575825404l));
+//		executor.addTask(new HybridStrategyExperiment("periodic-hybrid-5", -4637549055860880177l));
 		
 		completedTasks = executor.execute();
 		
 		for(SimulationTask task : completedTasks) {
 			logger.info(task.getName());
-			IM2013TestEnvironment.printMetrics(task.getResults());
+			CentralizedTestEnvironment.printMetrics(task.getResults());
 			
 			SimulationTraceWriter traceWriter = new SimulationTraceWriter(task);
 			traceWriter.writeTrace();

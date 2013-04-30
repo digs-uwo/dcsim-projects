@@ -63,19 +63,14 @@ public abstract class VmRelocationPolicyGreedyReactive extends Policy {
 	 * Performs the VM Relocation process.
 	 */
 	public void execute(VmRelocationEvent event) {
-		
-		
-		
-		// event identifies which Host was updated and therefore has to be checked for stress
-		
-		// if host not stressed
-		//     return
-		// else
-		//     run relocation for this host
-		
-		
 		HostPoolManager hostPool = manager.getCapability(HostPoolManager.class);
 		Collection<HostData> hosts = hostPool.getHosts();
+		
+		// Perform Stress Check in host that triggered the event.
+		// If host is NOT stressed, finish.
+		// Otherwise, perform VM Relocation process.
+		if (!this.isStressed(hostPool.getHost(event.getHostId())))
+			return;
 		
 		// Reset the sandbox host status to the current host status.
 		for (HostData host : hosts) {
@@ -184,6 +179,34 @@ public abstract class VmRelocationPolicyGreedyReactive extends Policy {
 				}
 			}
 		}
+	}
+	
+	/**
+	 * Determines if host is stressed or not, based on its average
+	 * CPU utilization over the last window of time.
+	 */
+	protected boolean isStressed(HostData host) {
+		// Calculate host's avg CPU utilization over the last window of time.
+		double avgCpuInUse = 0;
+		int count = 0;
+		for (HostStatus status : host.getHistory()) {
+			// Only consider times when the host is powered on.
+			if (status.getState() == Host.HostState.ON) {
+				avgCpuInUse += status.getResourcesInUse().getCpu();
+				++count;
+			}
+			else
+				break;
+		}
+		if (count != 0) {
+			avgCpuInUse = avgCpuInUse / count;
+		}
+		
+		double avgCpuUtilization = Utility.roundDouble(avgCpuInUse / host.getHostDescription().getResourceCapacity().getCpu());
+		if (avgCpuUtilization > upperThreshold)
+			return true;
+		
+		return false;
 	}
 	
 	@Override
