@@ -25,8 +25,8 @@ public class ReactiveHybridStrategyExperiment extends SimulationTask {
 	private static Logger logger = Logger.getLogger(ReactiveHybridStrategyExperiment.class);
 	
 	public ReactiveHybridStrategyExperiment(String name, long randomSeed) {
-		super(name, SimTime.days(5));					// 10-day simulation
-		this.setMetricRecordStart(SimTime.days(1));		// start on 3rd day (i.e., after 2 days)
+		super(name, SimTime.days(10));					// 10-day simulation
+		this.setMetricRecordStart(SimTime.days(2));		// start on 3rd day (i.e., after 2 days)
 		this.setRandomSeed(randomSeed);
 	}
 
@@ -40,11 +40,11 @@ public class ReactiveHybridStrategyExperiment extends SimulationTask {
 		// Create data centre and its manager.
 		Tuple<DataCentre, AutonomicManager> tuple = CentralizedTestEnvironment.createDataCentre(simulation);
 		AutonomicManager dcAM = tuple.b;
-		dcAM.installPolicy(new HostStatusPolicy(5));
+		dcAM.installPolicy(new ReactiveHostStatusPolicy(5));
 		
 		// Create and install management policies for the data centre.
 		dcAM.installPolicy(new VmPlacementPolicyFFMHybrid(lower, upper, target));
-		dcAM.installPolicy(new VmRelocationPolicyHybridReactive(lower, upper, target), SimTime.minutes(10), SimTime.minutes(10) + 1);
+		dcAM.installPolicy(new VmRelocationPolicyHybridReactive(lower, upper, target));
 		dcAM.installPolicy(new VmConsolidationPolicyFFDDIHybrid(lower, upper, target), SimTime.hours(1), SimTime.hours(1) + 2);
 		
 		// Create and start ServiceProducer.
