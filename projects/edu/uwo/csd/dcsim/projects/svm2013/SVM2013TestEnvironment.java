@@ -73,7 +73,6 @@ public class SVM2013TestEnvironment {
 		
 		HostPoolManager hostPool = new HostPoolManager();
 		AutonomicManager dcAM = new AutonomicManager(simulation, hostPool);
-		//dcAM.installPolicy(new HostStatusPolicy(5));
 		
 		// Create hosts and add to data centre.
 		createHosts(simulation, dc, dcAM);
@@ -132,7 +131,7 @@ public class SVM2013TestEnvironment {
 		serviceRates.add(new Tuple<Long, Double>(144000000l, 0d));	// 40 hours
 		serviceRates.add(new Tuple<Long, Double>(864000000l, 0d));	// 10 days
 		
-		ServiceProducer serviceProducer = new IMServiceProducer(simulation, dcAM, null, serviceRates);
+		ServiceProducer serviceProducer = new SVMServiceProducer(simulation, dcAM, null, serviceRates);
 		serviceProducer.start();
 	}
 	
@@ -166,7 +165,7 @@ public class SVM2013TestEnvironment {
 		serviceRates.add(new Tuple<Long, Double>(SimTime.hours(40), 0d));		// over 40 hours
 		serviceRates.add(new Tuple<Long, Double>(SimTime.days(10), 0d));		// 10 days
 		
-		ServiceProducer serviceProducer = new IMServiceProducer(simulation, dcAM, null, serviceRates);
+		ServiceProducer serviceProducer = new SVMServiceProducer(simulation, dcAM, null, serviceRates);
 		serviceProducer.start();
 
 		/*
@@ -195,7 +194,7 @@ public class SVM2013TestEnvironment {
 		//Day 10: Let servers terminate until left with base 600
 		serviceRates.add(new Tuple<Long, Double>(SimTime.days(10), 0d));
 		
-		serviceProducer = new IMServiceProducer(simulation, dcAM, new NormalDistribution(SimTime.days(2), SimTime.hours(2)), serviceRates);
+		serviceProducer = new SVMServiceProducer(simulation, dcAM, new NormalDistribution(SimTime.days(2), SimTime.hours(2)), serviceRates);
 		serviceProducer.start();	
 	}
 	
@@ -218,7 +217,7 @@ public class SVM2013TestEnvironment {
 		serviceRates.add(new Tuple<Long, Double>(SimTime.hours(40), 0d));		
 		serviceRates.add(new Tuple<Long, Double>(SimTime.days(10), 0d));		// 10 days
 		
-		ServiceProducer serviceProducer = new IMServiceProducer(simulation, dcAM, null, serviceRates);
+		ServiceProducer serviceProducer = new SVMServiceProducer(simulation, dcAM, null, serviceRates);
 		serviceProducer.start();
 		
 		//Create a uniform random distribution to generate the number of services within the data centre.
@@ -257,7 +256,7 @@ public class SVM2013TestEnvironment {
 		serviceRates.add(new Tuple<Long, Double>(SimTime.days(10), 0d));
 
 		
-		serviceProducer = new IMServiceProducer(simulation, dcAM, new NormalDistribution(SimTime.days(1) / changesPerDay, SimTime.hours(1)), serviceRates);
+		serviceProducer = new SVMServiceProducer(simulation, dcAM, new NormalDistribution(SimTime.days(1) / changesPerDay, SimTime.hours(1)), serviceRates);
 		serviceProducer.start();
 	}
 	
@@ -280,11 +279,11 @@ public class SVM2013TestEnvironment {
 	 * @author Michael Tighe
 	 *
 	 */
-	public static class IMServiceProducer extends ServiceProducer {
+	public static class SVMServiceProducer extends ServiceProducer {
 
 		private int counter = 0;
 		
-		public IMServiceProducer(Simulation simulation, AutonomicManager dcTarget, RealDistribution lifespanDist, List<Tuple<Long, Double>> servicesPerHour) {
+		public SVMServiceProducer(Simulation simulation, AutonomicManager dcTarget, RealDistribution lifespanDist, List<Tuple<Long, Double>> servicesPerHour) {
 			super(simulation, dcTarget, lifespanDist, servicesPerHour);
 		}
 

@@ -9,28 +9,29 @@ import edu.uwo.csd.dcsim.common.*;
 import edu.uwo.csd.dcsim.core.Simulation;
 import edu.uwo.csd.dcsim.management.AutonomicManager;
 import edu.uwo.csd.dcsim.projects.centralized.policies.*;
-import edu.uwo.csd.dcsim.management.policies.HostStatusPolicy;
 
 /**
- * This class serves to evaluate the Periodic Hybrid Strategy in the test 
+ * This class serves to evaluate the Reactive Hybrid Strategy in the test 
  * environment for the SVM 2013 paper. The strategy consists of the following 
  * policies:
  * 
  * + VmPlacementPolicyFFMHybrid
- * + VmRelocationPolicyFFIMDHybrid
+ * + VmRelocationPolicyHybridReactive
  * + VmConsolidationPolicyFFDDIHybrid
  * 
- * The VM Placement policy runs as needed, while the VM Relocation and 
- * VM Consolidation policies run periodically.
+ * The VM Placement policy runs as needed, while the VM Consolidation policy 
+ * runs periodically. The VM Relocation policy is triggered with every Host 
+ * Status Update: a Stress Check is performed on the Host and if the check is 
+ * positive, the VM Relocation process is started.
  * 
  * @author Gaston Keller
  *
  */
-public class PeriodicHybridStrategyExperiment extends SimulationTask {
+public class ReactiveHybridStrategyExperiment extends SimulationTask {
 
-	private static Logger logger = Logger.getLogger(PeriodicHybridStrategyExperiment.class);
+	private static Logger logger = Logger.getLogger(ReactiveHybridStrategyExperiment.class);
 	
-	public PeriodicHybridStrategyExperiment(String name, long randomSeed) {
+	public ReactiveHybridStrategyExperiment(String name, long randomSeed) {
 		super(name, SimTime.days(10));					// 10-day simulation
 		this.setMetricRecordStart(SimTime.days(2));		// start on 3rd day (i.e., after 2 days)
 		this.setRandomSeed(randomSeed);
@@ -46,13 +47,11 @@ public class PeriodicHybridStrategyExperiment extends SimulationTask {
 		// Create data centre and its manager.
 		Tuple<DataCentre, AutonomicManager> tuple = SVM2013TestEnvironment.createDataCentre(simulation);
 		AutonomicManager dcAM = tuple.b;
-		
-		// Create and install policy to manage Host status updates.
-		dcAM.installPolicy(new HostStatusPolicy(5));
+		dcAM.installPolicy(new ReactiveHostStatusPolicy(5));
 		
 		// Create and install management policies for the data centre.
 		dcAM.installPolicy(new VmPlacementPolicyFFMHybrid(lower, upper, target));
-		dcAM.installPolicy(new VmRelocationPolicyFFIMDHybrid(lower, upper, target), SimTime.minutes(10), SimTime.minutes(10) + 1);
+		dcAM.installPolicy(new VmRelocationPolicyHybridReactive(lower, upper, target));
 		dcAM.installPolicy(new VmConsolidationPolicyFFDDIHybrid(lower, upper, target), SimTime.hours(1), SimTime.hours(1) + 2);
 		
 		// Create and start ServiceProducer.
@@ -66,11 +65,11 @@ public class PeriodicHybridStrategyExperiment extends SimulationTask {
 		Collection<SimulationTask> completedTasks;
 		SimulationExecutor executor = new SimulationExecutor();
 		
-		executor.addTask(new PeriodicHybridStrategyExperiment("svm2013-periodic-hybrid-1", 6198910678692541341l));
-//		executor.addTask(new HybridStrategyExperiment("svm2013-periodic-hybrid-2", 5646441053220106016l));
-//		executor.addTask(new HybridStrategyExperiment("svm2013-periodic-hybrid-3", -5705302823151233610l));
-//		executor.addTask(new HybridStrategyExperiment("svm2013-periodic-hybrid-4", 8289672009575825404l));
-//		executor.addTask(new HybridStrategyExperiment("svm2013-periodic-hybrid-5", -4637549055860880177l));
+		executor.addTask(new ReactiveHybridStrategyExperiment("svm2013-reactive-hybrid-1", 6198910678692541341l));
+//		executor.addTask(new HybridStrategyExperiment("svm2013-reactive-periodic-hybrid-2", 5646441053220106016l));
+//		executor.addTask(new HybridStrategyExperiment("svm2013-reactive-periodic-hybrid-3", -5705302823151233610l));
+//		executor.addTask(new HybridStrategyExperiment("svm2013-reactive-periodic-hybrid-4", 8289672009575825404l));
+//		executor.addTask(new HybridStrategyExperiment("svm2013-reactive-periodic-hybrid-5", -4637549055860880177l));
 		
 		completedTasks = executor.execute();
 		
