@@ -33,6 +33,7 @@ public final class Host implements SimulationEventListener {
 	public static final String HOST_TIME_METRIC = "hostTime";
 	public static final String DC_UTIL_METRIC = "avgDcUtil";
 	public static final String POWER_EFFICIENCY_METRIC = "powerEfficiency";
+	public static final String FAILED_MIG_ALLOC_METRIC = "failedMigrationAllocation";
 	
 	private Simulation simulation;
 	
@@ -409,6 +410,7 @@ public final class Host implements SimulationEventListener {
 		VMAllocationRequest vmAllocationRequest = event.getVMAllocationRequest();
 		VM vm = event.getVM();
 		Host source = event.getSource();
+
 		
 		//verify source
 		if (vm.getVMAllocation().getHost() != source)
@@ -422,7 +424,6 @@ public final class Host implements SimulationEventListener {
 		try {
 			newAllocation = allocate(vmAllocationRequest);
 		} catch (AllocationFailedException e) {
-//			System.out.println("!!!!! ALLOC FAIL - MIG- Host #" + this.getId());
 			throw new RuntimeException("Allocation failed on Host # " + this.getId() + 
 					" for migrating in VM #" + vm.getId(), e);
 
@@ -488,7 +489,7 @@ public final class Host implements SimulationEventListener {
 		VMAllocation vmAllocation = event.getVMAllocation();
 		VM vm = event.getVM();
 		Host source = event.getSource();
-
+		
 		//first, inform the source host the the VM has completed migrating out
 		source.completeMigrationOut(vm);
 		
@@ -542,6 +543,7 @@ public final class Host implements SimulationEventListener {
 	}
 	
 	public void powerOff(PowerStateEvent event) {
+
 		if (state != HostState.OFF && state != HostState.POWERING_OFF) {
 			
 			if (migratingOut.size() != 0) {
@@ -561,7 +563,7 @@ public final class Host implements SimulationEventListener {
 	}
 	
 	public void powerOn(PowerStateEvent event) {
-
+		
 		if (state != HostState.ON && state != HostState.POWERING_ON) {
 			
 			long delay = 0;
@@ -598,7 +600,7 @@ public final class Host implements SimulationEventListener {
 	}
 	
 	private void completePowerOn() {
-		
+
 		if (state != HostState.ON) {
 			state = HostState.ON;
 			for (Event e : powerOnEventQueue) {
@@ -664,6 +666,15 @@ public final class Host implements SimulationEventListener {
 		
 		//log priv domain
 		privDomainAllocation.getVm().logState();
+		
+//		if (id == 189) {
+//			System.out.println("Host #" + getId() + 
+//					" CPU[" + (int)Math.round(resourceManager.getCpuInUse()) + "/" + resourceManager.getTotalCpu() + "] " +
+//					" BW[" + resourceManager.getAllocatedBandwidth() + "/" + resourceManager.getTotalBandwidth() + "] " +
+//					" MEM[" + resourceManager.getAllocatedMemory() + "/" + resourceManager.getTotalMemory() + "] " +
+//					" STORAGE[" + resourceManager.getAllocatedStorage() + "/" + resourceManager.getTotalStorage() + "] " +
+//					"Power[" + Utility.roundDouble(this.getCurrentPowerConsumption(), 2) + "W]");
+//		}
 		
 		for (VMAllocation vmAllocation : vmAllocations) {
 			if (vmAllocation.getVm() != null) {

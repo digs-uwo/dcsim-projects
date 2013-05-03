@@ -5,33 +5,37 @@ import java.util.ArrayList;
 import edu.uwo.csd.dcsim.core.SimulationEventBroadcastGroup;
 import edu.uwo.csd.dcsim.host.Host;
 import edu.uwo.csd.dcsim.management.HostStatus;
-import edu.uwo.csd.dcsim.management.VmStatus;
 import edu.uwo.csd.dcsim.management.capabilities.HostManager;
-import edu.uwo.csd.dcsim.projects.distributed.events.BidVmEvent;
+import edu.uwo.csd.dcsim.projects.distributed.Eviction;
+import edu.uwo.csd.dcsim.projects.distributed.events.ResourceOfferEvent;
 
 public class HostManagerBroadcast extends HostManager {
 
-	public enum ManagementState {NORMAL, EVICTING, BIDDING;}
+	public enum ManagementState {NORMAL, EVICTING, OFFERING;}
 		
 	private SimulationEventBroadcastGroup broadcastingGroup; 
-	private ArrayList<HostStatus> history = new ArrayList<HostStatus>();
-	private int evicting = 0;
-	private VmStatus evictingVm;
 	
+	private ArrayList<HostStatus> history = new ArrayList<HostStatus>();
 	private ArrayList<Host> poweredOffHosts = new ArrayList<Host>();
-	private ArrayList<BidVmEvent> vmAccepts = new ArrayList<BidVmEvent>();
-	private long lastShutdownEvent = 0;
+	private boolean powerStateListValid = true;
 	
 	//Host state
 	private ManagementState managementState = ManagementState.NORMAL;
 	private boolean shuttingDown = false;
-	
-	private boolean bidFreeze = false;
-	private long bidFreezeExpiry = -1;
+
+	//action freezing
+	private boolean offerFreeze = false;
+	private long offerFreezeExpiry = -1;
 	private boolean evictionFreeze = false;
 	private long evictionFreezeExpiry = -1;
 	private boolean shutdownFreeze = false;
 	private long shutdownFreezeExpiry = -1;
+	
+	//eviction
+	private Eviction eviction;
+	
+	//offer
+	private ResourceOfferEvent currentOffer;
 	
 	
 	public HostManagerBroadcast(Host host, SimulationEventBroadcastGroup broadcastingGroup) {
@@ -59,40 +63,37 @@ public class HostManagerBroadcast extends HostManager {
 		this.managementState = state;
 	}
 	
-	public VmStatus getEvictingVm() {
-		return evictingVm;
-	}
-	
-	public void setEvictingVm(VmStatus evictingVm) {
-		this.evictingVm = evictingVm;
-	}
-	
 	public ArrayList<HostStatus> getHistory() {
 		return history;
 	}
 	
-	public int getEvicting() {
-		return evicting;
-	}
-	
-	public void setEvicting(int evicting) {
-		this.evicting = evicting;
-	}
 	
 	public ArrayList<Host> getPoweredOffHosts() {
 		return poweredOffHosts;
 	}
-	
-	public ArrayList<BidVmEvent> getVmAccepts() {
-		return vmAccepts;
-	}
 
-	public long getLastShutdownEvent() {
-		return lastShutdownEvent;
+	public Eviction getEviction() {
+		return eviction;
 	}
 	
-	public void setLastShutdownEvent(long lastShutdownEvent) {
-		this.lastShutdownEvent = lastShutdownEvent;
+	public void setEviction(Eviction eviction) {
+		this.eviction = eviction;
+	}
+	
+	public void clearEviction() {
+		this.eviction = null;
+	}
+	
+	public ResourceOfferEvent getCurrentOffer() {
+		return currentOffer;
+	}
+	
+	public void setCurrentOffer(ResourceOfferEvent currentOffer) {
+		this.currentOffer = currentOffer;
+	}
+	
+	public void clearCurrentOffer() {
+		this.currentOffer = null;
 	}
 	
 	public long getGroupSize() {
@@ -107,21 +108,21 @@ public class HostManagerBroadcast extends HostManager {
 		this.shuttingDown = shuttingDown;
 	}
 	
-	public boolean bidsFrozen() {
-		return bidFreeze;
+	public boolean offersFrozen() {
+		return offerFreeze;
 	}
 	
-	public long getBidFreezeExpiry() {
-		return bidFreezeExpiry;
+	public long getOfferFreezeExpiry() {
+		return offerFreezeExpiry;
 	}
 	
-	public void enactBidFreeze(long bidFreezeExpiry) {
-		this.bidFreeze = true;
-		this.bidFreezeExpiry = bidFreezeExpiry;
+	public void enactOfferFreeze(long offerFreezeExpiry) {
+		this.offerFreeze = true;
+		this.offerFreezeExpiry = offerFreezeExpiry;
 	}
 	
-	public void expireBidFreeze() {
-		this.bidFreeze = false;
+	public void expireOfferFreeze() {
+		this.offerFreeze = false;
 	}
 	
 	public boolean evictionFrozen() {
@@ -157,4 +158,14 @@ public class HostManagerBroadcast extends HostManager {
 	public void expireShutdownFreeze() {
 		this.shutdownFreeze = false;
 	}
+	
+	public boolean isPowerStateListValid() {
+		return powerStateListValid;
+	}
+	
+	public void setPowerStateListValid(boolean powerStateListValid) {
+		this.powerStateListValid = powerStateListValid;
+	}
+	
+
 }

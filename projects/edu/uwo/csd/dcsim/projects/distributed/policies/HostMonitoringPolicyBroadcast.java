@@ -7,30 +7,39 @@ import edu.uwo.csd.dcsim.common.SimTime;
 import edu.uwo.csd.dcsim.core.metrics.CountMetric;
 import edu.uwo.csd.dcsim.host.Host;
 import edu.uwo.csd.dcsim.host.Resources;
+import edu.uwo.csd.dcsim.host.comparator.HostComparator;
 import edu.uwo.csd.dcsim.management.*;
 import edu.uwo.csd.dcsim.management.action.MigrationAction;
+import edu.uwo.csd.dcsim.management.action.SequentialManagementActionExecutor;
 import edu.uwo.csd.dcsim.management.action.ShutdownHostAction;
+import edu.uwo.csd.dcsim.projects.distributed.actions.AcceptOfferAction;
+import edu.uwo.csd.dcsim.projects.distributed.actions.RejectOfferAction;
+import edu.uwo.csd.dcsim.projects.distributed.actions.UpdatePowerStateListAction;
 import edu.uwo.csd.dcsim.projects.distributed.capabilities.*;
+import edu.uwo.csd.dcsim.projects.distributed.Eviction;
 import edu.uwo.csd.dcsim.projects.distributed.capabilities.HostManagerBroadcast.ManagementState;
+import edu.uwo.csd.dcsim.projects.distributed.comparators.ResourceOfferComparator;
 import edu.uwo.csd.dcsim.projects.distributed.events.*;
+import edu.uwo.csd.dcsim.projects.distributed.events.RequestResourcesEvent.AdvertiseReason;
 
 public class HostMonitoringPolicyBroadcast extends Policy {
 
-	private static final int EVICTION_ATTEMPT_TIMEOUT = 2; //the number of attempts to evict a VM
 	private static final int EVICTION_WAIT_TIME = 500; //the number of milliseconds to wait to evict a VM
-	private static final int EVICTION_WAIT_BACKOFF_MULTIPLE = 1; //multiply eviction wait time by this value after a failed attempt
 	private static final int MONITOR_WINDOW = 5;
-	private static final long SHUTDOWN_WAIT_TIME = SimTime.minutes(1);
+	private static final long SHUTDOWN_WAIT_TIME = SimTime.minutes(30);
 
 	
 	private static final long SHUTDOWN_FREEZE_DURATION = SimTime.minutes(30);
 	private static final long EVICTION_FREEZE_DURATION = SimTime.minutes(30);
-	private static final long BID_FREEZE_DURATION = SimTime.minutes(30);
+	private static final long OFFER_FREEZE_DURATION = SimTime.minutes(30);
 	
 	public static final String STRESS_EVICT_FAIL = "stressEvictionFailed";
-	public static final String SHUTDOWN_EVICT_FAIL = "shutdownEvictionFailed";
+	public static final String SHUTDOWN_EVICT_FAIL = "shutdownFailed";
 	public static final String STRESS_EVICT = "stressEviction";
 	public static final String SHUTDOWN_EVICT = "shutdownEviction";
+	public static final String SHUTDOWN_TRIGGERED = "shutdownTriggered";
+	public static final String RESOURCE_REQUEST_RECEIVED = "receivedResourceRequest";
+	public static final String POWER_STATE_MSG_RECEIVED = "receivedPowerStateMessage";
 	
 	private double lower;
 	private double upper;
@@ -60,99 +69,68 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 		if ((hostStatus.getIncomingMigrationCount() > 0) || (hostStatus.getOutgoingMigrationCount() > 0)) return;
 		
 		
-		if (hostManager.getManagementState() == ManagementState.NORMAL) {
-			
+		/*
+		 * NORMAL STATE (no evictions, not shutting down, not bidding)
+		 * 
+		 * Detect stress and underutilization
+		 * 
+		 */
+		if (hostManager.getManagementState() == ManagementState.NORMAL && !hostManager.isShuttingDown()) {
+
+			/*
+			 * STRESSED (detect stressed state)
+			 * 
+			 * Trigger a VM eviction
+			 *  
+			 */
+			if (isStressed(hostManager) && !evictionFrozen(hostManager)) {
+				//host is stressed, evict a VM
+
+				//sort VMs
+				ArrayList<VmStatus> vmList = orderVmsStressed(hostStatus.getVms(), hostManager.getHost());
+				
+				//evict first VM in list
+				if (!vmList.isEmpty()) {
+					if (simulation.isRecordingMetrics())
+						CountMetric.getMetric(simulation, STRESS_EVICT).incrementCount();
+					evict(hostManager, vmList, RequestResourcesEvent.AdvertiseReason.STRESS);	
+					
+					//freeze VM bidding
+					hostManager.enactOfferFreeze(simulation.getSimulationTime() + OFFER_FREEZE_DURATION);
+				}
+				
+			} 
 			
 			/*
-			 * SHUTTING DOWN 
-			 * 
-			 * Evict all VMs and shut down, or cancel shut down if cannot evict a VM
-			 * 
+			 * UNDERUTILIZED (detect underutilized state)
+			 *
+			 * Decide whether or not to switch into SHUTDOWN
 			 */
-			if (hostManager.isShuttingDown()) {
-				//if shutting down
+			
+			else if (isUnderUtilized(hostManager, hostStatus) && !shutdownFrozen(hostManager)) {
 				
-				//if evictions complete, shut down
-				if (hostStatus.getVms().size() != 0) {
+				//host is underutilized, attempt to shutdown
+				if (!shutdownFrozen(hostManager) &&
+						getActiveHostCount(hostManager) > 1) {
+					
+					hostManager.setShuttingDown(true); 
 					
 					//sort VMs
 					ArrayList<VmStatus> vmList = orderVmsUnderUtilized(hostStatus.getVms());
 					
-					//evict first VM in list
+					//evict VMs
 					if (!vmList.isEmpty()) {
-						CountMetric.getMetric(simulation, SHUTDOWN_EVICT).incrementCount();
-						evict(hostManager, vmList.get(0), AdvertiseVmEvent.AdvertiseReason.SHUTDOWN);	
+
+						if (simulation.isRecordingMetrics())
+							CountMetric.getMetric(simulation, SHUTDOWN_TRIGGERED).incrementCount();
+						
+						evict(hostManager, vmList, RequestResourcesEvent.AdvertiseReason.SHUTDOWN);	
+					} else {
+						ShutdownHostAction action = new ShutdownHostAction(hostManager.getHost());
+						action.execute(simulation, this);
 					}
-					
-				} else {
-				
-					//send shutdown message
-					simulation.sendEvent(new HostShuttingDownEvent(hostManager.getBroadcastingGroup(), hostManager.getHost()));
-					
-					//shut down
-					ShutdownHostAction shutdownAction = new ShutdownHostAction(hostManager.getHost());
-					shutdownAction.execute(simulation, this);
-					
 				}
-				
-	
-				/*
-				 * NORMAL STATE (no evictions, not shutting down, not bidding)
-				 * 
-				 * Detect stress and underutilization
-				 * 
-				 */
-			} else {
-				
-				/*
-				 * STRESSED (detect stressed state)
-				 * 
-				 * Trigger a VM eviction
-				 *  
-				 */
-				if (isStressed(hostManager) && !evictionFrozen(hostManager)) {
-					//host is stressed, evict a VM
-	
-					//sort VMs
-					ArrayList<VmStatus> vmList = orderVmsStressed(hostStatus.getVms(), hostManager.getHost());
-					
-					//evict first VM in list
-					if (!vmList.isEmpty()) {
-						CountMetric.getMetric(simulation, STRESS_EVICT).incrementCount();
-						evict(hostManager, vmList.get(0), AdvertiseVmEvent.AdvertiseReason.STRESS);	
-						
-						//freeze VM bidding
-						hostManager.enactBidFreeze(BID_FREEZE_DURATION);
-					}
-					
-				} 
-				
-				/*
-				 * UNDERUTILIZED (detect underutilized state)
-				 *
-				 * Decide whether or not to switch into SHUTDOWN
-				 */
-				
-				else if (isUnderUtilized(hostManager, hostStatus) && !shutdownFrozen(hostManager)) {
-					
-					//host is underutilized, decide if should switch to eviction, if so, evict a VM
-					
-					//if (simulation.getRandom().nextDouble() < 0.01) {
-					if (hostManager.getLastShutdownEvent() + SHUTDOWN_WAIT_TIME <= simulation.getSimulationTime() &&
-							getActiveHostCount(hostManager) > 1) {
-						hostManager.setShuttingDown(true); 
-						
-						//sort VMs
-						ArrayList<VmStatus> vmList = orderVmsUnderUtilized(hostStatus.getVms());
-						
-						//evict first VM in list
-						if (!vmList.isEmpty()) {
-							CountMetric.getMetric(simulation, SHUTDOWN_EVICT).incrementCount();
-							evict(hostManager, vmList.get(0), AdvertiseVmEvent.AdvertiseReason.SHUTDOWN);	
-						}
-					}
-	
-				}
+
 			}
 		}
 
@@ -165,160 +143,317 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 	 * @param hostManager
 	 * @param vm
 	 */
-	private void evict(HostManagerBroadcast hostManager, VmStatus vm, AdvertiseVmEvent.AdvertiseReason reason) {
+	private void evict(HostManagerBroadcast hostManager, ArrayList<VmStatus> vmList, RequestResourcesEvent.AdvertiseReason reason) {
 		//setup eviction counter/data
-		hostManager.setEvicting(EVICTION_ATTEMPT_TIMEOUT);
-		hostManager.setEvictingVm(vm);
+		Resources minResources = getMinResources(vmList);
+
+		Eviction eviction = new Eviction();
+		eviction.setVmList(vmList);
+		
+		hostManager.setEviction(eviction);
 		hostManager.setManagementState(ManagementState.EVICTING);
 		
+		RequestResourcesEvent event = new RequestResourcesEvent(hostManager.getBroadcastingGroup(), minResources, eviction, manager, reason);
+		
+		eviction.setEvent(event);
+		
 		//send advertise message
-		simulation.sendEvent(new AdvertiseVmEvent(hostManager.getBroadcastingGroup(), vm, manager, reason));	
-		simulation.sendEvent(new EvictionEvent(manager, vm), simulation.getSimulationTime() + EVICTION_WAIT_TIME);
+		simulation.sendEvent(event);	
+		simulation.sendEvent(new EvictionEvent(manager, eviction), simulation.getSimulationTime() + EVICTION_WAIT_TIME);
 	}
 	
 	public void execute(EvictionEvent event) {
-
 		HostManagerBroadcast hostManager = manager.getCapability(HostManagerBroadcast.class);
 		
+		if (event.getEviction() != hostManager.getEviction())
+			throw new RuntimeException("Eviction event does not match current eviction");
+		
+		if (event.getEviction().getEvent().getReason() == AdvertiseReason.STRESS) {
+			completeStressEviction(event);
+		} else {
+			completeShutdownEviction(event);
+		}
+	}
+	
+	private void completeStressEviction(EvictionEvent event) {
+		HostManagerBroadcast hostManager = manager.getCapability(HostManagerBroadcast.class);
+		
+		Eviction eviction = hostManager.getEviction();
+		
+		//filter out VMs from the VM list that have completed execution since the eviction notice. Note, VMs are already sorted
+		ArrayList<VmStatus> vmList = new ArrayList<VmStatus>();
+		for (VmStatus vm : eviction.getVmList()) {
+			if (hostManager.getHost().getVMAllocation(vm.getId()) != null) {
+				vmList.add(vm);
+			}
+		}
+		
+		boolean targetFound = false;
+		
 		//check for accepts
-		if (hostManager.getVmAccepts().size() > 0) {
-			
-			//double check that the VM is still running on the host (could have terminated)
-			if (hostManager.getHost().getVMAllocation(hostManager.getEvictingVm().getId()) == null) {
-				//clear eviction state
-				hostManager.setEvicting(0);
-				hostManager.setEvictingVm(null);
-				
-			} else {
+		if (eviction.getResourceOffers().size() > 0) {
+			/*
+			 * 
+			 * Hosts have replied with spare capacity. Select a target for migration.
+			 * 
+			 */
 
-				//accept the request from the host with the highest utilization
-				BidVmEvent target = null;
-				double targetUtil = -1;
-//				for (AcceptVmEvent acceptEvent : hostManager.getVmAccepts()) {
-//					double util = acceptEvent.getHostStatus().getResourcesInUse().getCpu() / acceptEvent.getHost().getTotalCpu();
-//					if (util > targetUtil) {
-//						target = acceptEvent;
-//						targetUtil = util;
-//					}
-//				}
-				//accept the request from the host with the lowest utilization above the lower threshold, if possible
-				for (BidVmEvent acceptEvent : hostManager.getVmAccepts()) {
-					double util = acceptEvent.getHostStatus().getResourcesInUse().getCpu() / acceptEvent.getHost().getTotalCpu();
-					if (targetUtil == -1) {
-						target = acceptEvent;
-						targetUtil = util;
-					} else if (util < targetUtil && util >= lower) {
-						target = acceptEvent;
-						targetUtil = util;
-					} else if (util > targetUtil && targetUtil < lower) {
-						target = acceptEvent;
-						targetUtil = util;
+			//Sort target hosts
+			ArrayList<ResourceOfferEvent> targets = sortTargetHostsForStressEviction(eviction.getResourceOffers());
+			
+			//loop until a target is found
+			ResourceOfferEvent target = null;
+			VmStatus vmToMig = null;
+			
+			for (VmStatus vm : vmList) {
+				for (ResourceOfferEvent hostOffer : targets) {
+					Host host = hostOffer.getHost(); //to check capabilities. Can be assumed known by this host manager, since capabilities are static.
+					HostStatus hostStatus = hostOffer.getHostStatus();
+					Resources resourcesOffered = hostOffer.getResourcesOffered();
+									
+					//check capability & capacity
+					if (canHost(host, hostStatus, vm) &&
+							vm.getResourcesInUse().getCpu() <= resourcesOffered.getCpu() &&
+							vm.getResourcesInUse().getMemory() <= resourcesOffered.getMemory() &&
+							vm.getResourcesInUse().getBandwidth() <= resourcesOffered.getBandwidth() &&
+							vm.getResourcesInUse().getStorage() <= resourcesOffered.getStorage()
+							) {
+
+						target = hostOffer;
+						vmToMig = vm;
+						break;
 					}
 				}
 				
 				if (target != null) {
-					//trigger migration
-					MigrationAction migAction = new MigrationAction(manager, hostManager.getHost(), target.getHost(), target.getVm().getId());
-					migAction.execute(simulation, this);					
-
-					//send offer accept messsage
-					simulation.sendEvent(new AcceptOfferEvent(target.getHostManager()));
-					
-					//clear eviction state
-					hostManager.setEvicting(0);
-					hostManager.setEvictingVm(null);
-					hostManager.setManagementState(ManagementState.NORMAL);
-				} else {
-					//Should not happen, exists to catch programming error
-					throw new RuntimeException("Failed to select target VM from acception Hosts. Should not happen.");
+					break;
 				}
 				
-				//send out rejection messages to other hosts
-				for (BidVmEvent acceptEvent : hostManager.getVmAccepts()) {
-					if (acceptEvent != target) {
-						simulation.sendEvent(new RejectOfferEvent(acceptEvent.getHostManager()));
+			}
+
+			//trigger migration, send accept message
+			if (target != null) {
+				//trigger migration
+				MigrationAction migAction = new MigrationAction(manager, hostManager.getHost(), target.getHost(), vmToMig.getId(), true);
+				
+				SequentialManagementActionExecutor actions = new SequentialManagementActionExecutor();	
+				actions.addAction(migAction);
+				
+				//send offer accept messsage
+				AcceptOfferAction acceptAction = new AcceptOfferAction(target.getHostManager(), target);
+				actions.addAction(acceptAction);
+				
+				actions.execute(simulation, this);
+				
+				targetFound = true;
+			}
+			
+			//send reject messages
+			for (ResourceOfferEvent offerEvent : eviction.getResourceOffers()) {
+				if (offerEvent != target) {
+					RejectOfferAction rejectAction = new RejectOfferAction(offerEvent.getHostManager(), offerEvent);
+					rejectAction.execute(simulation, this);
+				}
+			}
+			
+			//clear bid events
+			eviction.getResourceOffers().clear();
+
+		} 
+		
+		if (!targetFound) {
+			/*
+			 * 
+			 * No hosts have spare capacity
+			 * boot new host	
+			 */
+			
+			Host target = null;
+			VmStatus vmToMig = null;
+
+			if (hostManager.isPowerStateListValid()) {
+				ArrayList<Host> poweredOffHosts = new ArrayList<Host>();
+				poweredOffHosts.addAll(hostManager.getPoweredOffHosts());
+				
+				//Sort Empty hosts in decreasing order by <power efficiency, power state>.
+				Collections.sort(poweredOffHosts, HostComparator.getComparator(HostComparator.EFFICIENCY));
+				Collections.reverse(poweredOffHosts);
+				
+				//Find target
+				for (VmStatus vm : vmList) {
+					for (Host host : poweredOffHosts) {
+						if (canHost(host, vm)) {
+							target = host;
+							vmToMig = vm;
+							break;
+						}
+					}
+					
+					if (target != null) {
+						break;
 					}
 				}
-			
 			}
-			//clear VM accepts
-			hostManager.getVmAccepts().clear();
-			
-		} else {
-			
-			if (hostManager.getEvicting() > 0) {
-				//retry eviction
+		
+			if (target != null) {
+				//trigger migration (MirationAction will boot host)
+				SequentialManagementActionExecutor actions = new SequentialManagementActionExecutor();
+				actions.addAction(new MigrationAction(manager, hostManager.getHost(), target, vmToMig.getId(), true));
+				actions.addAction(new UpdatePowerStateListAction(target.getAutonomicManager(), hostManager.getPoweredOffHosts()));
+				actions.execute(simulation, this);
+
+				if (simulation.isRecordingMetrics())
+					CountMetric.getMetric(simulation, VmPlacementPolicyBroadcast.HOST_POWER_ON_METRIC + "-" + this.getClass().getSimpleName()).incrementCount();
 				
-				//decrement evicting counter
-				hostManager.setEvicting(hostManager.getEvicting() - 1);
-				
-				//resend advertise message
-				AdvertiseVmEvent.AdvertiseReason reason;
-				if (hostManager.isShuttingDown()) {
-					reason = AdvertiseVmEvent.AdvertiseReason.SHUTDOWN;
-				} else {
-					reason = AdvertiseVmEvent.AdvertiseReason.STRESS;
-				}
-				simulation.sendEvent(new AdvertiseVmEvent(hostManager.getBroadcastingGroup(), hostManager.getEvictingVm(), manager, reason));
-				simulation.sendEvent(new EvictionEvent(manager, event.getVm()), simulation.getSimulationTime() + EVICTION_WAIT_TIME * EVICTION_WAIT_BACKOFF_MULTIPLE);
 			} else {
-				//eviction has failed			
+				if (simulation.isRecordingMetrics())
+					CountMetric.getMetric(simulation, STRESS_EVICT_FAIL).incrementCount();
+			}
 
-				//if shutting down, cancel the shutdown
-				if (hostManager.isShuttingDown()) {
-					
-					//prevent repeated shutdown events
-					hostManager.enactShutdownFreeze(simulation.getSimulationTime() + SHUTDOWN_FREEZE_DURATION);
-					
-					hostManager.setManagementState(ManagementState.NORMAL);
-					hostManager.setShuttingDown(false);
-					
-					CountMetric.getMetric(simulation, SHUTDOWN_EVICT_FAIL).incrementCount();
-				} else {
-					//if evicting because of stress, boot a new host
-					
-					//boot new host
-					if (hostManager.getPoweredOffHosts().size() > 0) {
+		}
+		
+		
+		//clear eviction state
+		hostManager.clearEviction();
+		hostManager.setManagementState(ManagementState.NORMAL);
+		
+	}
+	
+	private void completeShutdownEviction(EvictionEvent event) {
+		HostManagerBroadcast hostManager = manager.getCapability(HostManagerBroadcast.class);
+		
+		Eviction eviction = hostManager.getEviction();
+		
+		//filter out VMs from the VM list that have completed execution since the eviction notice. Note, VMs are already sorted
+		ArrayList<VmStatus> vmList = new ArrayList<VmStatus>();
+		for (VmStatus vm : eviction.getVmList()) {
+			if (hostManager.getHost().getVMAllocation(vm.getId()) != null) {
+				vmList.add(vm);
+			}
+		}
+		
+		boolean cancelShutdown = true;
+		
+		//check for accepts
+		if (eviction.getResourceOffers().size() > 0) {
+			
+			/*
+			 * 
+			 * Hosts have replied with spare capacity. Select a target for migration.
+			 * 
+			 */
+
+			//Sort target hosts
+			ArrayList<ResourceOfferEvent> targets = sortTargetHostsForShutdown(eviction.getResourceOffers());
+			
+			SequentialManagementActionExecutor actions = new SequentialManagementActionExecutor();
+			SequentialManagementActionExecutor acceptActions = new SequentialManagementActionExecutor();	
+			HostStatus hostStatus = new HostStatus(hostManager.getHost(), simulation.getSimulationTime());
+			ArrayList<ResourceOfferEvent> acceptedOffers = new ArrayList<ResourceOfferEvent>();
+			int count = 0;
+			
+			for (VmStatus vm : vmList) {
+				for (ResourceOfferEvent hostOffer : targets) {
+					Host offeringHost = hostOffer.getHost(); //to check capabilities. Can be assumed known by this host manager, since capabilities are static.
+					HostStatus targetHostStatus = hostOffer.getHostStatus();
+					Resources resourcesOffered = hostOffer.getResourcesOffered();
+									
+					//check capability & capacity
+					if (canHost(offeringHost, targetHostStatus, vm) &&
+							vm.getResourcesInUse().getCpu() <= resourcesOffered.getCpu() &&
+							vm.getResourcesInUse().getMemory() <= resourcesOffered.getMemory() &&
+							vm.getResourcesInUse().getBandwidth() <= resourcesOffered.getBandwidth() &&
+							vm.getResourcesInUse().getStorage() <= resourcesOffered.getStorage()
+							) {
+
+						actions.addAction(new MigrationAction(manager, hostManager.getHost(), hostOffer.getHost(), vm.getId(), true));
+						acceptedOffers.add(hostOffer);
 						
-						Host poweredOffHost = hostManager.getPoweredOffHosts().get(simulation.getRandom().nextInt(hostManager.getPoweredOffHosts().size()));
-					
-						//trigger migration (MirationAction will boot host)
-						MigrationAction migAction = new MigrationAction(manager, hostManager.getHost(), poweredOffHost, event.getVm().getId());
-						migAction.execute(simulation, this);
+						acceptActions.addAction(new AcceptOfferAction(hostOffer.getHostManager(), hostOffer));
 						
-						//clear eviction state
-						hostManager.setEvicting(0);
-						hostManager.setEvictingVm(null);
-						hostManager.setManagementState(ManagementState.NORMAL);
+						++count;
 						
-						CountMetric.getMetric(simulation, VmPlacementPolicyBroadcast.HOST_POWER_ON_METRIC + "-" + this.getClass().getSimpleName()).incrementCount();
-					} else {
-						CountMetric.getMetric(simulation, STRESS_EVICT_FAIL).incrementCount();						
+						//update working copies of host status and resource offers
+						hostStatus.migrate(vm, targetHostStatus);
+						resourcesOffered.setCpu(resourcesOffered.getCpu() - vm.getResourcesInUse().getCpu());
+						resourcesOffered.setMemory(resourcesOffered.getMemory() - vm.getResourcesInUse().getMemory());
+						resourcesOffered.setBandwidth(resourcesOffered.getBandwidth() - vm.getResourcesInUse().getBandwidth());
+						resourcesOffered.setStorage(resourcesOffered.getStorage() - vm.getResourcesInUse().getStorage());
+						
+						break;
 					}
 				}
-				
+								
 			}
+			
+			//verify that all vms will be migrated before triggering migrations
+			if (count == vmList.size()) {		
+				//add shutdown action
+				actions.addAction(acceptActions);
+				actions.addAction(new ShutdownHostAction(hostManager.getHost()));
+				actions.execute(simulation, this);
+			
+				cancelShutdown = false;
+			} else {
+				acceptedOffers.clear();
+			}
+			
+			//send accept and reject messages
+			for (ResourceOfferEvent e : targets) {
+				if (acceptedOffers.contains(e)) {
+//					AcceptOfferAction acceptAction = new AcceptOfferAction(e.getHostManager());
+//					acceptAction.execute(simulation, this);
+					if (simulation.isRecordingMetrics())
+						CountMetric.getMetric(simulation, SHUTDOWN_EVICT).incrementCount();
+				} else {
+					RejectOfferAction rejectAction = new RejectOfferAction(e.getHostManager(), e);
+					rejectAction.execute(simulation, this);
+				}
+			}
+
+			//clear eviction state
+			hostManager.clearEviction();
+
+		} 
+		
+		if (cancelShutdown) {
+			/*
+			 * 
+			 * No hosts have spare capacity
+			 * cancel the shut down
+			 */
+			
+			//prevent repeated shutdown events
+			hostManager.enactShutdownFreeze(simulation.getSimulationTime() + SHUTDOWN_FREEZE_DURATION);
+			hostManager.setManagementState(ManagementState.NORMAL);
+			hostManager.setShuttingDown(false);
+			
+			if (simulation.isRecordingMetrics())
+				CountMetric.getMetric(simulation, SHUTDOWN_EVICT_FAIL).incrementCount();
+
 		}
 	}
 	
 	/*
 	 * 
-	 * VM Bid Reply handling
+	 * VM Offer Reply handling
 	 * 
 	 */
 	public void execute(AcceptOfferEvent event) {
 		HostManagerBroadcast hostManager = manager.getCapability(HostManagerBroadcast.class);
-		
+			
 		hostManager.setManagementState(ManagementState.NORMAL);
+		hostManager.clearCurrentOffer();
 		
 		//freeze eviction
-		hostManager.enactEvictionFreeze(EVICTION_FREEZE_DURATION);
+		hostManager.enactEvictionFreeze(simulation.getSimulationTime() + EVICTION_FREEZE_DURATION);
 	}
 	
 	public void execute(RejectOfferEvent event) {
 		HostManagerBroadcast hostManager = manager.getCapability(HostManagerBroadcast.class);
 		
 		hostManager.setManagementState(ManagementState.NORMAL);
+		hostManager.clearCurrentOffer();
 	}
 	
 
@@ -327,42 +462,60 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 	 * 
 	 * @param event
 	 */
-	public void execute(AdvertiseVmEvent event) {	
+	public void execute(RequestResourcesEvent event) {	
 		//received a VM advertisement
 		HostManagerBroadcast hostManager = manager.getCapability(HostManagerBroadcast.class);
 		Host host = hostManager.getHost();
 		HostStatus hostStatus = new HostStatus(hostManager.getHost(), simulation.getSimulationTime());
 		
-		//check if bids are frozen
-		if (bidsFrozen(hostManager)) {
+		//check if offers are frozen
+		if (offersFrozen(hostManager) ||  manager == event.getHostManager()) {
 			return;
 		}
 		
-		if (event.getReason() == AdvertiseVmEvent.AdvertiseReason.SHUTDOWN) {
-			hostManager.setLastShutdownEvent(simulation.getSimulationTime());
+		if (event.getReason() == RequestResourcesEvent.AdvertiseReason.SHUTDOWN) {
+			hostManager.enactShutdownFreeze(simulation.getSimulationTime() + SHUTDOWN_FREEZE_DURATION);			
 		}
-
+		
+		//check for spare capacity
 		if (hostManager.getManagementState() == ManagementState.NORMAL && !hostManager.isShuttingDown()) {
-			if (event.getHostManager() != manager &&
-					!isStressed(hostManager) && 
-					!(hostStatus.getIncomingMigrationCount() > 0) &&
+			if (event.getHostManager() != manager &&					//ensure the event does not come from this manager
+					!isStressed(hostManager) && 						//ensure this host is not stressed
+					!(hostStatus.getIncomingMigrationCount() > 0) &&	//ensure there are no current migrations
 					!(hostStatus.getOutgoingMigrationCount() > 0)) {
 
-				VmStatus vm = event.getVm();
-							
+				Resources minResources = event.getMinResources();
+
 				//check if we are capable of hosting this VM
-				if (canHost(host, hostStatus, vm) && //check capability
-						((hostStatus.getResourcesInUse().getCpu() + vm.getResourcesInUse().getCpu()) / host.getResourceManager().getTotalCpu() <= target) && //check current util < target
-						((getAvgCpu(hostManager) + vm.getResourcesInUse().getCpu()) / host.getResourceManager().getTotalCpu() <= target)) { //get average util < target
+				double avgCpu = getAvgCpu(hostManager);
+					
+				Resources resourcesInUse = hostStatus.getResourcesInUse();
+				
+				if (((hostStatus.getResourcesInUse().getCpu() + minResources.getCpu()) / host.getResourceManager().getTotalCpu() <= target) && //check current CPU util < target
+						((avgCpu + minResources.getCpu()) / host.getResourceManager().getTotalCpu() <= target) && //check average CPU util < target
+						(minResources.getMemory() <= (host.getResourceManager().getTotalMemory() - resourcesInUse.getMemory())) && //check memory
+						(minResources.getBandwidth() <= (host.getResourceManager().getTotalBandwidth() - resourcesInUse.getBandwidth())) && //check bandwidth
+						(minResources.getStorage() <= (host.getResourceManager().getTotalStorage() - resourcesInUse.getStorage())) ) //check storage
+				{ 
+					
+					//calculate resources to offer
+					Resources resourcesOffered = new Resources();
+					
+					
+					resourcesOffered.setCpu((host.getResourceManager().getTotalCpu() * target) - resourcesInUse.getCpu());
+					resourcesOffered.setMemory(host.getResourceManager().getTotalMemory() - resourcesInUse.getMemory());
+					resourcesOffered.setBandwidth(host.getResourceManager().getTotalBandwidth() - resourcesInUse.getBandwidth());
+					resourcesOffered.setStorage(host.getResourceManager().getTotalStorage() - resourcesInUse.getStorage());
 					
 					//send accept message
-					simulation.sendEvent(new BidVmEvent(event.getHostManager(), vm, host, manager, hostStatus));
-					hostManager.setManagementState(ManagementState.BIDDING);
+					ResourceOfferEvent offer = new ResourceOfferEvent(event.getHostManager(), event.getEviction(), host, manager, hostStatus, resourcesOffered);
+					simulation.sendEvent(offer);
+					hostManager.setManagementState(ManagementState.OFFERING);
+					hostManager.setCurrentOffer(offer);
 				}
 
 			}
 		}
-		
 	}
 	
 	/**
@@ -370,13 +523,17 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 	 * 
 	 * @param event
 	 */
-	public void execute(BidVmEvent event) {
+	public void execute(ResourceOfferEvent event) {
 		//a Host has accepted your advertised VM
 		HostManagerBroadcast hostManager = manager.getCapability(HostManagerBroadcast.class);
 		
 		//ensure that this VM is still being advertised
-		if ((hostManager.getManagementState() == ManagementState.EVICTING) && hostManager.getEvictingVm().equals(event.getVm())) {
-			hostManager.getVmAccepts().add(event);
+		if ((hostManager.getManagementState() == ManagementState.EVICTING) && hostManager.getEviction().equals(event.getEviction())) {
+			hostManager.getEviction().getResourceOffers().add(event);
+			
+		} else {
+			//send rejection message
+			simulation.sendEvent(new RejectOfferEvent(event.getHostManager(), event));
 		}
 
 	}
@@ -392,7 +549,8 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 		
 		if (event.getHost() != hostManager.getHost())
 			hostManager.getPoweredOffHosts().add(event.getHost());
-
+		
+		hostManager.enactShutdownFreeze(simulation.getSimulationTime() + SHUTDOWN_WAIT_TIME);
 	}
 	
 	/**
@@ -403,10 +561,21 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 	public void execute(HostPowerOnEvent event) {
 		//remove from list of powered off hosts
 		HostManagerBroadcast hostManager = manager.getCapability(HostManagerBroadcast.class);
+		
 		hostManager.getPoweredOffHosts().remove(event.getHost());
 	}
 	
-	
+	public void execute(UpdatePowerStateListEvent event) {
+		HostManagerBroadcast hostManager = manager.getCapability(HostManagerBroadcast.class);
+		
+		hostManager.getPoweredOffHosts().clear();
+		
+		for (Host host : event.getPoweredOffHosts()) {
+			hostManager.getPoweredOffHosts().add(host);
+		}
+		
+		hostManager.setPowerStateListValid(true);
+	}
 
 	
 	/**
@@ -462,12 +631,91 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 		return avgCpu;
 	}
 	
+	@SuppressWarnings("unused")
 	private double getCpuUtil(HostManagerBroadcast hostManager) {
 		if (hostManager.getHistory().size() > 0) {
 			return hostManager.getHistory().get(0).getResourcesInUse().getCpu() / hostManager.getHost().getTotalCpu();
 		}
 		
 		return 0;
+	}
+	
+	
+	private Resources getMinResources(ArrayList<VmStatus> vmList) {
+		
+		Resources minResources = new Resources();
+		
+		for (VmStatus vm : vmList) {
+			
+			if (minResources.getCpu() == 0 || vm.getResourcesInUse().getCpu() < minResources.getCpu()) 
+				minResources.setCpu(vm.getResourcesInUse().getCpu());
+			if (minResources.getMemory() == 0 || vm.getResourcesInUse().getMemory() < minResources.getMemory()) 
+				minResources.setMemory(vm.getResourcesInUse().getMemory());
+			if (minResources.getBandwidth() == 0 || vm.getResourcesInUse().getBandwidth() < minResources.getBandwidth())
+				minResources.setBandwidth(vm.getResourcesInUse().getBandwidth());
+			if (minResources.getStorage() == 0 || vm.getResourcesInUse().getStorage() < minResources.getStorage()) 
+				minResources.setStorage(vm.getResourcesInUse().getStorage());
+		}
+		
+		return minResources;
+	}
+	
+	/**
+	 * Sorts Partially-utilized and Underutilized hosts in decreasing order by 
+	 * <power efficiency, CPU utilization>.
+	 */
+	private ArrayList<ResourceOfferEvent> sortTargetHostsForShutdown(ArrayList<ResourceOfferEvent> targets) {
+		ArrayList<ResourceOfferEvent> sorted = new ArrayList<ResourceOfferEvent>();
+		
+		//classify into partially utilized and under utilized
+		ArrayList<ResourceOfferEvent> partiallyUtilized = new ArrayList<ResourceOfferEvent>();
+		ArrayList<ResourceOfferEvent> underUtilized = new ArrayList<ResourceOfferEvent>();
+		
+		// Sort Partially-utilized and Underutilized hosts in decreasing order by <power efficiency, CPU utilization>.
+		sorted.addAll(partiallyUtilized);
+		sorted.addAll(underUtilized);
+		Collections.sort(sorted, ResourceOfferComparator.getComparator(ResourceOfferComparator.EFFICIENCY, ResourceOfferComparator.CPU_UTIL));
+		Collections.reverse(sorted);
+		
+		return targets;
+	}
+	
+	/**
+	 * Sorts Partially-Utilized hosts in increasing order by <CPU utilization, 
+	 * power efficiency>, Underutilized hosts in decreasing order by 
+	 * <CPU utilization, power efficiency>, and Empty hosts in decreasing 
+	 * order by <power efficiency, power state>.
+	 * 
+	 * Returns Partially-utilized, Underutilized, and Empty hosts, in that 
+	 * order.
+	 */
+	private ArrayList<ResourceOfferEvent> sortTargetHostsForStressEviction(ArrayList<ResourceOfferEvent> targets) {
+		ArrayList<ResourceOfferEvent> sorted = new ArrayList<ResourceOfferEvent>();
+		
+		//classify into partially utilized and under utilized
+		ArrayList<ResourceOfferEvent> partiallyUtilized = new ArrayList<ResourceOfferEvent>();
+		ArrayList<ResourceOfferEvent> underUtilized = new ArrayList<ResourceOfferEvent>();
+		
+		for (ResourceOfferEvent host : targets) {
+			//note that stressed and powered off hosts do not bid, which represents a difference from the centralized implementation
+			if (host.getHostStatus().getResourcesInUse().getCpu() / host.getHost().getResourceManager().getTotalCpu() < lower) {
+				underUtilized.add(host);
+			} else {
+				partiallyUtilized.add(host);
+			}
+		}
+		
+		// Sort Partially-Utilized hosts in increasing order by <CPU in use, power efficiency>.
+		Collections.sort(partiallyUtilized, ResourceOfferComparator.getComparator(ResourceOfferComparator.CPU_IN_USE, ResourceOfferComparator.EFFICIENCY));
+		
+		// Sort Underutilized hosts in decreasing order by <CPU in use, power efficiency>.
+		Collections.sort(underUtilized, ResourceOfferComparator.getComparator(ResourceOfferComparator.CPU_IN_USE, ResourceOfferComparator.EFFICIENCY));
+		Collections.reverse(underUtilized);
+		
+		sorted.addAll(partiallyUtilized);
+		sorted.addAll(underUtilized);
+		
+		return sorted;
 	}
 	
 	/**
@@ -549,6 +797,26 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 			return false;
 		if (host.getResourceManager().getTotalStorage() - resourcesInUse.getStorage() < vm.getResourcesInUse().getStorage())
 			return false;
+
+		return true;
+	}
+	
+	private boolean canHost(Host host, VmStatus vm) {
+		//check capabilities
+		if (host.getCpuCount() * host.getCoreCount() < vm.getCores() ||
+				host.getCoreCapacity() < vm.getCoreCapacity()) {
+			return false;
+		}
+		
+		//check capacity
+		if (host.getResourceManager().getTotalCpu() < vm.getResourcesInUse().getCpu())
+			return false;
+		if (host.getResourceManager().getTotalMemory() < vm.getResourcesInUse().getMemory())
+			return false;
+		if (host.getResourceManager().getTotalBandwidth() < vm.getResourcesInUse().getBandwidth())
+			return false;
+		if (host.getResourceManager().getTotalStorage() < vm.getResourcesInUse().getStorage())
+			return false;
 		
 		return true;
 	}
@@ -557,13 +825,13 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 		return hostManager.getGroupSize() - hostManager.getPoweredOffHosts().size();
 	}
 	
-	public boolean bidsFrozen(HostManagerBroadcast hostManager) {
-		if (hostManager.bidsFrozen()) {
-			if (simulation.getSimulationTime() >= hostManager.getBidFreezeExpiry()) {
-				hostManager.expireBidFreeze();
+	public boolean offersFrozen(HostManagerBroadcast hostManager) {
+		if (hostManager.offersFrozen()) {
+			if (simulation.getSimulationTime() >= hostManager.getOfferFreezeExpiry()) {
+				hostManager.expireOfferFreeze();
 			}
 		}
-		return hostManager.bidsFrozen();
+		return hostManager.offersFrozen();
 	}
 	
 	public boolean evictionFrozen(HostManagerBroadcast hostManager) {
@@ -593,18 +861,21 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 	public void onManagerStart() {
 		//send power on message
 		HostManagerBroadcast hostManager = manager.getCapability(HostManagerBroadcast.class);
-		
+
 		hostManager.setManagementState(ManagementState.NORMAL);
 		hostManager.setShuttingDown(false);
 		hostManager.getHistory().clear(); //clear monitoring history
-		hostManager.setLastShutdownEvent(simulation.getSimulationTime());
+		hostManager.enactShutdownFreeze(simulation.getSimulationTime() + SHUTDOWN_WAIT_TIME);
+		hostManager.setPowerStateListValid(false);
 		
-		simulation.sendEvent(new HostPowerOnEvent(hostManager.getBroadcastingGroup(), hostManager.getHost()));
+		simulation.sendEvent(new HostPowerOnEvent(hostManager.getBroadcastingGroup(), hostManager.getHost())); 
 	}
 
 	@Override
 	public void onManagerStop() {
-
+		//send shutdown message
+		HostManagerBroadcast hostManager = manager.getCapability(HostManagerBroadcast.class);
+		simulation.sendEvent(new HostShuttingDownEvent(hostManager.getBroadcastingGroup(), hostManager.getHost()));
 	}
 
 }

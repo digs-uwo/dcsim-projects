@@ -5,8 +5,16 @@ import edu.uwo.csd.dcsim.management.events.MessageEvent;
 
 public class RejectOfferEvent extends MessageEvent {
 
-	public RejectOfferEvent(SimulationEventListener target) {
+	ResourceOfferEvent offer;
+	
+	public RejectOfferEvent(SimulationEventListener target, ResourceOfferEvent offer) {
 		super(target);
+		
+		this.offer = offer;
+	}
+	
+	public ResourceOfferEvent getOffer() {
+		return offer;
 	}
 
 }

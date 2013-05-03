@@ -4,19 +4,18 @@ import java.util.*;
 
 import edu.uwo.csd.dcsim.core.SimulationEventBroadcastGroup;
 import edu.uwo.csd.dcsim.host.Host;
-import edu.uwo.csd.dcsim.management.VmStatus;
 import edu.uwo.csd.dcsim.management.capabilities.HostPoolManager;
-import edu.uwo.csd.dcsim.projects.distributed.events.BidVmEvent;
+import edu.uwo.csd.dcsim.projects.distributed.Eviction;
 import edu.uwo.csd.dcsim.vm.VMAllocationRequest;
 
 public class HostPoolManagerBroadcast extends HostPoolManager {
 
 	private SimulationEventBroadcastGroup broadcastingGroup;
-	private Map<VmStatus, VMAllocationRequest> requestMap = new HashMap<VmStatus, VMAllocationRequest>();
-	private Map<VmStatus, ArrayList<BidVmEvent>> vmBidMap = new HashMap<VmStatus, ArrayList<BidVmEvent>>();
+	
 	private long lastBoot = -1000000000;
 	
-	private Map<VmStatus, Integer> requestCounter = new HashMap<VmStatus, Integer>();
+	private ArrayList<Eviction> evictions = new ArrayList<Eviction>();
+	private Map<Eviction, VMAllocationRequest> requestMap = new HashMap<Eviction, VMAllocationRequest>();
 	
 	private ArrayList<Host> poweredOffHosts = new ArrayList<Host>();
 	
@@ -32,16 +31,8 @@ public class HostPoolManagerBroadcast extends HostPoolManager {
 		return broadcastingGroup;
 	}
 	
-	public Map<VmStatus, VMAllocationRequest> getRequestMap() {
-		return requestMap;
-	}
-	
-	public Map<VmStatus, ArrayList<BidVmEvent>> getVmBidMap() {
-		return vmBidMap;
-	}
-	
-	public Map<VmStatus, Integer> getRequestCounter() {
-		return requestCounter;
+	public ArrayList<Eviction> getEvictions() {
+		return evictions;
 	}
 	
 	public ArrayList<Host> getPoweredOffHosts() {
@@ -54,6 +45,28 @@ public class HostPoolManagerBroadcast extends HostPoolManager {
 	
 	public void setLastBoot(long lastBoot) {
 		this.lastBoot = lastBoot;
+	}
+	
+	public void addRequest(VMAllocationRequest request, Eviction eviction) {
+		requestMap.put(eviction, request);
+	}
+	
+	public VMAllocationRequest getRequest(Eviction eviction) {
+		return requestMap.get(eviction);
+	}
+	
+	public void clearRequest(Eviction eviction) {
+		requestMap.remove(eviction);
+	}
+	
+	public void addEviction(Eviction eviction, VMAllocationRequest request) {
+		evictions.add(eviction);
+		requestMap.put(eviction, request);
+	}
+	
+	public void clearEviction(Eviction eviction) {
+		evictions.remove(eviction);
+		clearRequest(eviction);
 	}
 	
 }

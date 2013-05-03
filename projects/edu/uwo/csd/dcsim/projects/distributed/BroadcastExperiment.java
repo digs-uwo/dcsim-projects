@@ -17,8 +17,8 @@ public class BroadcastExperiment extends SimulationTask {
 
 	private static Logger logger = Logger.getLogger(BroadcastExperiment.class);
 	
-	private static final long DURATION = SimTime.days(5);
-	private static final long METRIC_RECORD_START = SimTime.days(1);
+	private static final long DURATION = SimTime.days(10);
+	private static final long METRIC_RECORD_START = SimTime.days(2);
 	
 	public static void main(String args[]) {
 		Simulation.initializeLogging();
@@ -51,7 +51,7 @@ public class BroadcastExperiment extends SimulationTask {
 	public void setup(Simulation simulation) {
 		
 		// Set utilization thresholds.
-		double lower = 0.4;
+		double lower = 0.6;
 		double upper = 0.9;
 		double target = 0.85;
 		
@@ -60,7 +60,7 @@ public class BroadcastExperiment extends SimulationTask {
 		AutonomicManager dcAM = tuple.b;
 		
 		// Create and install management policies for the data centre.
-		dcAM.installPolicy(new VmPlacementPolicyBroadcast(lower, upper, target), SimTime.minutes(5), 0);
+		dcAM.installPolicy(new VmPlacementPolicyBroadcast(lower, upper, target));
 //		dcAM.installPolicy(new VmRelocationPolicyFFIMDHybrid(lower, upper, target), SimTime.minutes(10), SimTime.minutes(10) + 1);
 //		dcAM.installPolicy(new VmConsolidationPolicyFFDDIHybrid(lower, upper, target), SimTime.hours(1), SimTime.hours(1) + 2);
 		
@@ -68,7 +68,8 @@ public class BroadcastExperiment extends SimulationTask {
 //		DistributedTestEnvironment.configureStaticServices(simulation, dcAM);
 //		DistributedTestEnvironment.configureDynamicServices(simulation, dcAM);
 //		DistributedTestEnvironment.configureRandomServices(simulation, dcAM, 1, 100, 350);
-		DistributedTestEnvironment.configureRandomServices(simulation, dcAM, 1, 40, 90);
+//		DistributedTestEnvironment.configureRandomServices(simulation, dcAM, 1, 40, 100);
+		DistributedTestEnvironment.configureRandomServices(simulation, dcAM, 1, 600, 1600);
 		
 	}
 
