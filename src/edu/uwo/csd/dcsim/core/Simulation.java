@@ -8,6 +8,7 @@ import org.apache.log4j.PatternLayout;
 import edu.uwo.csd.dcsim.DataCentre;
 import edu.uwo.csd.dcsim.VmExecutionOrderComparator;
 import edu.uwo.csd.dcsim.application.workload.Workload;
+import edu.uwo.csd.dcsim.common.SimTime;
 import edu.uwo.csd.dcsim.common.Utility;
 import edu.uwo.csd.dcsim.core.events.*;
 import edu.uwo.csd.dcsim.core.metrics.*;
@@ -75,6 +76,8 @@ public class Simulation implements SimulationEventListener {
 	private long randomSeed;
 	
 	private Map<String, Integer> nextIdMap = new HashMap<String, Integer>();
+	
+	private static Logger simLogger = Logger.getLogger(Simulation.class);
 	
 	private boolean complete = false;
 	
@@ -261,11 +264,19 @@ public class Simulation implements SimulationEventListener {
 			recordingMetrics = true;
 		}
 		
-		logger.info("Starting DCSim");
-		logger.info("Random Seed: " + this.getRandomSeed());
+		simLogger.info("Starting DCSim");
+		simLogger.info("Random Seed: " + this.getRandomSeed());
+		
+		long lastProgressUpdate = 0;
 		
 		//main event loop
 		while (!eventQueue.isEmpty() && simulationTime < duration) {
+			
+//			if (simulationTime - lastProgressUpdate > SimTime.hours(1)) {
+//				System.out.print(".");
+//				lastProgressUpdate = simulationTime;
+//			}
+			
 			//peak at next event
 			e = eventQueue.peek();
 						
@@ -336,7 +347,8 @@ public class Simulation implements SimulationEventListener {
 		
 		completeSimulation(duration);
 		
-		logger.info("Completed simulation " + name);
+		simLogger.info("");
+		simLogger.info("Completed simulation " + name);
 		
 		complete = true;
 		

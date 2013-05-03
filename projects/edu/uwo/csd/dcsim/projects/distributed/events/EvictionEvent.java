@@ -3,19 +3,20 @@ package edu.uwo.csd.dcsim.projects.distributed.events;
 import edu.uwo.csd.dcsim.core.Event;
 import edu.uwo.csd.dcsim.core.SimulationEventListener;
 import edu.uwo.csd.dcsim.management.VmStatus;
+import edu.uwo.csd.dcsim.projects.distributed.Eviction;
 
 public class EvictionEvent extends Event {
 
-	VmStatus vmStatus;
+	Eviction eviction;
 	
-	public EvictionEvent(SimulationEventListener target, VmStatus vm) {
+	public EvictionEvent(SimulationEventListener target, Eviction eviction) {
 		super(target);
 		
-		this.vmStatus = vm;
+		this.eviction = eviction;
 	}
 	
-	public VmStatus getVm() {
-		return vmStatus;
+	public Eviction getEviction() {
+		return eviction;
 	}
 
 }

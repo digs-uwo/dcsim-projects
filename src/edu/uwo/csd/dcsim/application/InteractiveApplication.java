@@ -144,8 +144,8 @@ public class InteractiveApplication extends Application {
 			//record SLA violation duration metric
 			SlaViolationDurationMetric.getMetric(simulation, Application.UNDERPROVISION_DURATION_METRIC).addSlaViolationTime(simulation.getElapsedTime());
 			
-			//record SLA violation average severity metric
-			AvgSlaSeverityMetric.getMetric(simulation, Application.UNDERPROVISION_AVG_SEVERITY_METRIC).addValue(slaUnderprovisionRate / workLevel);
+			//record SLA violation average severity metric TODO not working properly
+//			AvgSlaSeverityMetric.getMetric(simulation, Application.UNDERPROVISION_AVG_SEVERITY_METRIC).addValue(slaUnderprovisionRate / workLevel);
 		}
 	}
 

@@ -1,27 +1,31 @@
 package edu.uwo.csd.dcsim.projects.distributed.events;
 
 import edu.uwo.csd.dcsim.core.SimulationEventListener;
+import edu.uwo.csd.dcsim.host.Resources;
 import edu.uwo.csd.dcsim.management.*;
 import edu.uwo.csd.dcsim.management.events.MessageEvent;
+import edu.uwo.csd.dcsim.projects.distributed.Eviction;
 
-public class AdvertiseVmEvent extends MessageEvent {
+public class RequestResourcesEvent extends MessageEvent {
 
 	public enum AdvertiseReason {STRESS, SHUTDOWN, PLACEMENT;}
 	
-	private VmStatus vm;
+	private Eviction eviction;
+	private Resources minResources;
 	private AutonomicManager hostManager;
 	private AdvertiseReason reason;
 	
-	public AdvertiseVmEvent(SimulationEventListener target, VmStatus vm, AutonomicManager hostManager, AdvertiseReason reason) {
+	public RequestResourcesEvent(SimulationEventListener target, Resources minResources, Eviction eviction, AutonomicManager hostManager, AdvertiseReason reason) {
 		super(target);
 		
-		this.vm = vm;
+		this.minResources = minResources;
+		this.eviction = eviction;
 		this.hostManager = hostManager;
 		this.reason = reason;
 	}
 	
-	public VmStatus getVm() {
-		return vm;
+	public Resources getMinResources() {
+		return minResources;
 	}
 	
 	public AutonomicManager getHostManager() {
@@ -32,4 +36,8 @@ public class AdvertiseVmEvent extends MessageEvent {
 		return reason;
 	}
 
+	public Eviction getEviction() {
+		return eviction;
+	}
+	
 }
