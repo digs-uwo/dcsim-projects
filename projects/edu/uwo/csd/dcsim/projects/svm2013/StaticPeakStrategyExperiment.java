@@ -29,7 +29,7 @@ public class StaticPeakStrategyExperiment extends SimulationTask {
 	private static Logger logger = Logger.getLogger(StaticPeakStrategyExperiment.class);
 	
 	public StaticPeakStrategyExperiment(String name, long randomSeed) {
-		super(name, SimTime.days(5));					// 10-day simulation
+		super(name, SimTime.days(10));					// 10-day simulation
 		this.setMetricRecordStart(SimTime.days(2));		// start on 3rd day (i.e., after 2 days)
 		this.setRandomSeed(randomSeed);
 	}
