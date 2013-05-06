@@ -11,6 +11,8 @@ import edu.uwo.csd.dcsim.common.SimTime;
 import edu.uwo.csd.dcsim.common.Tuple;
 import edu.uwo.csd.dcsim.core.Simulation;
 import edu.uwo.csd.dcsim.management.AutonomicManager;
+import edu.uwo.csd.dcsim.projects.centralized.PeriodicHybridStrategyExperiment;
+import edu.uwo.csd.dcsim.projects.centralized.ReactiveHybridStrategyExperiment;
 import edu.uwo.csd.dcsim.projects.distributed.policies.VmPlacementPolicyBroadcast;
 
 public class BroadcastExperiment extends SimulationTask {
@@ -23,21 +25,75 @@ public class BroadcastExperiment extends SimulationTask {
 	public static void main(String args[]) {
 		Simulation.initializeLogging();
 		
+		//broadcast
 		Collection<SimulationTask> completedTasks;
 		SimulationExecutor executor = new SimulationExecutor();
 		
 		executor.addTask(new BroadcastExperiment("broadcast-1", 6198910678692541341l));
-//		executor.addTask(new BroadcastExperiment("broadcast-2", 5646441053220106016l));
-//		executor.addTask(new BroadcastExperiment("broadcast-3", -5705302823151233610l));
-//		executor.addTask(new BroadcastExperiment("broadcast-4", 8289672009575825404l));
-//		executor.addTask(new BroadcastExperiment("broadcast-5", -4637549055860880177l));
+		executor.addTask(new BroadcastExperiment("broadcast-2", 5646441053220106016l));
+		executor.addTask(new BroadcastExperiment("broadcast-3", -5705302823151233610l));
+		executor.addTask(new BroadcastExperiment("broadcast-4", 8289672009575825404l));
+		executor.addTask(new BroadcastExperiment("broadcast-5", -4637549055860880177l));
 		
+		executor.addTask(new BroadcastExperiment("broadcast-6", -4280782692131378509l));
+		executor.addTask(new BroadcastExperiment("broadcast-7", -1699811527182374894l));
+		executor.addTask(new BroadcastExperiment("broadcast-8", -6452776964812569334l));
+		executor.addTask(new BroadcastExperiment("broadcast-9", -7148920787255940546l));
+		executor.addTask(new BroadcastExperiment("broadcast-10", 8311271444423629559l));
+
 		completedTasks = executor.execute();
 		
 		for(SimulationTask task : completedTasks) {
 			logger.info(task.getName());
 			DistributedTestEnvironment.printMetrics(task.getResults());
 		}
+		
+		
+		
+//		
+//		//periodic
+//		executor = new SimulationExecutor();
+//		
+//		executor.addTask(new PeriodicHybridStrategyExperiment("periodic-1", 6198910678692541341l));
+//		executor.addTask(new PeriodicHybridStrategyExperiment("periodic-2", 5646441053220106016l));
+//		executor.addTask(new PeriodicHybridStrategyExperiment("periodic-3", -5705302823151233610l));
+//		executor.addTask(new PeriodicHybridStrategyExperiment("periodic-4", 8289672009575825404l));
+//		executor.addTask(new PeriodicHybridStrategyExperiment("periodic-5", -4637549055860880177l));
+//		
+//		executor.addTask(new PeriodicHybridStrategyExperiment("periodic-6", -4280782692131378509l));
+//		executor.addTask(new PeriodicHybridStrategyExperiment("periodic-7", -1699811527182374894l));
+//		executor.addTask(new PeriodicHybridStrategyExperiment("periodic-8", -6452776964812569334l));
+//		executor.addTask(new PeriodicHybridStrategyExperiment("periodic-9", -7148920787255940546l));
+//		executor.addTask(new PeriodicHybridStrategyExperiment("periodic-10", 8311271444423629559l));
+//		
+//		completedTasks = executor.execute();
+//		
+//		for(SimulationTask task : completedTasks) {
+//			logger.info(task.getName());
+//			DistributedTestEnvironment.printMetrics(task.getResults());
+//		}
+//		
+//		//reactive
+//		executor = new SimulationExecutor();
+//		
+//		executor.addTask(new ReactiveHybridStrategyExperiment("reactive-1", 6198910678692541341l));
+//		executor.addTask(new ReactiveHybridStrategyExperiment("reactive-2", 5646441053220106016l));
+//		executor.addTask(new ReactiveHybridStrategyExperiment("reactive-3", -5705302823151233610l));
+//		executor.addTask(new ReactiveHybridStrategyExperiment("reactive-4", 8289672009575825404l));
+//		executor.addTask(new ReactiveHybridStrategyExperiment("reactive-5", -4637549055860880177l));
+//		
+//		executor.addTask(new ReactiveHybridStrategyExperiment("reactive-6", -4280782692131378509l));
+//		executor.addTask(new ReactiveHybridStrategyExperiment("reactive-7", -1699811527182374894l));
+//		executor.addTask(new ReactiveHybridStrategyExperiment("reactive-8", -6452776964812569334l));
+//		executor.addTask(new ReactiveHybridStrategyExperiment("reactive-9", -7148920787255940546l));
+//		executor.addTask(new ReactiveHybridStrategyExperiment("reactive-10", 8311271444423629559l));
+//		
+//		completedTasks = executor.execute();
+//		
+//		for(SimulationTask task : completedTasks) {
+//			logger.info(task.getName());
+//			DistributedTestEnvironment.printMetrics(task.getResults());
+//		}
 		
 	}
 	

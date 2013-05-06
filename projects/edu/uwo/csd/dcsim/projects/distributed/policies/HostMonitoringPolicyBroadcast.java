@@ -18,6 +18,7 @@ import edu.uwo.csd.dcsim.projects.distributed.actions.UpdatePowerStateListAction
 import edu.uwo.csd.dcsim.projects.distributed.capabilities.*;
 import edu.uwo.csd.dcsim.projects.distributed.Eviction;
 import edu.uwo.csd.dcsim.projects.distributed.capabilities.HostManagerBroadcast.ManagementState;
+import edu.uwo.csd.dcsim.projects.distributed.capabilities.HostManagerBroadcast.ShutdownState;
 import edu.uwo.csd.dcsim.projects.distributed.comparators.ResourceOfferComparator;
 import edu.uwo.csd.dcsim.projects.distributed.events.*;
 import edu.uwo.csd.dcsim.projects.distributed.events.RequestResourcesEvent.AdvertiseReason;
@@ -25,21 +26,25 @@ import edu.uwo.csd.dcsim.projects.distributed.events.RequestResourcesEvent.Adver
 public class HostMonitoringPolicyBroadcast extends Policy {
 
 	private static final int EVICTION_WAIT_TIME = 500; //the number of milliseconds to wait to evict a VM
-	private static final int MONITOR_WINDOW = 5;
-	private static final long SHUTDOWN_WAIT_TIME = SimTime.minutes(30);
-
+	private static final int STRESS_MONITOR_WINDOW = 5;
+	private static final int UNDER_MONITOR_WINDOW = 5;
 	
-	private static final long SHUTDOWN_FREEZE_DURATION = SimTime.minutes(30);
-	private static final long EVICTION_FREEZE_DURATION = SimTime.minutes(30);
-	private static final long OFFER_FREEZE_DURATION = SimTime.minutes(30);
+	private static final long SHUTDOWN_SUBSEQUENT_FREEZE_DURATION = SimTime.minutes(5); //after another host has shut down
+	private static final long SHUTDOWN_FREEZE_AFTER_BOOT_DURATION = SimTime.minutes(30); //after this host has started
+	private static final long SHUTDOWN_FREEZE_AFTER_FAIL_DURATION = SimTime.minutes(30); //triggered after a failed shutdown
+	private static final long EVICTION_FREEZE_DURATION = SimTime.minutes(60);
+	private static final long OFFER_FREEZE_DURATION = SimTime.minutes(60);
 	
 	public static final String STRESS_EVICT_FAIL = "stressEvictionFailed";
 	public static final String SHUTDOWN_EVICT_FAIL = "shutdownFailed";
 	public static final String STRESS_EVICT = "stressEviction";
 	public static final String SHUTDOWN_EVICT = "shutdownEviction";
 	public static final String SHUTDOWN_TRIGGERED = "shutdownTriggered";
+	
 	public static final String RESOURCE_REQUEST_RECEIVED = "receivedResourceRequest";
 	public static final String POWER_STATE_MSG_RECEIVED = "receivedPowerStateMessage";
+	public static final String RESOURCE_MSG = "msgResource";
+	public static final String SINGLE_VALUE_MSG = "msgSingle";
 	
 	private double lower;
 	private double upper;
@@ -63,7 +68,7 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 		 * Monitoring
 		 */
 		HostStatus hostStatus = new HostStatus(hostManager.getHost(), simulation.getSimulationTime());
-		hostManager.addHistoryStatus(hostStatus, MONITOR_WINDOW);
+		hostManager.addHistoryStatus(hostStatus, Math.max(STRESS_MONITOR_WINDOW, UNDER_MONITOR_WINDOW));
 		
 		//if a migration is pending, wait until it is complete
 		if ((hostStatus.getIncomingMigrationCount() > 0) || (hostStatus.getOutgoingMigrationCount() > 0)) return;
@@ -75,7 +80,7 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 		 * Detect stress and underutilization
 		 * 
 		 */
-		if (hostManager.getManagementState() == ManagementState.NORMAL && !hostManager.isShuttingDown()) {
+		if (hostManager.getManagementState() == ManagementState.NORMAL && hostManager.getShutdownState() == ShutdownState.NONE) {
 
 			/*
 			 * STRESSED (detect stressed state)
@@ -113,19 +118,12 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 				if (!shutdownFrozen(hostManager) &&
 						getActiveHostCount(hostManager) > 1) {
 					
-					hostManager.setShuttingDown(true); 
-					
-					//sort VMs
-					ArrayList<VmStatus> vmList = orderVmsUnderUtilized(hostStatus.getVms());
-					
 					//evict VMs
-					if (!vmList.isEmpty()) {
-
-						if (simulation.isRecordingMetrics())
-							CountMetric.getMetric(simulation, SHUTDOWN_TRIGGERED).incrementCount();
-						
-						evict(hostManager, vmList, RequestResourcesEvent.AdvertiseReason.SHUTDOWN);	
+					if (!hostStatus.getVms().isEmpty()) {
+						triggerShutdownElection(hostManager, hostStatus);
 					} else {
+						//indicate that resources are available, as we don't know, and therefore don't want to prevent another host from attempting shutdown
+						hostManager.setShutdownResourcesAvailable(true);
 						ShutdownHostAction action = new ShutdownHostAction(hostManager.getHost());
 						action.execute(simulation, this);
 					}
@@ -162,6 +160,135 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 		simulation.sendEvent(new EvictionEvent(manager, eviction), simulation.getSimulationTime() + EVICTION_WAIT_TIME);
 	}
 	
+	private void triggerShutdownElection(HostManagerBroadcast hostManager, HostStatus hostStatus) {
+		//set up shutdown claims
+		hostManager.getShutdownClaims().clear();
+		
+		//create a claim for this host
+		ShutdownClaimEvent selfClaim = new ShutdownClaimEvent(manager, manager, hostManager.getHost(), hostStatus.getResourcesInUse(), hostStatus.getVms().size());
+		hostManager.getShutdownClaims().add(selfClaim);
+		hostManager.setShutdownState(ShutdownState.COORDINATING);
+		
+		//send a broadcast message to get shutdown claims
+		simulation.sendEvent(new TriggerShutdownEvent(hostManager.getBroadcastingGroup(), manager, hostManager.getHost(), hostStatus.getResourcesInUse(), hostStatus.getVms().size()));
+		
+		//set an event to trigger completion of the election, after claims have been received
+		simulation.sendEvent(new ShutdownElectionEvent(manager), simulation.getSimulationTime() + EVICTION_WAIT_TIME);
+}
+	
+	public void execute(ShutdownElectionEvent event) {
+		HostManagerBroadcast hostManager = manager.getCapability(HostManagerBroadcast.class);
+		
+		//choose shutdown claim to accept (there will be at least one, from this host)
+		//select the host with the lowest CPU utilization TODO consider memory as well
+		ShutdownClaimEvent winner = null;
+		for (ShutdownClaimEvent claim : hostManager.getShutdownClaims()) {
+			if (winner == null) {
+				winner = claim;
+			} else {
+				if (claim.getCandidateHost().getPowerEfficiency(1) < winner.getCandidateHost().getPowerEfficiency(1)) {
+					winner = claim;
+				} else {
+					if (claim.getResourcesInUse().getCpu() < winner.getResourcesInUse().getCpu()) {
+						winner = claim;
+					}
+				}
+			}
+		}
+		
+		if (winner.getCandidateAM() == manager) {
+			if (simulation.isRecordingMetrics())
+				CountMetric.getMetric(simulation, "shutdownSelectedCoordinator").incrementCount();
+		} else {
+			if (simulation.isRecordingMetrics())
+				CountMetric.getMetric(simulation, "shutdownSelectedAlternate").incrementCount();
+		}
+		
+		simulation.sendEvent(new AwardShutdownEvent(winner.getCandidateAM()));
+		for (ShutdownClaimEvent claim : hostManager.getShutdownClaims()) {
+			simulation.sendEvent(new DenyShutdownEvent(claim.getCandidateAM()));
+		}
+		
+		hostManager.getShutdownClaims().clear();
+	}
+	
+	public void execute(ShutdownClaimEvent event) {
+		HostManagerBroadcast hostManager = manager.getCapability(HostManagerBroadcast.class);
+		
+		if (hostManager.getShutdownState() == ShutdownState.COORDINATING) {
+			hostManager.getShutdownClaims().add(event);
+		} else {
+			simulation.sendEvent(new DenyShutdownEvent(event.getCandidateAM()));
+		}
+		
+		if (simulation.isRecordingMetrics())
+			CountMetric.getMetric(simulation, SINGLE_VALUE_MSG).incrementCount(); //only using the CPU value
+	}
+	
+	public void execute(TriggerShutdownEvent event) {
+		//decide if we want to send a claim
+		HostManagerBroadcast hostManager = manager.getCapability(HostManagerBroadcast.class);
+		HostStatus hostStatus = new HostStatus(hostManager.getHost(), simulation.getSimulationTime());
+		
+		if (simulation.isRecordingMetrics())
+			CountMetric.getMetric(simulation, SINGLE_VALUE_MSG).incrementCount(); //only using the CPU value
+		
+		//if a migration is pending, wait until it is complete
+		if ((hostStatus.getIncomingMigrationCount() > 0) || (hostStatus.getOutgoingMigrationCount() > 0)) return;
+		
+		if (event.getCoordinator() != manager) {
+			if (hostManager.getManagementState() == ManagementState.NORMAL && hostManager.getShutdownState() == ShutdownState.NONE) {
+				if (isUnderUtilized(hostManager, hostStatus) && !shutdownFrozen(hostManager)) {
+					Resources resources = hostStatus.getResourcesInUse();
+					if (hostManager.getHost().getPowerEfficiency(1) < event.getCoordinatorHost().getPowerEfficiency(1) || resources.getCpu() < event.getResources().getCpu()) {
+						
+						//send claim to coordinator
+						simulation.sendEvent(new ShutdownClaimEvent(event.getCoordinator(), manager, hostManager.getHost(), hostStatus.getResourcesInUse(), hostStatus.getVms().size()));
+						
+						//set state to prevent other actions while claiming shutdown
+						hostManager.setShutdownState(ShutdownState.SUBMITTED_CLAIM);
+						
+					}
+				}
+			}
+		}
+	}
+	
+	public void execute(AwardShutdownEvent event) {
+		HostManagerBroadcast hostManager = manager.getCapability(HostManagerBroadcast.class);
+		HostStatus hostStatus = new HostStatus(hostManager.getHost(), simulation.getSimulationTime());
+		
+		hostManager.setShutdownState(ShutdownState.SHUTTING_DOWN);
+		
+		ArrayList<VmStatus> vmList = orderVmsUnderUtilized(hostStatus.getVms());
+		
+		if (simulation.isRecordingMetrics())
+			CountMetric.getMetric(simulation, SHUTDOWN_TRIGGERED).incrementCount();
+	
+		evict(hostManager, vmList, RequestResourcesEvent.AdvertiseReason.SHUTDOWN);	
+		
+		if (simulation.isRecordingMetrics())
+			CountMetric.getMetric(simulation, SINGLE_VALUE_MSG).incrementCount();
+	}
+	
+	public void execute(DenyShutdownEvent event) {
+		HostManagerBroadcast hostManager = manager.getCapability(HostManagerBroadcast.class);
+		hostManager.setShutdownState(ShutdownState.NONE);
+		
+		//must wait before attempting shutdown again
+		hostManager.enactShutdownFreeze(simulation.getSimulationTime() + SHUTDOWN_SUBSEQUENT_FREEZE_DURATION);
+		
+		if (simulation.isRecordingMetrics())
+			CountMetric.getMetric(simulation, SINGLE_VALUE_MSG).incrementCount();
+	}
+	
+	public void execute(ShutdownFailedEvent event) {
+		HostManagerBroadcast hostManager = manager.getCapability(HostManagerBroadcast.class);
+		
+		//freeze shutdown, since it's unlikely that another shutdown will succeed soon
+		hostManager.enactShutdownFreeze(simulation.getSimulationTime() + SHUTDOWN_FREEZE_AFTER_FAIL_DURATION);
+	}
+	
 	public void execute(EvictionEvent event) {
 		HostManagerBroadcast hostManager = manager.getCapability(HostManagerBroadcast.class);
 		
@@ -173,6 +300,9 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 		} else {
 			completeShutdownEviction(event);
 		}
+		
+		if (simulation.isRecordingMetrics())
+			CountMetric.getMetric(simulation, SINGLE_VALUE_MSG).incrementCount();
 	}
 	
 	private void completeStressEviction(EvictionEvent event) {
@@ -394,15 +524,48 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 				actions.execute(simulation, this);
 			
 				cancelShutdown = false;
+				
+				
+				//determine remaining resources, recommend shutdown freeze duration
+				
+				//total remaining resources
+				Resources remaining = new Resources();
+				for (ResourceOfferEvent e : targets) {
+					remaining.setCpu(remaining.getCpu() + e.getResourcesOffered().getCpu());
+					remaining.setMemory(remaining.getMemory() + e.getResourcesOffered().getMemory());
+					remaining.setBandwidth(remaining.getBandwidth() + e.getResourcesOffered().getBandwidth());
+					remaining.setStorage(remaining.getStorage() + e.getResourcesOffered().getStorage());
+				}
+				
+				Resources required = new Resources();
+				for (VmStatus vm : eviction.getVmList()) {
+					required.setCpu(vm.getResourcesInUse().getCpu());
+					required.setMemory(vm.getResourcesInUse().getMemory());
+					required.setBandwidth(vm.getResourcesInUse().getBandwidth());
+					required.setStorage(vm.getResourcesInUse().getStorage());
+				}
+				
+				if (remaining.getCpu() >= required.getCpu() &&
+						remaining.getMemory() >= required.getMemory() &&
+						remaining.getBandwidth() >= required.getBandwidth() &&
+						remaining.getStorage() >= required.getStorage()) {
+					
+					hostManager.setShutdownResourcesAvailable(true);
+					
+				} else {
+					hostManager.setShutdownResourcesAvailable(false);
+				}
+				
+				
+				
 			} else {
 				acceptedOffers.clear();
 			}
 			
 			//send accept and reject messages
 			for (ResourceOfferEvent e : targets) {
+				
 				if (acceptedOffers.contains(e)) {
-//					AcceptOfferAction acceptAction = new AcceptOfferAction(e.getHostManager());
-//					acceptAction.execute(simulation, this);
 					if (simulation.isRecordingMetrics())
 						CountMetric.getMetric(simulation, SHUTDOWN_EVICT).incrementCount();
 				} else {
@@ -424,9 +587,11 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 			 */
 			
 			//prevent repeated shutdown events
-			hostManager.enactShutdownFreeze(simulation.getSimulationTime() + SHUTDOWN_FREEZE_DURATION);
+			hostManager.enactShutdownFreeze(simulation.getSimulationTime() + SHUTDOWN_FREEZE_AFTER_FAIL_DURATION);
 			hostManager.setManagementState(ManagementState.NORMAL);
-			hostManager.setShuttingDown(false);
+			hostManager.setShutdownState(ShutdownState.NONE);
+			
+			simulation.sendEvent(new ShutdownFailedEvent(hostManager.getBroadcastingGroup()));
 			
 			if (simulation.isRecordingMetrics())
 				CountMetric.getMetric(simulation, SHUTDOWN_EVICT_FAIL).incrementCount();
@@ -447,6 +612,9 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 		
 		//freeze eviction
 		hostManager.enactEvictionFreeze(simulation.getSimulationTime() + EVICTION_FREEZE_DURATION);
+		
+		if (simulation.isRecordingMetrics())
+			CountMetric.getMetric(simulation, SINGLE_VALUE_MSG).incrementCount();
 	}
 	
 	public void execute(RejectOfferEvent event) {
@@ -454,6 +622,9 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 		
 		hostManager.setManagementState(ManagementState.NORMAL);
 		hostManager.clearCurrentOffer();
+		
+		if (simulation.isRecordingMetrics())
+			CountMetric.getMetric(simulation, SINGLE_VALUE_MSG).incrementCount();
 	}
 	
 
@@ -468,17 +639,19 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 		Host host = hostManager.getHost();
 		HostStatus hostStatus = new HostStatus(hostManager.getHost(), simulation.getSimulationTime());
 		
+		if (simulation.isRecordingMetrics())
+			CountMetric.getMetric(simulation, RESOURCE_REQUEST_RECEIVED).incrementCount();
+		
+		if (simulation.isRecordingMetrics())
+			CountMetric.getMetric(simulation, RESOURCE_MSG).incrementCount();
+		
 		//check if offers are frozen
 		if (offersFrozen(hostManager) ||  manager == event.getHostManager()) {
 			return;
 		}
 		
-		if (event.getReason() == RequestResourcesEvent.AdvertiseReason.SHUTDOWN) {
-			hostManager.enactShutdownFreeze(simulation.getSimulationTime() + SHUTDOWN_FREEZE_DURATION);			
-		}
-		
 		//check for spare capacity
-		if (hostManager.getManagementState() == ManagementState.NORMAL && !hostManager.isShuttingDown()) {
+		if (hostManager.getManagementState() == ManagementState.NORMAL && hostManager.getShutdownState() == ShutdownState.NONE) {
 			if (event.getHostManager() != manager &&					//ensure the event does not come from this manager
 					!isStressed(hostManager) && 						//ensure this host is not stressed
 					!(hostStatus.getIncomingMigrationCount() > 0) &&	//ensure there are no current migrations
@@ -487,7 +660,7 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 				Resources minResources = event.getMinResources();
 
 				//check if we are capable of hosting this VM
-				double avgCpu = getAvgCpu(hostManager);
+				double avgCpu = getAvgCpu(hostManager, STRESS_MONITOR_WINDOW);
 					
 				Resources resourcesInUse = hostStatus.getResourcesInUse();
 				
@@ -535,6 +708,9 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 			//send rejection message
 			simulation.sendEvent(new RejectOfferEvent(event.getHostManager(), event));
 		}
+		
+		if (simulation.isRecordingMetrics())
+			CountMetric.getMetric(simulation, RESOURCE_MSG).incrementCount();
 
 	}
 	
@@ -550,7 +726,23 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 		if (event.getHost() != hostManager.getHost())
 			hostManager.getPoweredOffHosts().add(event.getHost());
 		
-		hostManager.enactShutdownFreeze(simulation.getSimulationTime() + SHUTDOWN_WAIT_TIME);
+		//set shutdown freeze, if not set already
+		if (!shutdownFrozen(hostManager)) {
+			if (event.areShutdownResourcesAvailabe()) {
+				
+				hostManager.enactShutdownFreeze(simulation.getSimulationTime() + SHUTDOWN_SUBSEQUENT_FREEZE_DURATION);
+			} else {
+
+				hostManager.enactShutdownFreeze(simulation.getSimulationTime() + SHUTDOWN_FREEZE_AFTER_FAIL_DURATION);
+			}
+		}
+
+		if (simulation.isRecordingMetrics())
+			CountMetric.getMetric(simulation, POWER_STATE_MSG_RECEIVED).incrementCount();
+		
+		if (simulation.isRecordingMetrics())
+			CountMetric.getMetric(simulation, SINGLE_VALUE_MSG).incrementCount();
+
 	}
 	
 	/**
@@ -563,6 +755,13 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 		HostManagerBroadcast hostManager = manager.getCapability(HostManagerBroadcast.class);
 		
 		hostManager.getPoweredOffHosts().remove(event.getHost());
+		
+		if (simulation.isRecordingMetrics())
+			CountMetric.getMetric(simulation, POWER_STATE_MSG_RECEIVED).incrementCount();
+		
+		if (simulation.isRecordingMetrics())
+			CountMetric.getMetric(simulation, SINGLE_VALUE_MSG).incrementCount();
+		
 	}
 	
 	public void execute(UpdatePowerStateListEvent event) {
@@ -586,7 +785,7 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 	 * @return
 	 */
 	private boolean isStressed(HostManagerBroadcast hostManager) {
-		double util = getAvgCpuUtil(hostManager);
+		double util = getAvgCpuUtil(hostManager, STRESS_MONITOR_WINDOW);
 
 		if (util > upper) {
 			return true;
@@ -602,31 +801,41 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 	 * @return
 	 */
 	private boolean isUnderUtilized(HostManagerBroadcast hostManager, HostStatus hostStatus) {
-		if (getAvgCpuUtil(hostManager) < lower) {
+		if (getAvgCpuUtil(hostManager, UNDER_MONITOR_WINDOW) < lower) {
 			return true;
 		}
 		return false;
 	}
 	
 
-	private double getAvgCpuUtil(HostManagerBroadcast hostManager) {
+	private double getAvgCpuUtil(HostManagerBroadcast hostManager, int windowSize) {
 		double avgCpu = 0;
-			
+		int count = 0;
+		
 		for (HostStatus status : hostManager.getHistory()) {
+			++count;
 			avgCpu += status.getResourcesInUse().getCpu() / hostManager.getHost().getTotalCpu();
+			
+			if (count == windowSize)
+				break;
 		}
-		avgCpu = avgCpu / hostManager.getHistory().size();
+		avgCpu = avgCpu / count;
 
 		return avgCpu;
 	}
 	
-	private double getAvgCpu(HostManagerBroadcast hostManager) {
+	private double getAvgCpu(HostManagerBroadcast hostManager, int windowSize) {
 		double avgCpu = 0;
+		int count = 0;
 			
 		for (HostStatus status : hostManager.getHistory()) {
+			++count;
 			avgCpu += status.getResourcesInUse().getCpu();
+			
+			if (count == windowSize)
+				break;
 		}
-		avgCpu = avgCpu / hostManager.getHistory().size();
+		avgCpu = avgCpu / count;
 
 		return avgCpu;
 	}
@@ -863,9 +1072,9 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 		HostManagerBroadcast hostManager = manager.getCapability(HostManagerBroadcast.class);
 
 		hostManager.setManagementState(ManagementState.NORMAL);
-		hostManager.setShuttingDown(false);
+		hostManager.setShutdownState(ShutdownState.NONE);
 		hostManager.getHistory().clear(); //clear monitoring history
-		hostManager.enactShutdownFreeze(simulation.getSimulationTime() + SHUTDOWN_WAIT_TIME);
+		hostManager.enactShutdownFreeze(simulation.getSimulationTime() + SHUTDOWN_FREEZE_AFTER_BOOT_DURATION);
 		hostManager.setPowerStateListValid(false);
 		
 		simulation.sendEvent(new HostPowerOnEvent(hostManager.getBroadcastingGroup(), hostManager.getHost())); 
@@ -875,8 +1084,9 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 	public void onManagerStop() {
 		//send shutdown message
 		HostManagerBroadcast hostManager = manager.getCapability(HostManagerBroadcast.class);
-		simulation.sendEvent(new HostShuttingDownEvent(hostManager.getBroadcastingGroup(), hostManager.getHost()));
+		simulation.sendEvent(new HostShuttingDownEvent(hostManager.getBroadcastingGroup(), hostManager.getHost(), hostManager.areShutdownResourcesvailable()));
 	}
 
 }
+
 
