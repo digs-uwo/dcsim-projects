@@ -79,8 +79,7 @@ public class VmPlacementPolicyStaticPeak extends Policy {
 				reqResources.setBandwidth(vmAllocationRequest.getBandwidth());
 				reqResources.setStorage(vmAllocationRequest.getStorage());
 				
-				// Check that target host is capable and has enough capacity left to host the VM, 
-				// and also that it will not exceed the target utilization.
+				// Check that target host is capable and has enough capacity left to host the VM.
 				if (HostData.canHost(vmAllocationRequest.getVMDescription().getCores(), 
 						vmAllocationRequest.getVMDescription().getCoreCapacity(), 
 						reqResources,
