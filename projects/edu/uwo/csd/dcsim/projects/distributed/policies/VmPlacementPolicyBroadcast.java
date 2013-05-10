@@ -90,6 +90,8 @@ public class VmPlacementPolicyBroadcast extends Policy {
 			
 		VmStatus vm = eviction.getVmList().get(0);
 		
+		boolean targetFound = false;
+		
 		if (eviction.getResourceOffers().size() > 0) {
 			//Sort target hosts
 			ArrayList<ResourceOfferEvent> targets = sortTargetHosts(eviction.getResourceOffers());
@@ -117,6 +119,8 @@ public class VmPlacementPolicyBroadcast extends Policy {
 			
 			if (target != null) {
 			
+				targetFound = true;
+				
 				InstantiateVmEvent instantiateEvent = new InstantiateVmEvent(target.getHostManager(), hostPool.getRequest(eviction));
 				simulation.sendEvent(instantiateEvent);
 				
@@ -127,9 +131,6 @@ public class VmPlacementPolicyBroadcast extends Policy {
 				
 				CountMetric.getMetric(simulation, SERVICES_PLACED).incrementCount();
 
-			} else {
-				//Should not happen, exists to catch programming error
-				throw new RuntimeException("Failed to select target VM from offering Hosts for placement. Should not happen.");
 			}
 			
 			//send out rejection messages to other hosts
@@ -138,9 +139,9 @@ public class VmPlacementPolicyBroadcast extends Policy {
 					simulation.sendEvent(new RejectOfferEvent(offerEvent.getHostManager(), offerEvent));
 				}
 			}
+		}
 		
-		} else {
-			//there were no resource offers, boot new host or record failure to place
+		if (!targetFound) {
 			if ((hostPool.getLastBoot() < simulation.getSimulationTime() + BOOT_WAIT_TIME) && (hostPool.getPoweredOffHosts().size() > 0)) {
 				
 				//look for a new host to boot

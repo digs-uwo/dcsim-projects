@@ -9,6 +9,7 @@ import edu.uwo.csd.dcsim.common.*;
 import edu.uwo.csd.dcsim.core.Simulation;
 import edu.uwo.csd.dcsim.management.AutonomicManager;
 import edu.uwo.csd.dcsim.projects.centralized.policies.*;
+import edu.uwo.csd.dcsim.projects.distributed.DistributedTestEnvironment;
 import edu.uwo.csd.dcsim.management.policies.HostStatusPolicy;
 
 /**
@@ -52,6 +53,7 @@ public class PeriodicHybridStrategyExperiment extends SimulationTask {
 //		IM2013TestEnvironment.configureStaticServices(simulation, dcAM);
 //		IM2013TestEnvironment.configureDynamicServices(simulation, dcAM);
 		CentralizedTestEnvironment.configureRandomServices(simulation, dcAM, 1, 600, 1600);
+//		CentralizedTestEnvironment.configureRandomServices(simulation, dcAM, 1, 1400, 4000); //for 500 hosts
 	}
 	
 	public static void main(String args[]) {

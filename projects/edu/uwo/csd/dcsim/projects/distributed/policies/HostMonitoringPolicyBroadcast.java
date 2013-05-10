@@ -30,10 +30,10 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 	private static final int UNDER_MONITOR_WINDOW = 5;
 	
 	private static final long SHUTDOWN_SUBSEQUENT_FREEZE_DURATION = SimTime.minutes(5); //after another host has shut down
-	private static final long SHUTDOWN_FREEZE_AFTER_BOOT_DURATION = SimTime.minutes(30); //after this host has started
-	private static final long SHUTDOWN_FREEZE_AFTER_FAIL_DURATION = SimTime.minutes(30); //triggered after a failed shutdown
-	private static final long EVICTION_FREEZE_DURATION = SimTime.minutes(60);
-	private static final long OFFER_FREEZE_DURATION = SimTime.minutes(60);
+	private static final long SHUTDOWN_FREEZE_AFTER_BOOT_DURATION = SimTime.minutes(15); //after this host has started
+	private static final long SHUTDOWN_FREEZE_AFTER_FAIL_DURATION = SimTime.minutes(15); //triggered after a failed shutdown
+	private static final long EVICTION_FREEZE_DURATION = SimTime.minutes(30);
+	private static final long OFFER_FREEZE_DURATION = SimTime.minutes(30);
 	
 	public static final String STRESS_EVICT_FAIL = "stressEvictionFailed";
 	public static final String SHUTDOWN_EVICT_FAIL = "shutdownFailed";
@@ -44,7 +44,8 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 	public static final String RESOURCE_REQUEST_RECEIVED = "receivedResourceRequest";
 	public static final String POWER_STATE_MSG_RECEIVED = "receivedPowerStateMessage";
 	public static final String RESOURCE_MSG = "msgResource";
-	public static final String SINGLE_VALUE_MSG = "msgSingle";
+	public static final String BASIC_MSG = "msgBasic";
+	public static final String SINGLE_MSG = "msgSingle";
 	
 	private double lower;
 	private double upper;
@@ -222,7 +223,7 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 		}
 		
 		if (simulation.isRecordingMetrics())
-			CountMetric.getMetric(simulation, SINGLE_VALUE_MSG).incrementCount(); //only using the CPU value
+			CountMetric.getMetric(simulation, BASIC_MSG).incrementCount(); //only using the CPU value
 	}
 	
 	public void execute(TriggerShutdownEvent event) {
@@ -231,7 +232,7 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 		HostStatus hostStatus = new HostStatus(hostManager.getHost(), simulation.getSimulationTime());
 		
 		if (simulation.isRecordingMetrics())
-			CountMetric.getMetric(simulation, SINGLE_VALUE_MSG).incrementCount(); //only using the CPU value
+			CountMetric.getMetric(simulation, BASIC_MSG).incrementCount(); //only using the CPU value
 		
 		//if a migration is pending, wait until it is complete
 		if ((hostStatus.getIncomingMigrationCount() > 0) || (hostStatus.getOutgoingMigrationCount() > 0)) return;
@@ -268,7 +269,7 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 		evict(hostManager, vmList, RequestResourcesEvent.AdvertiseReason.SHUTDOWN);	
 		
 		if (simulation.isRecordingMetrics())
-			CountMetric.getMetric(simulation, SINGLE_VALUE_MSG).incrementCount();
+			CountMetric.getMetric(simulation, BASIC_MSG).incrementCount();
 	}
 	
 	public void execute(DenyShutdownEvent event) {
@@ -279,7 +280,7 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 		hostManager.enactShutdownFreeze(simulation.getSimulationTime() + SHUTDOWN_SUBSEQUENT_FREEZE_DURATION);
 		
 		if (simulation.isRecordingMetrics())
-			CountMetric.getMetric(simulation, SINGLE_VALUE_MSG).incrementCount();
+			CountMetric.getMetric(simulation, BASIC_MSG).incrementCount();
 	}
 	
 	public void execute(ShutdownFailedEvent event) {
@@ -302,7 +303,7 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 		}
 		
 		if (simulation.isRecordingMetrics())
-			CountMetric.getMetric(simulation, SINGLE_VALUE_MSG).incrementCount();
+			CountMetric.getMetric(simulation, BASIC_MSG).incrementCount();
 	}
 	
 	private void completeStressEviction(EvictionEvent event) {
@@ -614,7 +615,7 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 		hostManager.enactEvictionFreeze(simulation.getSimulationTime() + EVICTION_FREEZE_DURATION);
 		
 		if (simulation.isRecordingMetrics())
-			CountMetric.getMetric(simulation, SINGLE_VALUE_MSG).incrementCount();
+			CountMetric.getMetric(simulation, BASIC_MSG).incrementCount();
 	}
 	
 	public void execute(RejectOfferEvent event) {
@@ -624,7 +625,7 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 		hostManager.clearCurrentOffer();
 		
 		if (simulation.isRecordingMetrics())
-			CountMetric.getMetric(simulation, SINGLE_VALUE_MSG).incrementCount();
+			CountMetric.getMetric(simulation, BASIC_MSG).incrementCount();
 	}
 	
 
@@ -643,7 +644,7 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 			CountMetric.getMetric(simulation, RESOURCE_REQUEST_RECEIVED).incrementCount();
 		
 		if (simulation.isRecordingMetrics())
-			CountMetric.getMetric(simulation, RESOURCE_MSG).incrementCount();
+			CountMetric.getMetric(simulation, SINGLE_MSG).incrementCount();
 		
 		//check if offers are frozen
 		if (offersFrozen(hostManager) ||  manager == event.getHostManager()) {
@@ -664,13 +665,20 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 					
 				Resources resourcesInUse = hostStatus.getResourcesInUse();
 				
+//				if (((hostStatus.getResourcesInUse().getCpu() + minResources.getCpu()) / host.getResourceManager().getTotalCpu() <= target) && //check current CPU util < target
+//						((avgCpu + minResources.getCpu()) / host.getResourceManager().getTotalCpu() <= target) && //check average CPU util < target
+//						(minResources.getMemory() <= (host.getResourceManager().getTotalMemory() - resourcesInUse.getMemory())) && //check memory
+//						(minResources.getBandwidth() <= (host.getResourceManager().getTotalBandwidth() - resourcesInUse.getBandwidth())) && //check bandwidth
+//						(minResources.getStorage() <= (host.getResourceManager().getTotalStorage() - resourcesInUse.getStorage())) ) //check storage
+//				{ 
+					
+				//only check CPU, and if there is ANY memory available (we will consider this message to only contain CPU data)
 				if (((hostStatus.getResourcesInUse().getCpu() + minResources.getCpu()) / host.getResourceManager().getTotalCpu() <= target) && //check current CPU util < target
 						((avgCpu + minResources.getCpu()) / host.getResourceManager().getTotalCpu() <= target) && //check average CPU util < target
-						(minResources.getMemory() <= (host.getResourceManager().getTotalMemory() - resourcesInUse.getMemory())) && //check memory
-						(minResources.getBandwidth() <= (host.getResourceManager().getTotalBandwidth() - resourcesInUse.getBandwidth())) && //check bandwidth
-						(minResources.getStorage() <= (host.getResourceManager().getTotalStorage() - resourcesInUse.getStorage())) ) //check storage
+						(resourcesInUse.getMemory() < host.getResourceManager().getTotalMemory()) ) //check memory
 				{ 
-					
+				
+				
 					//calculate resources to offer
 					Resources resourcesOffered = new Resources();
 					
@@ -741,7 +749,7 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 			CountMetric.getMetric(simulation, POWER_STATE_MSG_RECEIVED).incrementCount();
 		
 		if (simulation.isRecordingMetrics())
-			CountMetric.getMetric(simulation, SINGLE_VALUE_MSG).incrementCount();
+			CountMetric.getMetric(simulation, BASIC_MSG).incrementCount();
 
 	}
 	
@@ -760,7 +768,7 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 			CountMetric.getMetric(simulation, POWER_STATE_MSG_RECEIVED).incrementCount();
 		
 		if (simulation.isRecordingMetrics())
-			CountMetric.getMetric(simulation, SINGLE_VALUE_MSG).incrementCount();
+			CountMetric.getMetric(simulation, BASIC_MSG).incrementCount();
 		
 	}
 	

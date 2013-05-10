@@ -51,6 +51,7 @@ public class ReactiveHybridStrategyExperiment extends SimulationTask {
 //		IM2013TestEnvironment.configureStaticServices(simulation, dcAM);
 //		IM2013TestEnvironment.configureDynamicServices(simulation, dcAM);
 		CentralizedTestEnvironment.configureRandomServices(simulation, dcAM, 1, 600, 1600);
+//		CentralizedTestEnvironment.configureRandomServices(simulation, dcAM, 1, 1400, 4000); //for 500 hosts
 	}
 	
 	public static void main(String args[]) {
