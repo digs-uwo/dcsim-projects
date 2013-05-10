@@ -47,6 +47,8 @@ public class ReactiveHybridStrategyExperiment extends SimulationTask {
 		// Create data centre and its manager.
 		Tuple<DataCentre, AutonomicManager> tuple = SVM2013TestEnvironment.createDataCentre(simulation);
 		AutonomicManager dcAM = tuple.b;
+		
+		// Create and install policy to manage Host status updates.
 		dcAM.installPolicy(new ReactiveHostStatusPolicy(5));
 		
 		// Create and install management policies for the data centre.

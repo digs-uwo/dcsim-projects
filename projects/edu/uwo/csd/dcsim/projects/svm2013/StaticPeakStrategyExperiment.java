@@ -16,7 +16,7 @@ import edu.uwo.csd.dcsim.projects.svm2013.policies.VmPlacementPolicyStaticPeak;
  * environment for the SVM 2013 paper. The strategy consists only of the 
  * following policy:
  * 
- * + VmPlacementPolicyFFMHybrid
+ * + VmPlacementPolicyStaticPeak
  * 
  * The VM Placement policy runs as needed, mapping VMs into Hosts without 
  * over-subscribing the resources of the latter.
