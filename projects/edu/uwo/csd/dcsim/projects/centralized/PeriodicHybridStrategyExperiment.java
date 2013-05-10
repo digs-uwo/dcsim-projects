@@ -62,10 +62,10 @@ public class PeriodicHybridStrategyExperiment extends SimulationTask {
 		SimulationExecutor executor = new SimulationExecutor();
 		
 		executor.addTask(new PeriodicHybridStrategyExperiment("periodic-hybrid-1", 6198910678692541341l));
-//		executor.addTask(new HybridStrategyExperiment("periodic-hybrid-2", 5646441053220106016l));
-//		executor.addTask(new HybridStrategyExperiment("periodic-hybrid-3", -5705302823151233610l));
-//		executor.addTask(new HybridStrategyExperiment("periodic-hybrid-4", 8289672009575825404l));
-//		executor.addTask(new HybridStrategyExperiment("periodic-hybrid-5", -4637549055860880177l));
+		executor.addTask(new PeriodicHybridStrategyExperiment("periodic-hybrid-2", 5646441053220106016l));
+		executor.addTask(new PeriodicHybridStrategyExperiment("periodic-hybrid-3", -5705302823151233610l));
+		executor.addTask(new PeriodicHybridStrategyExperiment("periodic-hybrid-4", 8289672009575825404l));
+		executor.addTask(new PeriodicHybridStrategyExperiment("periodic-hybrid-5", -4637549055860880177l));
 		
 		completedTasks = executor.execute();
 		

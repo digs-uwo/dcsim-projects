@@ -61,10 +61,10 @@ public class ReactiveHybridStrategyExperiment extends SimulationTask {
 		SimulationExecutor executor = new SimulationExecutor();
 		
 		executor.addTask(new ReactiveHybridStrategyExperiment("reactive-hybrid-1", 6198910678692541341l));
-//		executor.addTask(new HybridStrategyExperiment("reactive-periodic-hybrid-2", 5646441053220106016l));
-//		executor.addTask(new HybridStrategyExperiment("reactive-periodic-hybrid-3", -5705302823151233610l));
-//		executor.addTask(new HybridStrategyExperiment("reactive-periodic-hybrid-4", 8289672009575825404l));
-//		executor.addTask(new HybridStrategyExperiment("reactive-periodic-hybrid-5", -4637549055860880177l));
+		executor.addTask(new ReactiveHybridStrategyExperiment("reactive--hybrid-2", 5646441053220106016l));
+		executor.addTask(new ReactiveHybridStrategyExperiment("reactive--hybrid-3", -5705302823151233610l));
+		executor.addTask(new ReactiveHybridStrategyExperiment("reactive--hybrid-4", 8289672009575825404l));
+		executor.addTask(new ReactiveHybridStrategyExperiment("reactive--hybrid-5", -4637549055860880177l));
 		
 		completedTasks = executor.execute();
 		

@@ -8,10 +8,12 @@ import edu.uwo.csd.dcsim.management.HostStatus;
 import edu.uwo.csd.dcsim.management.capabilities.HostManager;
 import edu.uwo.csd.dcsim.projects.distributed.Eviction;
 import edu.uwo.csd.dcsim.projects.distributed.events.ResourceOfferEvent;
+import edu.uwo.csd.dcsim.projects.distributed.events.ShutdownClaimEvent;
 
 public class HostManagerBroadcast extends HostManager {
 
 	public enum ManagementState {NORMAL, EVICTING, OFFERING;}
+	public enum ShutdownState {NONE, SHUTTING_DOWN, SUBMITTED_CLAIM, COORDINATING;}
 		
 	private SimulationEventBroadcastGroup broadcastingGroup; 
 	
@@ -21,8 +23,8 @@ public class HostManagerBroadcast extends HostManager {
 	
 	//Host state
 	private ManagementState managementState = ManagementState.NORMAL;
-	private boolean shuttingDown = false;
-
+	private ShutdownState shutdownState = ShutdownState.NONE;
+	
 	//action freezing
 	private boolean offerFreeze = false;
 	private long offerFreezeExpiry = -1;
@@ -37,6 +39,9 @@ public class HostManagerBroadcast extends HostManager {
 	//offer
 	private ResourceOfferEvent currentOffer;
 	
+	//shutdown
+	private ArrayList<ShutdownClaimEvent> shutdownClaims = new ArrayList<ShutdownClaimEvent>();
+	private boolean shutdownResourcesAvailable = false;
 	
 	public HostManagerBroadcast(Host host, SimulationEventBroadcastGroup broadcastingGroup) {
 		super(host);
@@ -55,12 +60,24 @@ public class HostManagerBroadcast extends HostManager {
 		return broadcastingGroup;
 	}
 	
+	public ArrayList<ShutdownClaimEvent> getShutdownClaims() {
+		return shutdownClaims;
+	}
+	
 	public ManagementState getManagementState() {
 		return managementState;
 	}
 	
 	public void setManagementState(ManagementState state) {
 		this.managementState = state;
+	}
+	
+	public ShutdownState getShutdownState() {
+		return shutdownState;
+	}
+	
+	public void setShutdownState(ShutdownState state) {
+		shutdownState = state;
 	}
 	
 	public ArrayList<HostStatus> getHistory() {
@@ -97,17 +114,9 @@ public class HostManagerBroadcast extends HostManager {
 	}
 	
 	public long getGroupSize() {
-		return broadcastingGroup.size();	}
-	
-	
-	public boolean isShuttingDown() {
-		return shuttingDown;
+		return broadcastingGroup.size();	
 	}
-	
-	public void setShuttingDown(boolean shuttingDown) {
-		this.shuttingDown = shuttingDown;
-	}
-	
+		
 	public boolean offersFrozen() {
 		return offerFreeze;
 	}
@@ -166,6 +175,13 @@ public class HostManagerBroadcast extends HostManager {
 	public void setPowerStateListValid(boolean powerStateListValid) {
 		this.powerStateListValid = powerStateListValid;
 	}
+
+	public boolean areShutdownResourcesvailable() {
+		return shutdownResourcesAvailable;
+	}
 	
+	public void setShutdownResourcesAvailable(boolean shutdownResourcesAvailable) {
+		this.shutdownResourcesAvailable = shutdownResourcesAvailable;
+	}
 
 }
