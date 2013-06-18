@@ -72,7 +72,7 @@ public class RackData {
 		return rackDescription;
 	}
 	
-	public HostStatus getCurrentStatus() {
+	public RackStatus getCurrentStatus() {
 		// Return a copy of the status to ensure that it is read-only.
 		return currentStatus.copy();
 	}

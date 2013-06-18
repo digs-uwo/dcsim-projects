@@ -1,33 +1,80 @@
 package edu.uwo.csd.dcsim.projects.hierarchical;
 
 import edu.uwo.csd.dcsim.host.*;
-import edu.uwo.csd.dcsim.management.HostStatus;
 
 public class RackStatus {
 
 	private long timeStamp;
 	private int id;
 	
-	private int activeHosts;
-	private int suspendedHosts;
-	private int poweredOffHosts;
+	private int activeHosts = 0;
+	private int suspendedHosts = 0;
+	private int poweredOffHosts = 0;
 	
-	// max spare capacity: list or single value (vector, actually)
+	// max spare capacity: list of vectors or single vector  ( Resources object ? )
 	
-	private double powerConsumption;
+	private double powerConsumption = 0;
 	
 	public RackStatus(Rack rack, long timeStamp) {
-		// TODO Auto-generated constructor stub
+		this.timeStamp = timeStamp;
+		
+		id = rack.getId();
+		
+		for (Host host : rack.getHosts()) {
+			// Calculate number of Active, Suspended and Powered-Off hosts.
+			if (host.getState() == Host.HostState.ON || host.getState() == Host.HostState.POWERING_ON)
+				activeHosts++;
+			else if (host.getState() == Host.HostState.SUSPENDED || host.getState() == Host.HostState.SUSPENDING)
+				suspendedHosts++;
+			else if (host.getState() == Host.HostState.OFF || host.getState() == Host.HostState.POWERING_OFF)
+				poweredOffHosts++;
+			
+			// max spare capacity ??
+			
+			// Calculate Rack's total power consumption.
+			powerConsumption += host.getCurrentPowerConsumption();
+		}
 	}
-
-	public HostStatus copy() {
-		// TODO Auto-generated method stub
-		return null;
+	
+	public RackStatus(RackStatus status) {
+		timeStamp = status.timeStamp;
+		id = status.id;
+		
+		activeHosts = status.activeHosts;
+		suspendedHosts = status.suspendedHosts;
+		poweredOffHosts = status.poweredOffHosts;
+		
+		// max spare capacity
+		
+		powerConsumption = status.powerConsumption;
+	}
+	
+	public RackStatus copy() {
+		return new RackStatus(this);
 	}
 
 	public long getTimeStamp() {
-		// TODO Auto-generated method stub
-		return 0;
+		return timeStamp;
+	}
+	
+	public int getId() {
+		return id;
+	}
+	
+	public int getActiveHosts() {
+		return activeHosts;
+	}
+	
+	public int getSuspendedHosts() {
+		return suspendedHosts;
+	}
+	
+	public int getPoweredOffHosts() {
+		return poweredOffHosts;
+	}
+	
+	public double getPowerConsumption() {
+		return powerConsumption;
 	}
 
 }
