@@ -13,7 +13,7 @@ public class RackStatus {
 	
 	// max spare capacity: list of vectors or single vector  ( Resources object ? )
 	
-	private double powerConsumption = 0;
+	private double powerConsumption = 0;		// Sum of power consumption from all Hosts and Switches in the Rack.
 	
 	public RackStatus(Rack rack, long timeStamp) {
 		this.timeStamp = timeStamp;
@@ -34,6 +34,10 @@ public class RackStatus {
 			// Calculate Rack's total power consumption.
 			powerConsumption += host.getCurrentPowerConsumption();
 		}
+		
+		// Add power consumption of the Rack's switches.
+		powerConsumption += rack.getDataNetworkSwitch().getPowerConsumption();
+		powerConsumption += rack.getMgmtNetworkSwitch().getPowerConsumption();
 	}
 	
 	public RackStatus(RackStatus status) {
