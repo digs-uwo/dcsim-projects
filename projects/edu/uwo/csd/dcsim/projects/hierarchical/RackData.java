@@ -24,7 +24,7 @@ public class RackData {
 		
 		rackDescription = new RackDescription(rack);
 		
-		// Initialize currentStatus (in order to maintain a status of powered off Racks ??? ).
+		// Initialize current status with an *empty* record.
 		currentStatus = new RackStatus(rack, 0);
 	}
 	

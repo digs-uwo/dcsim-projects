@@ -1,11 +1,15 @@
 package edu.uwo.csd.dcsim.projects.hierarchical;
 
 import edu.uwo.csd.dcsim.host.*;
+import edu.uwo.csd.dcsim.management.HostData;
+import edu.uwo.csd.dcsim.management.capabilities.HostPoolManager;
 
 public class RackStatus {
 
 	private long timeStamp;
 	private int id;
+	
+	//private Rack.RackState state;
 	
 	private int activeHosts = 0;
 	private int suspendedHosts = 0;
@@ -15,24 +19,35 @@ public class RackStatus {
 	
 	private double powerConsumption = 0;		// Sum of power consumption from all Hosts and Switches in the Rack.
 	
+	/**
+	 * Creates an *empty* RackStatus instance. It only includes time stamp and ID.
+	 */
 	public RackStatus(Rack rack, long timeStamp) {
 		this.timeStamp = timeStamp;
-		
+		id = rack.getId();
+	}
+	
+	/**
+	 * Creates a *complete* RackStatus instance.
+	 */
+	public RackStatus(Rack rack, HostPoolManager capability, long timeStamp) {
+		this.timeStamp = timeStamp;
 		id = rack.getId();
 		
-		for (Host host : rack.getHosts()) {
+		for (HostData host : capability.getHosts()) {
 			// Calculate number of Active, Suspended and Powered-Off hosts.
-			if (host.getState() == Host.HostState.ON || host.getState() == Host.HostState.POWERING_ON)
+			Host.HostState state = host.getCurrentStatus().getState();
+			if (state == Host.HostState.ON || state == Host.HostState.POWERING_ON)
 				activeHosts++;
-			else if (host.getState() == Host.HostState.SUSPENDED || host.getState() == Host.HostState.SUSPENDING)
+			else if (state == Host.HostState.SUSPENDED || state == Host.HostState.SUSPENDING)
 				suspendedHosts++;
-			else if (host.getState() == Host.HostState.OFF || host.getState() == Host.HostState.POWERING_OFF)
+			else if (state == Host.HostState.OFF || state == Host.HostState.POWERING_OFF)
 				poweredOffHosts++;
 			
 			// max spare capacity ??
 			
 			// Calculate Rack's total power consumption.
-			powerConsumption += host.getCurrentPowerConsumption();
+			powerConsumption += host.getCurrentStatus().getPowerConsumption();
 		}
 		
 		// Add power consumption of the Rack's switches.
