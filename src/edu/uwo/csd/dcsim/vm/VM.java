@@ -8,7 +8,7 @@ import edu.uwo.csd.dcsim.host.Host;
 import edu.uwo.csd.dcsim.host.Resources;
 
 /**
- * Represents a Virtual Machine, running an Application. Must be contained within a VMAllocation on a Host
+ * Represents a Virtual Machine, running a Task Instance. Must be contained within a VMAllocation on a Host
  * 
  * @author Michael Tighe
  *
@@ -22,11 +22,11 @@ public class VM implements SimulationEventListener {
 	VMDescription vmDescription;
 	VMAllocation vmAllocation; //the allocation this VM is running within
 	
-	Application application;
+	TaskInstance application;
 	
 	protected Resources resourcesScheduled = new Resources();
 	
-	public VM(Simulation simulation, VMDescription vmDescription, Application application) {
+	public VM(Simulation simulation, VMDescription vmDescription, TaskInstance application) {
 		this.simulation = simulation;
 		this.id = simulation.nextId(VM.class.toString());
 		this.vmDescription = vmDescription;
@@ -37,11 +37,11 @@ public class VM implements SimulationEventListener {
 	}
 	
 	public void updateResourceRequirements() {
-		application.updateResourceRequirements();
+		application.updateResourceDemand();
 	}
 	
 	public Resources getResourcesRequired() {
-		Resources required = application.getResourcesRequired();
+		Resources required = application.getResourceDemand();
 		
 		//cap CPU request at max CPU
 		required.setCpu(Math.min(required.getCpu(), getMaxCpu()));
@@ -76,11 +76,11 @@ public class VM implements SimulationEventListener {
 	}
 	
 	public void startApplication() {
-		vmDescription.getApplicationFactory().startApplication(application);
+		vmDescription.getApplicationFactory().startInstance(application);
 	}
 	
 	public void stopApplication() {
-		vmDescription.getApplicationFactory().stopApplication(application);
+		vmDescription.getApplicationFactory().removeInstance(application);
 	}
 	
 	public void updateMetrics() {
@@ -94,10 +94,10 @@ public class VM implements SimulationEventListener {
 		if (getVMAllocation().getHost().getState() == Host.HostState.ON) {
 			simulation.getLogger().debug("VM #" + getId() + " CPU[" + Utility.roundDouble(resourcesScheduled.getCpu(), 2) + 
 					"/" + vmAllocation.getCpu() + 
-					"/" + Utility.roundDouble(application.getResourcesRequired().getCpu(), 2) + "] " + 
+					"/" + Utility.roundDouble(application.getResourceDemand().getCpu(), 2) + "] " + 
 					"BW[" + Utility.roundDouble(resourcesScheduled.getBandwidth(), 2) + 
 					"/" + vmAllocation.getBandwidth() + 
-					"/" + Utility.roundDouble(application.getResourcesRequired().getBandwidth(), 2) + "] " + 
+					"/" + Utility.roundDouble(application.getResourceDemand().getBandwidth(), 2) + "] " + 
 					"MEM[" + resourcesScheduled.getMemory() + 
 					"/" + vmAllocation.getMemory() + "] " +
 					"STORAGE[" + resourcesScheduled.getStorage() + 
@@ -106,8 +106,8 @@ public class VM implements SimulationEventListener {
 		
 		//trace output
 		simulation.getTraceLogger().info("#v," + getId() + "," + vmAllocation.getHost().getId() + "," + 
-				Utility.roundDouble(resourcesScheduled.getCpu(), 2) + "," + Utility.roundDouble(application.getResourcesRequired().getCpu(), 2) + "," + 
-				Utility.roundDouble(resourcesScheduled.getBandwidth(), 2) + "," + Utility.roundDouble(application.getResourcesRequired().getBandwidth(), 2) + "," + 
+				Utility.roundDouble(resourcesScheduled.getCpu(), 2) + "," + Utility.roundDouble(application.getResourceDemand().getCpu(), 2) + "," + 
+				Utility.roundDouble(resourcesScheduled.getBandwidth(), 2) + "," + Utility.roundDouble(application.getResourceDemand().getBandwidth(), 2) + "," + 
 				resourcesScheduled.getMemory() + "," + vmAllocation.getMemory() + "," +
 				resourcesScheduled.getStorage() + "," + vmAllocation.getStorage());
 		
@@ -125,7 +125,7 @@ public class VM implements SimulationEventListener {
 		return id;
 	}
 	
-	public Application getApplication() {
+	public TaskInstance getApplication() {
 		return application;
 	}
 	

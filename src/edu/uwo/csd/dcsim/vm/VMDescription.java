@@ -17,19 +17,28 @@ public class VMDescription {
 	private int memory;	
 	private int bandwidth;
 	private long storage;
-	private ApplicationFactory applicationFactory;
+	private Task task;
 	
-	public VMDescription(int cores, int coreCapacity, int memory, int bandwidth, long storage, ApplicationFactory applicationFactory) {
+	public VMDescription(Task task) {
+		this.cores = task.getResourceSize().getCores();
+		this.coreCapacity = task.getResourceSize().getCoreCapacity();
+		this.memory = task.getResourceSize().getMemory();
+		this.bandwidth = task.getResourceSize().getBandwidth();
+		this.storage = task.getResourceSize().getStorage();
+		this.task = task;
+	}
+	
+	public VMDescription(int cores, int coreCapacity, int memory, int bandwidth, long storage, Task task) {
 		this.cores = cores;
 		this.coreCapacity = coreCapacity;
 		this.memory = memory;
 		this.bandwidth = bandwidth;
 		this.storage = storage;
-		this.applicationFactory = applicationFactory;
+		this.task = task;
 	}
 	
 	public VM createVM(Simulation simulation) {
-		return new VM(simulation, this, applicationFactory.createApplication(simulation));
+		return new VM(simulation, this, task.createInstance());
 	}
 	
 	public int getCpu() {
@@ -48,7 +57,7 @@ public class VMDescription {
 		return memory;
 	}
 	
-	public int getBandwidth() {
+	public double getBandwidth() {
 		return bandwidth;
 	}
 	
@@ -56,8 +65,8 @@ public class VMDescription {
 		return storage;
 	}
 	
-	public ApplicationFactory getApplicationFactory() {
-		return applicationFactory;
+	public Task getTask() {
+		return task;
 	}
 	
 }

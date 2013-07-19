@@ -105,14 +105,14 @@ public class DynamicServiceSpawning extends SimulationTask {
 		 * Simulation superclass), the datacentre to submit Services to, a distribution describing the lifespan of services, and either
 		 * a static rate to create services given in services-per-hour, or a list of (time, rate) tuples.
 		 */
-		ServiceProducer serviceProducer = new ServiceProducer(simulation, dcAM, new NormalDistribution(SimTime.days(3), SimTime.hours(4)), serviceRates) {
+		ApplicationGenerator serviceProducer = new ApplicationGenerator(simulation, dcAM, new NormalDistribution(SimTime.days(3), SimTime.hours(4)), serviceRates) {
 
 			@Override
-			public Service buildService() {
+			public Application buildService() {
 				Workload workload = new TraceWorkload(simulation, "traces/clarknet", 2200, 0);
 				simulation.addWorkload(workload);
 				
-				return Services.singleTierInteractiveService(workload, 1, 2500, 1024, 12800, 1024, 1, 300, 1, Integer.MAX_VALUE);
+				return Applications.singleTierInteractiveService(workload, 1, 2500, 1024, 12800, 1024, 1, 300, 1, Integer.MAX_VALUE);
 			}
 			
 		};

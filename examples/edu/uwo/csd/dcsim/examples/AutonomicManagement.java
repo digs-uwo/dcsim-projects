@@ -101,7 +101,7 @@ public class AutonomicManagement extends SimulationTask {
 			simulation.addWorkload(workload);
 			
 			//create the service this VM will be a part of
-			Service service = Services.singleTierInteractiveService(workload, 1, 2500, 512, 12800, 1024, 1, 300, 1, Integer.MAX_VALUE);
+			Application service = Applications.singleTierInteractiveService(workload, 1, 2500, 512, 12800, 1024, 1, 300, 1, Integer.MAX_VALUE);
 			
 			//create a new VMAllocationRequest using the VMDescription from the service, add it to the vm list
 			vmList.add(new VMAllocationRequest(service.getServiceTiers().get(0).getVMDescription()));

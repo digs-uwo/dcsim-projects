@@ -1,186 +1,136 @@
 package edu.uwo.csd.dcsim.application;
 
-import edu.uwo.csd.dcsim.common.Utility;
-import edu.uwo.csd.dcsim.core.*;
-import edu.uwo.csd.dcsim.core.metrics.AvgSlaSeverityMetric;
-import edu.uwo.csd.dcsim.core.metrics.SlaViolationDurationMetric;
-import edu.uwo.csd.dcsim.core.metrics.SlaViolationMetric;
+import java.util.ArrayList;
+
+import edu.uwo.csd.dcsim.application.loadbalancer.LoadBalancer;
+import edu.uwo.csd.dcsim.application.workload.*;
+import edu.uwo.csd.dcsim.core.Simulation;
+import edu.uwo.csd.dcsim.common.*;
 import edu.uwo.csd.dcsim.host.Resources;
 
 /**
- * Represents an Application that operates in an interactive, request/reply manner, such as a web server. Incoming work
- * are considered 'requests' which are processed by a specified amount of CPU and Bandwidth per work unit.
- * 
  * @author Michael Tighe
  *
  */
 public class InteractiveApplication extends Application {
 
-	private InteractiveApplicationTier applicationTier; //the tier which this Application belongs to
-	
-	private double workOutputLevel =  0;
-	
-	private double cpuPerWork; //the amount of CPU required to complete 1 work unit
-	private double bandwidth; //fixed bandwidth usage
-	private int memory; //fixed memory usage
-	private long storage; //fixed storage usage
-	private double cpuOverhead;
+	private Workload workload;
+	private ArrayList<InteractiveTask> tasks = new ArrayList<InteractiveTask>();
 
-	double workLevel = 0;
-	
-	private Resources resourcesInUse = new Resources();
-	
-	private double slaUnderprovisionRate;
-	private double slaMigrationPenaltyRate;
-	
-	private double totalIncomingWork = 0;
-	private double totalSLAViolatedWork = 0;
-	
-	/**
-	 * Create a new InteractiveApplication
-	 * @param simulation
-	 * @param applicationTier
-	 * @param memory
-	 * @param storage
-	 * @param cpuPerWork
-	 * @param bwPerWork
-	 * @param cpuOverhead The amount of CPU required by the application even if there is no incoming work.
-	 */
-	public InteractiveApplication(Simulation simulation, InteractiveApplicationTier applicationTier, int memory, double bandwidth, long storage, double cpuPerWork, double cpuOverhead) {
+	public InteractiveApplication(Simulation simulation) {
 		super(simulation);
+	}
+	
+	public InteractiveApplication(Builder builder) {
+		super(builder.simulation);
 		
-		this.memory = memory;
-		this.storage = storage;
-		this.cpuPerWork = cpuPerWork;
-		this.bandwidth = bandwidth;
+		workload = builder.workload;
 		
-		this.applicationTier = applicationTier;
+		for (InteractiveTask task : builder.tasks) {
+			tasks.add(task);
+			task.setApplication(this);
+		}
 		
-		//overhead current consists only of a fixed CPU overhead added to the Applications resource use, even if there is no incoming work
-		this.cpuOverhead = cpuOverhead;
 	}
 
 	@Override
-	protected Resources calculateResourcesRequired() {
-		Resources resourcesRequired = new Resources();
-		resourcesRequired.setMemory(memory);
-		resourcesRequired.setStorage(storage);
-		resourcesRequired.setBandwidth(bandwidth);
-		
-		//get current workload level from application tier and calculate CPU requirements
-		workLevel = applicationTier.getWorkLevel(this);
-		
-		//calculate cpu required
-		double cpuRequired = workLevel * cpuPerWork + cpuOverhead;
-		
-		resourcesRequired.setCpu(cpuRequired);
-		
-		return resourcesRequired;
+	public void initializeScheduling() {
+		//reset scheduled resources and demand
+		//record total CPU demand for application (for use in underprovision metric)
 	}
-	
-	/**
-	 * calculates work output level based on given scheduled resources
-	 * TODO rename?
-	 */
-	@Override
-	public void scheduleResources(Resources resourcesScheduled) {
-		
-		resourcesInUse = resourcesScheduled;
-		
-		//check that memory, storage and bandwidth meet required minimum
-		if (resourcesScheduled.getMemory() < memory ||
-				resourcesScheduled.getStorage() < storage ||
-						resourcesScheduled.getBandwidth() < bandwidth) {
-			workOutputLevel = 0;
-			
-			//since we are not performing any work due to insufficient resources, all incoming work is sla violated
-			slaUnderprovisionRate = workLevel;
-			slaMigrationPenaltyRate = 0;
-		} else {
-			//we have enough memory, storage and bandwidth
-			
-			//first, subtract the overhead
-			double cpuAvailableForWork = resourcesScheduled.getCpu() - cpuOverhead;
-			
-			//then divide by the amount of cpu required for each unit of work
-			workOutputLevel = Utility.roundDouble(cpuAvailableForWork / cpuPerWork, 6);
-			
-			//calculate sla violation and migration penalty
-			slaUnderprovisionRate = Utility.roundDouble(workLevel - workOutputLevel, 6);
-			
-			//calculate migration penalty as a percentage (configurable) of the completed work
-			if (vm.isMigrating()) {
-				slaMigrationPenaltyRate = Utility.roundDouble(workOutputLevel * Double.parseDouble(Simulation.getProperty("vmMigrationSLAPenalty")), 6);
-			} else {
-				slaMigrationPenaltyRate = 0;
-			}
-		}
-	}
-	
 	@Override
 	public void postScheduling() {
-		//nothing to do
+		//TODO in a batch application, this could recalculate completion time and move a completion event
 	}
 	
 	@Override
-	public void execute() {
-		//record work completed, total incoming, and total sla violation
-		double workLevel = applicationTier.getWorkLevel(this);
-		totalIncomingWork += workLevel * simulation.getElapsedSeconds();
-		totalSLAViolatedWork += (workLevel - workOutputLevel) * simulation.getElapsedSeconds();
+	public boolean updateDemand() {
+		//execute MVA algorithm
+		//update resource demand
+		//return true if utilization values changed (there was an update made), false otherwise
+		return false;
 	}
-	
-	@Override
-	public void updateMetrics() {
-		double slavUnderprovision = slaUnderprovisionRate * simulation.getElapsedSeconds();
-		double slavMig = slaMigrationPenaltyRate * simulation.getElapsedSeconds();
 
-		//TODO perhaps only calculate migration overhead here, move underprovision to Workload, as if no applications are attached to a workload, then no SLA violation is added, even though no work is being performed
-		SlaViolationMetric.getMetric(simulation, Application.SLA_VIOLATION_METRIC).addSlaVWork(slavUnderprovision + slavMig);
-		SlaViolationMetric.getMetric(simulation, Application.SLA_VIOLATION_UNDERPROVISION_METRIC).addSlaVWork(slavUnderprovision);
-		SlaViolationMetric.getMetric(simulation, Application.SLA_VIOLATION_MIGRATION_OVERHEAD_METRIC).addSlaVWork(slavMig);
+	@Override
+	public void advanceSimulation() {
+		//TODO not sure if anything actually needs to be done here. In an batch application, this might compute progress
+	}
+	
+	@Override
+	public void recordMetrics() {
+		//TODO record metrics, i.e. underprovisioning % and duration, response time, throughput
+	}
 		
-		if (slaUnderprovisionRate > 0) {			
-			//record SLA violation duration metric
-			SlaViolationDurationMetric.getMetric(simulation, Application.UNDERPROVISION_DURATION_METRIC).addSlaViolationTime(simulation.getElapsedTime());
-			
-			//record SLA violation average severity metric TODO not working properly
-//			AvgSlaSeverityMetric.getMetric(simulation, Application.UNDERPROVISION_AVG_SEVERITY_METRIC).addValue(slaUnderprovisionRate / workLevel);
+	/**
+	 * Get the Workload for this Service
+	 * @return
+	 */
+	public Workload getWorkload() {
+		return workload;
+	}
+	
+	/**
+	 * Set the Workload for this Service
+	 * @param workload
+	 */
+	public void setWorkload(Workload workload) {
+		this.workload = workload;
+	}
+	
+	public static class Builder implements ObjectBuilder<Application> {
+
+		private Simulation simulation;
+		private Workload workload;
+		ArrayList<InteractiveTask> tasks = new ArrayList<InteractiveTask>();
+		
+		public Builder(Simulation simulation) {
+			this.simulation = simulation;
 		}
+		
+		public Builder workload(Workload workload) {
+			this.workload = workload;
+			return this;
+		}
+		
+		public Builder task(int defaultInstances, int minInstances, int maxInstances,
+				Resources resourceSize,
+				float serviceTime,
+				float visitRatio) {
+			
+			InteractiveTask task = new InteractiveTask(null, defaultInstances, minInstances, maxInstances, resourceSize, serviceTime, visitRatio);
+			tasks.add(task);
+			
+			return this;
+		}
+		
+		public Builder task(int defaultInstances, int minInstances, int maxInstances,
+				Resources resourceSize,
+				float serviceTime,
+				float visitRatio,
+				LoadBalancer loadBalancer) {
+			
+			InteractiveTask task = new InteractiveTask(null, defaultInstances, minInstances, maxInstances, resourceSize, serviceTime, visitRatio, loadBalancer);
+			tasks.add(task);
+			
+			return this;
+		}
+		
+		@Override
+		public InteractiveApplication build() {
+			return new InteractiveApplication(this);
+		}
+		
 	}
 
-	@Override
-	public double getWorkOutputLevel() {
-		return workOutputLevel;
+	public void addTask(InteractiveTask task) {
+		tasks.add(task);
+		task.setApplication(this);
 	}
-
-	@Override
-	public double getTotalIncomingWork() {
-		return totalIncomingWork;
-	}
-
-	@Override
-	public double getTotalSLAViolatedWork() {
-		return totalSLAViolatedWork;
-	}
-
-	@Override
-	public Resources getResourcesInUse() {
-		return resourcesInUse;
-	}
-
-	@Override
-	public double getSLAUnderprovisionRate() {
-		return slaUnderprovisionRate;
-	}
-
-	@Override
-	public double getSLAMigrationPenaltyRate() {
-		return slaMigrationPenaltyRate;
-	}
-
-
-
 	
-	
+	@Override
+	public ArrayList<Task> getTasks() {
+		ArrayList<Task> simpleTasks = new ArrayList<Task>(tasks);
+		return simpleTasks;
+	}
+
 }

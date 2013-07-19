@@ -116,7 +116,7 @@ public class ExampleHelper {
 			int cores = VM_CORES[i % N_VM_SIZES];
 			int memory = VM_RAM[i % N_VM_SIZES];
 			
-			Service service = createService(simulation, trace, offset, size, cores, memory);
+			Application service = createService(simulation, trace, offset, size, cores, memory);
 			
 			//vmList.addAll(service.createInitialVmRequests());
 			
@@ -134,7 +134,7 @@ public class ExampleHelper {
 	}
 	
 
-	private static Service createService(Simulation simulation, String fileName, long offset, int coreCapacity, int cores, int memory) {
+	private static Application createService(Simulation simulation, String fileName, long offset, int coreCapacity, int cores, int memory) {
 		
 		//create workload (external)
 		Workload workload = new TraceWorkload(simulation, fileName, (coreCapacity * cores) - CPU_OVERHEAD, offset); //scale to n replicas
@@ -144,7 +144,7 @@ public class ExampleHelper {
 		int bandwidth = 12800; //100 Mb/s
 		long storage = 1024; //1GB
 
-		Service service = Services.singleTierInteractiveService(workload, cores, coreCapacity, memory, bandwidth, storage, 1, CPU_OVERHEAD, 1, Integer.MAX_VALUE); 
+		Application service = Applications.singleTierInteractiveService(workload, cores, coreCapacity, memory, bandwidth, storage, 1, CPU_OVERHEAD, 1, Integer.MAX_VALUE); 
 		
 		return service;
 

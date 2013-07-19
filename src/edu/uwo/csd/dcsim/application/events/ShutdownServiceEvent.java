@@ -5,14 +5,14 @@ import edu.uwo.csd.dcsim.core.Event;
 
 public class ShutdownServiceEvent extends Event {
 
-	private Service service;
+	private Application service;
 	
-	public ShutdownServiceEvent(ServiceProducer serviceProducer, Service service) {
+	public ShutdownServiceEvent(ApplicationGenerator serviceProducer, Application service) {
 		super(serviceProducer);
 		this.service = service;
 	}
 	
-	public Service getService() {
+	public Application getService() {
 		return service;
 	}
 

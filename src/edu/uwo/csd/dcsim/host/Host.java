@@ -52,6 +52,8 @@ public final class Host implements SimulationEventListener {
 	private ResourceScheduler resourceScheduler;
 	private HostPowerModel powerModel;
 	
+	private VmmApplication vmmApplication;
+	
 	private ArrayList<VMAllocation> vmAllocations = new ArrayList<VMAllocation>();
 	private VMAllocation privDomainAllocation;
 	private ArrayList<VMAllocation> migratingIn = new ArrayList<VMAllocation>();
@@ -101,16 +103,17 @@ public final class Host implements SimulationEventListener {
 		 * Create and allocate privileged domain
 		 */
 		
-		//description allows privileged domain to use any or all of the resources of the host
-		VMDescription privDomainDescription = new VMDescription(getCoreCount(), getCoreCapacity(), builder.privMemory, builder.privBandwidth, builder.privStorage, builder.vmmApplicationFactory);
+		vmmApplication = new VmmApplication(simulation, this, builder.privCpu, builder.privMemory, builder.privBandwidth, builder.privStorage);
 		
+		VMDescription privDomainDescription = new VMDescription(vmmApplication.getVmmTask());
+
 		//create the allocation
 		privDomainAllocation = new VMAllocation(privDomainDescription, this);
 		
 		//request allocations from resource managers. Each manager determines how much resource to allocate
 		resourceManager.allocatePrivDomain(privDomainAllocation, builder.privCpu, builder.privMemory, builder.privBandwidth, builder.privStorage);
 
-		PrivDomainVM privVM = new PrivDomainVM(simulation, privDomainDescription, privDomainDescription.getApplicationFactory().createApplication(simulation));
+		PrivDomainVM privVM = new PrivDomainVM(simulation, privDomainDescription, vmmApplication.getVmmTaskInstance());
 		privDomainAllocation.attachVm(privVM);
 
 		//set default state
@@ -154,9 +157,7 @@ public final class Host implements SimulationEventListener {
 		private ObjectFactory<? extends ResourceScheduler> resourceSchedulerFactory = null;
 		
 		private HostPowerModel powerModel = null;
-		
-		private ApplicationFactory vmmApplicationFactory = new VmmApplicationFactory(); //default value
-		
+				
 		public Builder(Simulation simulation) {
 			if (simulation == null)
 				throw new NullPointerException();
@@ -195,11 +196,6 @@ public final class Host implements SimulationEventListener {
 		
 		public Builder powerModel(HostPowerModel powerModel) {
 			this.powerModel = powerModel;
-			return this;
-		}
-		
-		public Builder vmmApplicationFactory(ApplicationFactory vmmApplicationFactory) {
-			this.vmmApplicationFactory = vmmApplicationFactory;
 			return this;
 		}
 		
@@ -435,10 +431,6 @@ public final class Host implements SimulationEventListener {
 		//add the allocation to migratingIn list
 		migratingIn.add(newAllocation);
 		
-		//add to VMM
-		VmmApplication vmm = (VmmApplication)privDomainAllocation.getVm().getApplication();
-		vmm.addMigratingVm(vm);	
-		
 		//inform the source host that the VM is migrating out
 		source.migrateOut(vm);
 		
@@ -471,10 +463,6 @@ public final class Host implements SimulationEventListener {
 		if (isPendingMigration(vm))
 			pendingOutgoingMigrations.remove(vm);
 		
-		//add to VMM
-		VmmApplication vmm = (VmmApplication)privDomainAllocation.getVm().getApplication();
-		vmm.addMigratingVm(vm);
-		
 		simulation.getLogger().debug("Host #" + this.getId() + " migrating out VM #" + vm.getId());
 	}
 	
@@ -496,10 +484,6 @@ public final class Host implements SimulationEventListener {
 		//remove from migratingIn list
 		migratingIn.remove(vmAllocation);
 		
-		//remove from VMM
-		VmmApplication vmm = (VmmApplication)privDomainAllocation.getVm().getApplication();
-		vmm.removeMigratingVm(vm);
-		
 		//attach VM to allocation
 		vmAllocation.setVm(vm);
 		vm.setVMAllocation(vmAllocation);
@@ -512,10 +496,6 @@ public final class Host implements SimulationEventListener {
 		//get the allocation for this vm
 		VMAllocation vmAllocation = vm.getVMAllocation();
 		migratingOut.remove(vmAllocation);
-		
-		//add to VMM
-		VmmApplication vmm = (VmmApplication)privDomainAllocation.getVm().getApplication();
-		vmm.removeMigratingVm(vm);
 		
 		//deallocate the VM
 		deallocate(vmAllocation);

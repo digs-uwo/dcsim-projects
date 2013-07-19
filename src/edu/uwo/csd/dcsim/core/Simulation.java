@@ -306,10 +306,6 @@ public class Simulation implements SimulationEventListener {
 					for (DataCentre dc : datacentres) {
 						dc.updateMetrics();
 					}
-					
-					//update metrics tracked by workloads (i.e. SLA)
-					for (Workload workload : workloads)
-						workload.updateMetrics();
 				}
 				
 				//inform metrics of completed time interval
@@ -430,11 +426,6 @@ public class Simulation implements SimulationEventListener {
 					vmAlloc.getVm().getApplication().execute();
 				}
 			}
-		}
-		
-		//update workloads
-		for (Workload workload : workloads) {
-			workload.advanceToCurrentTime();
 		}
 
 	}

@@ -131,7 +131,7 @@ public class SVM2013TestEnvironment {
 		serviceRates.add(new Tuple<Long, Double>(144000000l, 0d));	// 40 hours
 		serviceRates.add(new Tuple<Long, Double>(864000000l, 0d));	// 10 days
 		
-		ServiceProducer serviceProducer = new SVMServiceProducer(simulation, dcAM, null, serviceRates);
+		ApplicationGenerator serviceProducer = new SVMServiceProducer(simulation, dcAM, null, serviceRates);
 		serviceProducer.start();
 	}
 	
@@ -165,7 +165,7 @@ public class SVM2013TestEnvironment {
 		serviceRates.add(new Tuple<Long, Double>(SimTime.hours(40), 0d));		// over 40 hours
 		serviceRates.add(new Tuple<Long, Double>(SimTime.days(10), 0d));		// 10 days
 		
-		ServiceProducer serviceProducer = new SVMServiceProducer(simulation, dcAM, null, serviceRates);
+		ApplicationGenerator serviceProducer = new SVMServiceProducer(simulation, dcAM, null, serviceRates);
 		serviceProducer.start();
 
 		/*
@@ -217,7 +217,7 @@ public class SVM2013TestEnvironment {
 		serviceRates.add(new Tuple<Long, Double>(SimTime.hours(40), 0d));		
 		serviceRates.add(new Tuple<Long, Double>(SimTime.days(10), 0d));		// 10 days
 		
-		ServiceProducer serviceProducer = new SVMServiceProducer(simulation, dcAM, null, serviceRates);
+		ApplicationGenerator serviceProducer = new SVMServiceProducer(simulation, dcAM, null, serviceRates);
 		serviceProducer.start();
 		
 		//Create a uniform random distribution to generate the number of services within the data centre.
@@ -279,7 +279,7 @@ public class SVM2013TestEnvironment {
 	 * @author Michael Tighe
 	 *
 	 */
-	public static class SVMServiceProducer extends ServiceProducer {
+	public static class SVMServiceProducer extends ApplicationGenerator {
 
 		private int counter = 0;
 		
@@ -288,7 +288,7 @@ public class SVM2013TestEnvironment {
 		}
 
 		@Override
-		public Service buildService() {
+		public Application buildService() {
 			++counter;
 			
 			String trace = TRACES[counter % N_TRACES];
@@ -304,7 +304,7 @@ public class SVM2013TestEnvironment {
 			Workload workload = new TraceWorkload(simulation, trace, (coreCapacity * cores) - CPU_OVERHEAD, offset); //scale to n replicas
 			simulation.addWorkload(workload);
 			
-			return Services.singleTierInteractiveService(workload, cores, coreCapacity, memory, bandwidth, storage, 1, CPU_OVERHEAD, 1, Integer.MAX_VALUE);
+			return Applications.singleTierInteractiveService(workload, cores, coreCapacity, memory, bandwidth, storage, 1, CPU_OVERHEAD, 1, Integer.MAX_VALUE);
 		}
 		
 	}

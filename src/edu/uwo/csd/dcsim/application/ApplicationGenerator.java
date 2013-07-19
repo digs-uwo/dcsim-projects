@@ -22,7 +22,7 @@ import edu.uwo.csd.dcsim.vm.VMAllocationRequest;
  * @author Michael Tighe
  *
  */
-public abstract class ServiceProducer implements SimulationEventListener {
+public abstract class ApplicationGenerator implements SimulationEventListener {
 
 	private final static String SPAWN_COUNT_METRIC = "servicesSpawned";
 	private final static String PLACEMENT_FAIL_METRIC = "servicePlacementsFailed";
@@ -37,21 +37,21 @@ public abstract class ServiceProducer implements SimulationEventListener {
 	
 	protected Simulation simulation;
 	
-	public ServiceProducer(Simulation simulation, AutonomicManager dcTarget, List<Tuple<Long, Double>> servicesPerHour) {
+	public ApplicationGenerator(Simulation simulation, AutonomicManager dcTarget, List<Tuple<Long, Double>> servicesPerHour) {
 		this(simulation, dcTarget, null, servicesPerHour);
 	}
 	
-	public ServiceProducer(Simulation simulation, AutonomicManager dcTarget, double servicesPerHour) {
+	public ApplicationGenerator(Simulation simulation, AutonomicManager dcTarget, double servicesPerHour) {
 		this(simulation, dcTarget, null, servicesPerHour);
 	}
 	
-	public ServiceProducer(Simulation simulation, AutonomicManager dcTarget, RealDistribution lifespanDist, List<Tuple<Long, Double>> servicesPerHour) {
+	public ApplicationGenerator(Simulation simulation, AutonomicManager dcTarget, RealDistribution lifespanDist, List<Tuple<Long, Double>> servicesPerHour) {
 		this(simulation, dcTarget, lifespanDist, 0);
 		
 		this.servicesPerHour = servicesPerHour;
 	}
 	
-	public ServiceProducer(Simulation simulation, AutonomicManager dcTarget, RealDistribution lifespanDist, double servicesPerHour) {
+	public ApplicationGenerator(Simulation simulation, AutonomicManager dcTarget, RealDistribution lifespanDist, double servicesPerHour) {
 		this.dcTarget = dcTarget;
 		this.lifespanDist = lifespanDist;
 		this.simulation = simulation;
@@ -85,10 +85,10 @@ public abstract class ServiceProducer implements SimulationEventListener {
 		simulation.sendEvent(new DaemonRunEvent(this), nextEvent);
 	}
 	
-	public abstract Service buildService();
+	public abstract Application buildService();
 	
 	private void spawnService() {
-		Service service = buildService();
+		Application service = buildService();
 		
 		
 		ArrayList<VMAllocationRequest> vmAllocationRequests = service.createInitialVmRequests();
@@ -106,14 +106,14 @@ public abstract class ServiceProducer implements SimulationEventListener {
 		
 	}
 	
-	private void shutdownService(Service service) {
+	private void shutdownService(Application service) {
 		
 		//remove the workload from the simulation in order to stop incoming work to the service
 		simulation.removeWorkload(service.getWorkload());
 		
 		//check to see if the service is ready to shutdown (i.e. no VMs are migrating)
 		if (service.canShutdown()) {
-			service.shutdownService(dcTarget, simulation);
+			service.shutdownApplication(dcTarget, simulation);
 			AggregateMetric.getMetric(simulation, SHUTDOWN_COUNT_METRIC).addValue(1);
 			
 			simulation.getLogger().debug("Shutdown Service");
@@ -176,9 +176,9 @@ public abstract class ServiceProducer implements SimulationEventListener {
 	
 	public class ServiceSpawnCallbackHandler implements EventCallbackListener {
 
-		private Service service;
+		private Application service;
 		
-		public ServiceSpawnCallbackHandler(Service service) {
+		public ServiceSpawnCallbackHandler(Application service) {
 			this.service = service;
 		}
 		
@@ -191,7 +191,7 @@ public abstract class ServiceProducer implements SimulationEventListener {
 				if (lifespanDist != null) {
 					long lifeSpan = (long)Math.round(lifespanDist.sample());
 					
-					simulation.sendEvent(new ShutdownServiceEvent(ServiceProducer.this, service), simulation.getSimulationTime() + lifeSpan);
+					simulation.sendEvent(new ShutdownServiceEvent(ApplicationGenerator.this, service), simulation.getSimulationTime() + lifeSpan);
 				}
 			} else {
 				simulation.getLogger().debug("Service Placement Failed");

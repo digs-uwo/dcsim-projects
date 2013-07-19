@@ -5,8 +5,8 @@ import java.util.Collection;
 import org.apache.log4j.Logger;
 
 import edu.uwo.csd.dcsim.*;
-import edu.uwo.csd.dcsim.application.Service;
-import edu.uwo.csd.dcsim.application.Services;
+import edu.uwo.csd.dcsim.application.Application;
+import edu.uwo.csd.dcsim.application.Applications;
 import edu.uwo.csd.dcsim.application.workload.TraceWorkload;
 import edu.uwo.csd.dcsim.application.workload.Workload;
 import edu.uwo.csd.dcsim.common.SimTime;
@@ -160,7 +160,7 @@ public class SimpleExample extends SimulationTask {
 		 * the tier has a minimum of 1 application (VM), and an unlimited maximum. These values are to be used by ManagementPolicies, and will not automatically
 		 * have any effect.
 		 */
-		Service service = Services.singleTierInteractiveService(workload, 1, 2500, 1024, 12800, 1024, 1, 300, 1, Integer.MAX_VALUE); 
+		Application service = Applications.singleTierInteractiveService(workload, 1, 2500, 1024, 12800, 1024, 1, 300, 1, Integer.MAX_VALUE); 
 		
 		/*
 		 * Now we create a VMAllocationRequest to submit to the DataCentre. A VMAllocationRequest represents a request for a Host to allocate

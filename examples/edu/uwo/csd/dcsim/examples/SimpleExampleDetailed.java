@@ -5,7 +5,7 @@ import java.util.Collection;
 import org.apache.log4j.Logger;
 
 import edu.uwo.csd.dcsim.*;
-import edu.uwo.csd.dcsim.application.InteractiveApplicationTier;
+import edu.uwo.csd.dcsim.application.InteractiveTask;
 import edu.uwo.csd.dcsim.application.workload.*;
 import edu.uwo.csd.dcsim.common.SimTime;
 import edu.uwo.csd.dcsim.core.*;
@@ -152,7 +152,7 @@ public class SimpleExampleDetailed extends SimulationTask {
 		 * We specify that each Application in the tier will require 1024MB of RAM and 1024MB of storage, statically. It will 
 		 * require 1 CPU and 1 Bandwidth to complete 1 work unit, and there is a 300 CPU fixed overhead.
 		 */
-		InteractiveApplicationTier appTier = new InteractiveApplicationTier(1024, 1024, 1, 1, 300);
+		InteractiveTask appTier = new InteractiveTask(1024, 1024, 1, 1, 300);
 		
 		/*
 		 * We need to configure the application tier to get work from the workload, and for the workload to get completed work from the tier
