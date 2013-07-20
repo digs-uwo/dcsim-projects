@@ -34,7 +34,7 @@ public class RandomWorkload extends Workload {
 	}
 	
 	@Override
-	protected double getCurrentWorkLevel() {
+	protected int getCurrentWorkLevel() {
 		return workLevel;
 	}
 

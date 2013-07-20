@@ -2,7 +2,6 @@ package edu.uwo.csd.dcsim.host.resourcemanager;
 
 import java.util.Collection;
 
-import edu.uwo.csd.dcsim.common.Utility;
 import edu.uwo.csd.dcsim.host.Host;
 import edu.uwo.csd.dcsim.vm.VMAllocation;
 import edu.uwo.csd.dcsim.vm.VMAllocationRequest;
@@ -38,8 +37,8 @@ public abstract class ResourceManager {
 	 * Get the amount of physical CPU capacity in use (real usage, not allocation)
 	 * @return
 	 */
-	public final double getCpuInUse() {
-		double cpuInUse = 0;
+	public final int getCpuInUse() {
+		int cpuInUse = 0;
 		
 		if (host.getPrivDomainAllocation() != null) {
 			cpuInUse += host.getPrivDomainAllocation().getResourcesInUse().getCpu();
@@ -56,13 +55,13 @@ public abstract class ResourceManager {
 	 * Get the fraction of physical CPU capacity that is current in use (real usage, not allocation)
 	 * @return
 	 */
-	public final double getCpuUtilization() { return Utility.roundDouble(getCpuInUse() / getTotalCpu()); }
+	public final float getCpuUtilization() { return getCpuInUse() / getTotalCpu(); }
 	
 	/**
 	 * Get the amount of CPU not being used (real usage, not allocation)
 	 * @return
 	 */
-	public final double getUnusedCpu() { return getTotalCpu() - getCpuUtilization(); }
+	public final int getUnusedCpu() { return getTotalCpu() - getCpuInUse(); }
 	
 	/**
 	 * Get the total amount of CPU that has been allocated. This value may be larger than the physical CPU
@@ -169,14 +168,14 @@ public abstract class ResourceManager {
 	 * Get the total amount of storage on the Host
 	 * @return
 	 */
-	public final long getTotalStorage() { return getHost().getStorage(); }
+	public final int getTotalStorage() { return getHost().getStorage(); }
 	
 	/**
 	 * Get the amount of storage that has been allocated to VMs	
 	 * @return
 	 */
-	public final long getAllocatedStorage() {
-		long storage = 0;
+	public final int getAllocatedStorage() {
+		int storage = 0;
 		
 		if (host.getPrivDomainAllocation() != null)
 			storage += host.getPrivDomainAllocation().getStorage();
@@ -191,7 +190,7 @@ public abstract class ResourceManager {
 	 * Get the amount of storage still available to be allocated to VMs
 	 * @return
 	 */
-	public final long getAvailableStorage() { return getTotalStorage() - getAllocatedStorage(); }
+	public final int getAvailableStorage() { return getTotalStorage() - getAllocatedStorage(); }
 	
 	
 	/*
@@ -230,7 +229,7 @@ public abstract class ResourceManager {
 	 * Determine if the Host has enough remaining capacity to host a VM or set of VMs requiring the specified amount of resource.
 	 * @return
 	 */
-	public abstract boolean hasCapacity(int cpu, int memory, int bandwidth, long storage);
+	public abstract boolean hasCapacity(int cpu, int memory, int bandwidth, int storage);
 	
 	/**
 	 * Determine if the Host has enough remaining capacity to host the VM.
@@ -264,6 +263,6 @@ public abstract class ResourceManager {
 	 * Allocate resources to the privileged domain
 	 * @param privDomainAllocation
 	 */
-	public abstract void allocatePrivDomain(VMAllocation privDomainAllocation, int cpu, int memory, int bandwidth, long storage);
+	public abstract void allocatePrivDomain(VMAllocation privDomainAllocation, int cpu, int memory, int bandwidth, int storage);
 	
 }

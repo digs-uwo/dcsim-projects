@@ -35,7 +35,7 @@ public abstract class Workload implements SimulationEventListener {
 	 * Get work awaiting processing
 	 * @return
 	 */
-	protected abstract double getCurrentWorkLevel(); 
+	protected abstract int getCurrentWorkLevel(); 
 	
 	/**
 	 * Update the current value of the workload level to reflect changes in workload. Return the
@@ -44,7 +44,7 @@ public abstract class Workload implements SimulationEventListener {
 	 */
 	protected abstract long updateWorkLevel();
 	
-	public double getWorkOutputLevel() {
+	public int getWorkOutputLevel() {
 		if (!enabled) return 0;
 		return getCurrentWorkLevel();
 	}

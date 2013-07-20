@@ -33,13 +33,13 @@ public class VmmTask extends Task {
 	}
 
 	@Override
-	protected void startInstance(TaskInstance instance) {
+	public void startInstance(TaskInstance instance) {
 		// TODO Auto-generated method stub
 		
 	}
 
 	@Override
-	protected void stopInstance(TaskInstance instance) {
+	public void stopInstance(TaskInstance instance) {
 		// TODO Auto-generated method stub
 		
 	}

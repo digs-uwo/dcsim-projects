@@ -43,7 +43,7 @@ public final class Host implements SimulationEventListener {
 	private int coreCapacity;
 	private int memory;	//in MB
 	private int bandwidth; //in KB
-	private long storage; //in MB
+	private int storage; //in MB
 	
 	private NetworkCard dataNetworkCard;
 	private NetworkCard mgmtNetworkCard;
@@ -147,11 +147,11 @@ public final class Host implements SimulationEventListener {
 		private int coreCapacity = -1;
 		private int memory = -1;
 		private int bandwidth = -1;
-		private long storage = -1;
+		private int storage = -1;
 		private int privCpu = 0;
 		private int privMemory = 0;
 		private int privBandwidth = 0;
-		private long privStorage = 0;
+		private int privStorage = 0;
 		
 		private ObjectFactory<? extends ResourceManager> resourceManagerFactory = null;
 		private ObjectFactory<? extends ResourceScheduler> resourceSchedulerFactory = null;
@@ -174,7 +174,7 @@ public final class Host implements SimulationEventListener {
 		
 		public Builder bandwidth(int val) {this.bandwidth = val; return this;}
 		
-		public Builder storage(long val) {this.storage = val; return this;}
+		public Builder storage(int val) {this.storage = val; return this;}
 				
 		public Builder privCpu(int val) {this.privCpu = val; return this;}
 		
@@ -182,7 +182,7 @@ public final class Host implements SimulationEventListener {
 		
 		public Builder privBandwidth(int val) {this.privBandwidth = val; return this;}
 		
-		public Builder privStorage(long val) {this.privStorage = val; return this;}
+		public Builder privStorage(int val) {this.privStorage = val; return this;}
 		
 		public Builder resourceManagerFactory(ObjectFactory<? extends ResourceManager> resourceManagerFactory) {
 			this.resourceManagerFactory = resourceManagerFactory;
@@ -723,7 +723,7 @@ public final class Host implements SimulationEventListener {
 	
 	public int getBandwidth() { return bandwidth; }
 	
-	public long getStorage() {	return storage; }
+	public int getStorage() {	return storage; }
 	
 	public HostState getState() { return state; }
 	

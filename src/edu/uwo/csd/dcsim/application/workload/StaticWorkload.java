@@ -9,17 +9,17 @@ import edu.uwo.csd.dcsim.core.Simulation;
  */
 public class StaticWorkload extends Workload {
 
-	double workPerSecond;
+	int workLevel;
 	
-	public StaticWorkload(Simulation simulation, double workPerSecond) {
+	public StaticWorkload(Simulation simulation, int workLevel) {
 		super(simulation);
 		
-		this.workPerSecond = workPerSecond;
+		this.workLevel = workLevel;
 	}
 
 	@Override
-	protected double getCurrentWorkLevel() {
-		return workPerSecond;
+	protected int getCurrentWorkLevel() {
+		return workLevel;
 	}
 
 	@Override

@@ -22,6 +22,7 @@ public abstract class Application {
 	
 	public Application(Simulation simulation) {
 		this.simulation = simulation;
+		simulation.addApplication(this);
 	}
 	
 	public abstract void initializeScheduling();
@@ -74,6 +75,9 @@ public abstract class Application {
 				simulation.sendEvent(new ShutdownVmEvent(target, host.getId(), vm.getId()));				
 			}
 		}
+		
+		//TODO: should this wait for VM shutdown? Does that even take any time? (I think it doesn't)
+		simulation.removeApplication(this);
 	}
 	
 	public abstract void recordMetrics();

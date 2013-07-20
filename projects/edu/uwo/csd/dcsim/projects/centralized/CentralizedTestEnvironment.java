@@ -294,7 +294,7 @@ public class CentralizedTestEnvironment {
 		}
 
 		@Override
-		public Application buildService() {
+		public Application buildApplication() {
 			++counter;
 			
 			String trace = TRACES[counter % N_TRACES];

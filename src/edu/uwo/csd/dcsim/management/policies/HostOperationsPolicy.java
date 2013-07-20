@@ -58,7 +58,7 @@ public class HostOperationsPolicy extends Policy {
 		VMAllocation vmAlloc = host.getVMAllocation(event.getVmId());
 		
 		//stop the VM and deallocate it from the host
-		vmAlloc.getVm().stopApplication();
+		vmAlloc.getVm().stopTaskInstance();
 		host.deallocate(vmAlloc);
 	}
 

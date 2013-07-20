@@ -294,7 +294,7 @@ public class IM2013TestEnvironment {
 		}
 
 		@Override
-		public Application buildService() {
+		public Application buildApplication() {
 			++counter;
 			
 			String trace = TRACES[counter % N_TRACES];

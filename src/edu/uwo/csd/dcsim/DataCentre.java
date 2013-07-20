@@ -83,7 +83,7 @@ public class DataCentre implements SimulationEventListener {
 	/**
 	 * Update metrics regarding the DataCentre
 	 */
-	public void updateMetrics() {
+	public void recordMetrics() {
 		
 		DCCpuUtilMetric dcUtilMetric = DCCpuUtilMetric.getMetric(simulation, DC_UTIL_METRIC);
 		

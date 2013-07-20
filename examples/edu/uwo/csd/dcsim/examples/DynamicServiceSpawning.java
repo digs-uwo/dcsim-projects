@@ -108,7 +108,7 @@ public class DynamicServiceSpawning extends SimulationTask {
 		ApplicationGenerator serviceProducer = new ApplicationGenerator(simulation, dcAM, new NormalDistribution(SimTime.days(3), SimTime.hours(4)), serviceRates) {
 
 			@Override
-			public Application buildService() {
+			public Application buildApplication() {
 				Workload workload = new TraceWorkload(simulation, "traces/clarknet", 2200, 0);
 				simulation.addWorkload(workload);
 				

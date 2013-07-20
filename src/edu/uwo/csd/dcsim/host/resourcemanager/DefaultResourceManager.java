@@ -14,7 +14,7 @@ import edu.uwo.csd.dcsim.vm.VMAllocationRequest;
 public class DefaultResourceManager extends ResourceManager {
 
 	@Override
-	public boolean hasCapacity(int cpu, int memory, int bandwidth, long storage) {
+	public boolean hasCapacity(int cpu, int memory, int bandwidth, int storage) {
 		
 		//note that we don't check CPU, as we are oversubscribing it
 		return 	(memory <= getAvailableMemory()) &&
@@ -71,7 +71,7 @@ public class DefaultResourceManager extends ResourceManager {
 
 	@Override
 	public void allocatePrivDomain(VMAllocation privDomainAllocation,
-			int cpu, int memory, int bandwidth, long storage) {
+			int cpu, int memory, int bandwidth, int storage) {
 		
 		if (hasCapacity(cpu, memory, bandwidth, storage)) {
 			privDomainAllocation.setCpu(cpu);

@@ -36,8 +36,8 @@ public abstract class Task {
 	public abstract TaskInstance createInstance();
 	public abstract void removeInstance(TaskInstance instance);
 	
-	protected abstract void startInstance(TaskInstance instance);
-	protected abstract void stopInstance(TaskInstance instance);
+	public abstract void startInstance(TaskInstance instance);
+	public abstract void stopInstance(TaskInstance instance);
 	
 	/**
 	 * Get the collection of Task Instances in this Task

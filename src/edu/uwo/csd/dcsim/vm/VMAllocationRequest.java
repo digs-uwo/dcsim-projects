@@ -12,13 +12,13 @@ public class VMAllocationRequest {
 	private int cpu;
 	private int memory;
 	private int bandwidth;
-	private long storage;
+	private int storage;
 
 	public VMAllocationRequest(VMDescription vmDescription,
 			int cpu, 
 			int memory, 
 			int bandwidth, 
-			long storage) {
+			int storage) {
 		
 		this.vmDescription = vmDescription;
 		this.cpu = cpu;
@@ -61,7 +61,7 @@ public class VMAllocationRequest {
 		return bandwidth;
 	}
 	
-	public long getStorage() {
+	public int getStorage() {
 		return storage;
 	}
 	
@@ -77,7 +77,7 @@ public class VMAllocationRequest {
 		this.bandwidth = bandwidth;
 	}
 	
-	public void setStorage(long storage) {
+	public void setStorage(int storage) {
 		this.storage = storage;
 	}
 	

@@ -22,38 +22,36 @@ public class VM implements SimulationEventListener {
 	VMDescription vmDescription;
 	VMAllocation vmAllocation; //the allocation this VM is running within
 	
-	TaskInstance application;
+	TaskInstance taskInstance;
 	
 	protected Resources resourcesScheduled = new Resources();
 	
-	public VM(Simulation simulation, VMDescription vmDescription, TaskInstance application) {
+	public VM(Simulation simulation, VMDescription vmDescription, TaskInstance taskInstance) {
 		this.simulation = simulation;
 		this.id = simulation.nextId(VM.class.toString());
 		this.vmDescription = vmDescription;
-		this.application = application;
-		application.setVM(this);
+		this.taskInstance = taskInstance;
+		taskInstance.setVM(this);
 
 		vmAllocation = null;
 	}
 	
-	public void updateResourceRequirements() {
-		application.updateResourceDemand();
-	}
-	
-	public Resources getResourcesRequired() {
-		Resources required = application.getResourceDemand();
+	public Resources getResourceDemand() {
+		
+		//make a copy to prevent it from being modified
+		Resources demand = new Resources(taskInstance.getResourceDemand());
 		
 		//cap CPU request at max CPU
-		required.setCpu(Math.min(required.getCpu(), getMaxCpu()));
+		demand.setCpu(Math.min(demand.getCpu(), getMaxCpu()));
 		
-		return required;
+		return demand;
 	}
 	
 	public Resources getResourcesScheduled() {
 		
-		//TODO return a copy? make VirtualResources immutable?
+		//prevent editing of this value outside of scheduleResources(), since the taskInstance value must be the same
 		
-		return resourcesScheduled;
+		return new Resources(resourcesScheduled);
 	}
 	
 	public void scheduleResources(Resources resources) {
@@ -64,40 +62,36 @@ public class VM implements SimulationEventListener {
 		}
 		
 		this.resourcesScheduled = resources;
-		application.scheduleResources(resources);
-	}
-	
-	public void postScheduling() {
-		application.postScheduling();
+		taskInstance.setResourceScheduled(resources);
 	}
 	
 	public int getMaxCpu() {
 		return vmDescription.getCores() * vmAllocation.getHost().getCoreCapacity();
 	}
 	
-	public void startApplication() {
-		vmDescription.getApplicationFactory().startInstance(application);
+	public void startTaskInstance() {
+		vmDescription.getTask().startInstance(taskInstance);
 	}
 	
-	public void stopApplication() {
-		vmDescription.getApplicationFactory().removeInstance(application);
+	public void stopTaskInstance() {
+		vmDescription.getTask().stopInstance(taskInstance);
 	}
 	
 	public void updateMetrics() {
 		
 		VmCountMetric.getMetric(simulation, VM_COUNT_METRIC).incrementVmCount();
 		
-		application.updateMetrics();
+		//application.updateMetrics();
 	}
 	
 	public void logState() {
 		if (getVMAllocation().getHost().getState() == Host.HostState.ON) {
 			simulation.getLogger().debug("VM #" + getId() + " CPU[" + Utility.roundDouble(resourcesScheduled.getCpu(), 2) + 
 					"/" + vmAllocation.getCpu() + 
-					"/" + Utility.roundDouble(application.getResourceDemand().getCpu(), 2) + "] " + 
+					"/" + Utility.roundDouble(getResourceDemand().getCpu(), 2) + "] " + 
 					"BW[" + Utility.roundDouble(resourcesScheduled.getBandwidth(), 2) + 
 					"/" + vmAllocation.getBandwidth() + 
-					"/" + Utility.roundDouble(application.getResourceDemand().getBandwidth(), 2) + "] " + 
+					"/" + Utility.roundDouble(getResourceDemand().getBandwidth(), 2) + "] " + 
 					"MEM[" + resourcesScheduled.getMemory() + 
 					"/" + vmAllocation.getMemory() + "] " +
 					"STORAGE[" + resourcesScheduled.getStorage() + 
@@ -106,8 +100,8 @@ public class VM implements SimulationEventListener {
 		
 		//trace output
 		simulation.getTraceLogger().info("#v," + getId() + "," + vmAllocation.getHost().getId() + "," + 
-				Utility.roundDouble(resourcesScheduled.getCpu(), 2) + "," + Utility.roundDouble(application.getResourceDemand().getCpu(), 2) + "," + 
-				Utility.roundDouble(resourcesScheduled.getBandwidth(), 2) + "," + Utility.roundDouble(application.getResourceDemand().getBandwidth(), 2) + "," + 
+				Utility.roundDouble(resourcesScheduled.getCpu(), 2) + "," + Utility.roundDouble(getResourceDemand().getCpu(), 2) + "," + 
+				Utility.roundDouble(resourcesScheduled.getBandwidth(), 2) + "," + Utility.roundDouble(getResourceDemand().getBandwidth(), 2) + "," + 
 				resourcesScheduled.getMemory() + "," + vmAllocation.getMemory() + "," +
 				resourcesScheduled.getStorage() + "," + vmAllocation.getStorage());
 		
@@ -125,8 +119,8 @@ public class VM implements SimulationEventListener {
 		return id;
 	}
 	
-	public TaskInstance getApplication() {
-		return application;
+	public TaskInstance getTaskInstance() {
+		return taskInstance;
 	}
 	
 	public VMDescription getVMDescription() {

@@ -23,10 +23,10 @@ public class PrivDomainVM extends VM {
 		if (getVMAllocation().getHost().getState() == Host.HostState.ON) {
 			simulation.getLogger().debug("PRIV  CPU[" + Utility.roundDouble(resourcesScheduled.getCpu(), 2) + 
 					"/" + vmAllocation.getCpu() + 
-					"/" + Utility.roundDouble(application.getResourceDemand().getCpu(), 2) + "] " + 
+					"/" + Utility.roundDouble(taskInstance.getResourceDemand().getCpu(), 2) + "] " + 
 					"BW[" + Utility.roundDouble(resourcesScheduled.getBandwidth(), 2) + 
 					"/" + vmAllocation.getBandwidth() + 
-					"/" + Utility.roundDouble(application.getResourceDemand().getBandwidth(), 2) + "] " + 
+					"/" + Utility.roundDouble(taskInstance.getResourceDemand().getBandwidth(), 2) + "] " + 
 					"MEM[" + resourcesScheduled.getMemory() + 
 					"/" + vmAllocation.getMemory() + "] " +
 					"STORAGE[" + resourcesScheduled.getStorage() + 
@@ -35,8 +35,8 @@ public class PrivDomainVM extends VM {
 		
 		//trace output
 		simulation.getTraceLogger().info("#vp," + getId() + "," + vmAllocation.getHost().getId() + "," + 
-				Utility.roundDouble(resourcesScheduled.getCpu(), 2) + "," + Utility.roundDouble(application.getResourceDemand().getCpu(), 2) + "," + 
-				Utility.roundDouble(resourcesScheduled.getBandwidth(), 2) + "," + Utility.roundDouble(application.getResourceDemand().getBandwidth(), 2) + "," + 
+				Utility.roundDouble(resourcesScheduled.getCpu(), 2) + "," + Utility.roundDouble(taskInstance.getResourceDemand().getCpu(), 2) + "," + 
+				Utility.roundDouble(resourcesScheduled.getBandwidth(), 2) + "," + Utility.roundDouble(taskInstance.getResourceDemand().getBandwidth(), 2) + "," + 
 				resourcesScheduled.getMemory() + "," + vmAllocation.getMemory() + "," +
 				resourcesScheduled.getStorage() + "," + vmAllocation.getStorage());
 	}

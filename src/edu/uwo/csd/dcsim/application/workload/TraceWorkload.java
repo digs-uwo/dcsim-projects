@@ -48,8 +48,8 @@ public class TraceWorkload extends Workload {
 	}
 	
 	@Override
-	protected double getCurrentWorkLevel() {
-		return workloadTrace.getValues().get(currentPosition) * scaleFactor;
+	protected int getCurrentWorkLevel() {
+		return (int)(workloadTrace.getValues().get(currentPosition) * scaleFactor);
 	}
 
 	@Override

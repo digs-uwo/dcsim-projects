@@ -82,14 +82,14 @@ public class InteractiveTask extends Task {
 	}
 
 	@Override
-	protected void startInstance(TaskInstance instance) {
-		// TODO Auto-generated method stub
-		
+	public void startInstance(TaskInstance instance) {
+		//ensure that workload is started
+		application.getWorkload().setEnabled(true);
 	}
 
 	@Override
-	protected void stopInstance(TaskInstance instance) {
-		// TODO Auto-generated method stub
+	public void stopInstance(TaskInstance instance) {
+		// TODO ...remove from Task/Load Balancer? When is this even used?
 		
 	}
 	
@@ -110,7 +110,9 @@ public class InteractiveTask extends Task {
 		this.application = application;
 	}
 
-	
+	public ArrayList<InteractiveTaskInstance> getInteractiveTaskInstances() {
+		return instances;
+	}
 
 	@Override
 	public ArrayList<TaskInstance> getInstances() {

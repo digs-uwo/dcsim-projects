@@ -16,7 +16,7 @@ public class VMDescription {
 	private int coreCapacity;
 	private int memory;	
 	private int bandwidth;
-	private long storage;
+	private int storage;
 	private Task task;
 	
 	public VMDescription(Task task) {
@@ -28,7 +28,7 @@ public class VMDescription {
 		this.task = task;
 	}
 	
-	public VMDescription(int cores, int coreCapacity, int memory, int bandwidth, long storage, Task task) {
+	public VMDescription(int cores, int coreCapacity, int memory, int bandwidth, int storage, Task task) {
 		this.cores = cores;
 		this.coreCapacity = coreCapacity;
 		this.memory = memory;
@@ -57,11 +57,11 @@ public class VMDescription {
 		return memory;
 	}
 	
-	public double getBandwidth() {
+	public int getBandwidth() {
 		return bandwidth;
 	}
 	
-	public long getStorage() {
+	public int getStorage() {
 		return storage;
 	}
 	

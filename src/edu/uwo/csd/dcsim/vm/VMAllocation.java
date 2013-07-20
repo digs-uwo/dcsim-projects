@@ -18,7 +18,7 @@ public class VMAllocation {
 	private int cpu;
 	private int memory;
 	private int bandwidth;
-	private long storage;
+	private int storage;
 	
 	public VMAllocation(VMDescription vmDescription, Host host) {
 		this.vmDescription = vmDescription;
@@ -80,11 +80,11 @@ public class VMAllocation {
 		this.bandwidth = bandwidth;
 	}
 	
-	public long getStorage() {
+	public int getStorage() {
 		return storage;
 	}
 	
-	public void setStorage(long storage) {
+	public void setStorage(int storage) {
 		this.storage = storage;
 	}
 

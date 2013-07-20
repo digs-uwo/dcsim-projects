@@ -1,6 +1,5 @@
 package edu.uwo.csd.dcsim.application.loadbalancer;
 
-import edu.uwo.csd.dcsim.application.Task;
 import edu.uwo.csd.dcsim.application.TaskInstance;
 
 /**
