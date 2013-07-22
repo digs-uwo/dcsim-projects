@@ -23,7 +23,7 @@ public class ClusterStatus {
 	}
 	
 	/**
-	 * Creates an *complete* ClusterStatus instance.
+	 * Creates a *complete* ClusterStatus instance.
 	 */
 	public ClusterStatus(Cluster cluster, RackPoolManager capability, long timeStamp) {
 		this.timeStamp = timeStamp;
