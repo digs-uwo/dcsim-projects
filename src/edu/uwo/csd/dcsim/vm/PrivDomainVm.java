@@ -11,9 +11,9 @@ import edu.uwo.csd.dcsim.host.Host;
  * @author Michael Tighe
  *
  */
-public class PrivDomainVM extends VM {
+public class PrivDomainVm extends Vm {
 
-	public PrivDomainVM(Simulation simulation, VMDescription vmDescription, TaskInstance application) {
+	public PrivDomainVm(Simulation simulation, VmDescription vmDescription, TaskInstance application) {
 		super(simulation, vmDescription, application);
 		// TODO Auto-generated constructor stub
 	}

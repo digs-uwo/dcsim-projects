@@ -10,7 +10,7 @@ import edu.uwo.csd.dcsim.core.Simulation;
  * @author Michael Tighe
  *
  */
-public class VMDescription {
+public class VmDescription {
 
 	private int cores;
 	private int coreCapacity;
@@ -19,7 +19,7 @@ public class VMDescription {
 	private int storage;
 	private Task task;
 	
-	public VMDescription(Task task) {
+	public VmDescription(Task task) {
 		this.cores = task.getResourceSize().getCores();
 		this.coreCapacity = task.getResourceSize().getCoreCapacity();
 		this.memory = task.getResourceSize().getMemory();
@@ -28,7 +28,7 @@ public class VMDescription {
 		this.task = task;
 	}
 	
-	public VMDescription(int cores, int coreCapacity, int memory, int bandwidth, int storage, Task task) {
+	public VmDescription(int cores, int coreCapacity, int memory, int bandwidth, int storage, Task task) {
 		this.cores = cores;
 		this.coreCapacity = coreCapacity;
 		this.memory = memory;
@@ -37,8 +37,8 @@ public class VMDescription {
 		this.task = task;
 	}
 	
-	public VM createVM(Simulation simulation) {
-		return new VM(simulation, this, task.createInstance());
+	public Vm createVM(Simulation simulation) {
+		return new Vm(simulation, this, task.createInstance());
 	}
 	
 	public int getCpu() {

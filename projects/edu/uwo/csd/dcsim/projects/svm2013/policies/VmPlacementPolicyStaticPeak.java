@@ -13,8 +13,8 @@ import edu.uwo.csd.dcsim.management.capabilities.HostPoolManager;
 import edu.uwo.csd.dcsim.management.events.InstantiateVmEvent;
 import edu.uwo.csd.dcsim.management.events.ShutdownVmEvent;
 import edu.uwo.csd.dcsim.management.events.VmPlacementEvent;
-import edu.uwo.csd.dcsim.vm.VMAllocation;
-import edu.uwo.csd.dcsim.vm.VMAllocationRequest;
+import edu.uwo.csd.dcsim.vm.VmAllocation;
+import edu.uwo.csd.dcsim.vm.VmAllocationRequest;
 
 /**
  * Implements a greedy algorithm for VM Placement. VMs are placed in the first 
@@ -39,11 +39,11 @@ public class VmPlacementPolicyStaticPeak extends Policy {
 	 * domain.
 	 */
 	public double calculateTotalAllocatedCpu(HostData host) {
-		ArrayList<VMAllocation> vms = new ArrayList<VMAllocation>(host.getHost().getVMAllocations());
+		ArrayList<VmAllocation> vms = new ArrayList<VmAllocation>(host.getHost().getVMAllocations());
 		vms.add(host.getHost().getPrivDomainAllocation());
 		
 		double cpuAlloc = 0;
-		for (VMAllocation vm : vms) {
+		for (VmAllocation vm : vms) {
 			// If the VMAllocation has an associated VM, record its resource allocation.
 			if (vm.getVm() != null)
 				cpuAlloc += vm.getCpu();
@@ -70,7 +70,7 @@ public class VmPlacementPolicyStaticPeak extends Policy {
 		Collections.sort(targets, HostDataComparator.getComparator(HostDataComparator.EFFICIENCY, HostDataComparator.VOLUME_ALLOC));
 		Collections.reverse(targets);
 		
-		for (VMAllocationRequest vmAllocationRequest : event.getVMAllocationRequests()) {
+		for (VmAllocationRequest vmAllocationRequest : event.getVMAllocationRequests()) {
 			HostData allocatedHost = null;
 			for (HostData target : targets) {
 				Resources reqResources = new Resources();
@@ -110,7 +110,7 @@ public class VmPlacementPolicyStaticPeak extends Policy {
 		}
 	}
 	
-	private long sendVM(VMAllocationRequest vmAllocationRequest, HostData host) {
+	private long sendVM(VmAllocationRequest vmAllocationRequest, HostData host) {
 		//if the host is not ON or POWERING_ON, then send an event to power on the host
 		if (host.getCurrentStatus().getState() != Host.HostState.ON && host.getCurrentStatus().getState() != Host.HostState.POWERING_ON) {
 			simulation.sendEvent(new PowerStateEvent(host.getHost(), PowerState.POWER_ON));

@@ -10,7 +10,7 @@ import edu.uwo.csd.dcsim.vm.*;
  */
 public abstract class TaskInstance  {
 
-	protected VM vm; //the VM on which this task is running
+	protected Vm vm; //the VM on which this task is running
 	protected Resources fullDemand;
 	protected Resources resourceDemand;
 	protected Resources resourceScheduled;
@@ -30,7 +30,7 @@ public abstract class TaskInstance  {
 	 * Get the VM that this Application is running in
 	 * @return
 	 */
-	public VM getVM() {
+	public Vm getVM() {
 		return vm;
 	}
 	
@@ -38,7 +38,7 @@ public abstract class TaskInstance  {
 	 * Set the VM that this Application is running in
 	 * @param vm
 	 */
-	public void setVM(VM vm) {
+	public void setVM(Vm vm) {
 		this.vm = vm;
 	}
 	

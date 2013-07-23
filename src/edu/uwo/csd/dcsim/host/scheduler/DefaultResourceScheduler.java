@@ -14,7 +14,7 @@ public class DefaultResourceScheduler extends ResourceScheduler {
 				host.getResourceManager().getTotalStorage()); 
 		
 		//first, schedule privileged domain (VMM) its full demand
-		VM privDomainVm = host.getPrivDomainAllocation().getVm();
+		Vm privDomainVm = host.getPrivDomainAllocation().getVm();
 		Resources privResourceDemand = privDomainVm.getResourceDemand();
 		
 		if (resourcesRemaining.getCpu() >= privResourceDemand.getCpu()) {
@@ -41,8 +41,8 @@ public class DefaultResourceScheduler extends ResourceScheduler {
 		privDomainVm.scheduleResources(privResourceDemand);
 
 		//initialize resource scheduling
-		for (VMAllocation vmAlloc : host.getVMAllocations()) {
-			VM vm = vmAlloc.getVm();
+		for (VmAllocation vmAlloc : host.getVMAllocations()) {
+			Vm vm = vmAlloc.getVm();
 			
 			//start with CPU at 0 and all other resources equal to demand
 			Resources scheduled = new Resources(vm.getResourceDemand());
@@ -74,7 +74,7 @@ public class DefaultResourceScheduler extends ResourceScheduler {
 		int incompleteVms = host.getVMAllocations().size();
 		
 		//adjust incompleteVm count to remove any VMs that have 0 CPU demand
-		for (VMAllocation vmAlloc : host.getVMAllocations()) {
+		for (VmAllocation vmAlloc : host.getVMAllocations()) {
 			if (vmAlloc.getVm().getResourceDemand().getCpu() == 0) --incompleteVms;
 		}
 		
@@ -84,8 +84,8 @@ public class DefaultResourceScheduler extends ResourceScheduler {
 			//if resourcesRemaining is small enough, it could be rounded to 0. Set '1' as minimum share. 
 			cpuShare = Math.max(cpuShare, 1);
 
-			for (VMAllocation vmAlloc : host.getVMAllocations()) {
-				VM vm = vmAlloc.getVm();
+			for (VmAllocation vmAlloc : host.getVMAllocations()) {
+				Vm vm = vmAlloc.getVm();
 				Resources scheduled = vm.getResourcesScheduled();
 				int remainingCpuDemand = vm.getResourceDemand().getCpu() - scheduled.getCpu();
 

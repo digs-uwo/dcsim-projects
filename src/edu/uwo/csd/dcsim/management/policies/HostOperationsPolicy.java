@@ -39,10 +39,10 @@ public class HostOperationsPolicy extends Policy {
 		
 		Host targetHost = event.getTargetHost();
 		
-		VM vm = host.getVMAllocation(event.getVmId()).getVm();
+		Vm vm = host.getVMAllocation(event.getVmId()).getVm();
 		
 		//create an allocation request for the target
-		VMAllocationRequest vmAllocationRequest = new VMAllocationRequest(vm.getVMAllocation());
+		VmAllocationRequest vmAllocationRequest = new VmAllocationRequest(vm.getVMAllocation());
 		
 		//trigger migration in target host
 		MigrateVmEvent migEvent = new MigrateVmEvent(host, targetHost, vmAllocationRequest, vm);
@@ -55,7 +55,7 @@ public class HostOperationsPolicy extends Policy {
 	public void execute(ShutdownVmEvent event) {
 		HostManager hostManager = manager.getCapability(HostManager.class);
 		Host host = hostManager.getHost();
-		VMAllocation vmAlloc = host.getVMAllocation(event.getVmId());
+		VmAllocation vmAlloc = host.getVMAllocation(event.getVmId());
 		
 		//stop the VM and deallocate it from the host
 		vmAlloc.getVm().stopTaskInstance();

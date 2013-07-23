@@ -6,15 +6,15 @@ package edu.uwo.csd.dcsim.vm;
  * @author Michael Tighe
  *
  */
-public class VMAllocationRequest {
+public class VmAllocationRequest {
 
-	private VMDescription vmDescription;
+	private VmDescription vmDescription;
 	private int cpu;
 	private int memory;
 	private int bandwidth;
 	private int storage;
 
-	public VMAllocationRequest(VMDescription vmDescription,
+	public VmAllocationRequest(VmDescription vmDescription,
 			int cpu, 
 			int memory, 
 			int bandwidth, 
@@ -27,7 +27,7 @@ public class VMAllocationRequest {
 		this.storage = storage;
 	}
 	
-	public VMAllocationRequest(VMAllocation vmAllocation) {
+	public VmAllocationRequest(VmAllocation vmAllocation) {
 		vmDescription = vmAllocation.getVMDescription();
 		
 		cpu = vmAllocation.getCpu();
@@ -36,7 +36,7 @@ public class VMAllocationRequest {
 		storage = vmAllocation.getStorage();	
 	}
 	
-	public VMAllocationRequest(VMDescription vmDescription) {
+	public VmAllocationRequest(VmDescription vmDescription) {
 		this.vmDescription =  vmDescription;
 		
 		cpu = vmDescription.getCores() * vmDescription.getCoreCapacity();
@@ -45,7 +45,7 @@ public class VMAllocationRequest {
 		storage = vmDescription.getStorage();
 	}
 	
-	public VMDescription getVMDescription() {
+	public VmDescription getVMDescription() {
 		return vmDescription;
 	}
 

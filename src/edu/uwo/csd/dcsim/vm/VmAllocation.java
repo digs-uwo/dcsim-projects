@@ -10,17 +10,17 @@ import edu.uwo.csd.dcsim.host.*;
  * @author Michael Tighe
  *
  */
-public class VMAllocation {
+public class VmAllocation {
 
-	private VM vm;
-	private VMDescription vmDescription;
+	private Vm vm;
+	private VmDescription vmDescription;
 	private Host host;
 	private int cpu;
 	private int memory;
 	private int bandwidth;
 	private int storage;
 	
-	public VMAllocation(VMDescription vmDescription, Host host) {
+	public VmAllocation(VmDescription vmDescription, Host host) {
 		this.vmDescription = vmDescription;
 		this.host = host;
 		vm = null;
@@ -35,16 +35,16 @@ public class VMAllocation {
 		}
 	}
 	
-	public void attachVm(VM vm) {
+	public void attachVm(Vm vm) {
 		this.vm = vm;
 		vm.setVMAllocation(this);
 	}
 	
-	public void setVm(VM vm) {
+	public void setVm(Vm vm) {
 		this.vm = vm;
 	}
 	
-	public VM getVm() {
+	public Vm getVm() {
 		return vm;
 	}
 	
@@ -52,7 +52,7 @@ public class VMAllocation {
 		return host;
 	}
 	
-	public VMDescription getVMDescription() {
+	public VmDescription getVMDescription() {
 		return vmDescription;
 	}
 	

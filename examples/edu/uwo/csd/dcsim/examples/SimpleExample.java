@@ -25,7 +25,7 @@ import edu.uwo.csd.dcsim.management.policies.HostMonitoringPolicy;
 import edu.uwo.csd.dcsim.management.policies.HostOperationsPolicy;
 import edu.uwo.csd.dcsim.management.policies.HostStatusPolicy;
 import edu.uwo.csd.dcsim.management.policies.DefaultVmPlacementPolicy;
-import edu.uwo.csd.dcsim.vm.VMAllocationRequest;
+import edu.uwo.csd.dcsim.vm.VmAllocationRequest;
 
 /**
  * A basic example of how to setup and run a simulation.
@@ -167,7 +167,7 @@ public class SimpleExample extends SimulationTask {
 		 * resources for the instantiation of a VM. We can create one based on a VMDescription, which we can grab from the single tier of our
 		 * Service.
 		 */
-		VMAllocationRequest vmAllocationRequest = new VMAllocationRequest(service.getServiceTiers().get(0).getVMDescription());
+		VmAllocationRequest vmAllocationRequest = new VmAllocationRequest(service.getServiceTiers().get(0).getVMDescription());
 		
 		/*
 		 * Next we submit the VMAllocationRequest to the DataCentre, which will place it on a Host. Since we only have one Host, that is 

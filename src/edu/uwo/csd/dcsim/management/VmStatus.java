@@ -1,7 +1,7 @@
 package edu.uwo.csd.dcsim.management;
 
 import edu.uwo.csd.dcsim.host.Resources;
-import edu.uwo.csd.dcsim.vm.VM;
+import edu.uwo.csd.dcsim.vm.Vm;
 
 public class VmStatus {
 	
@@ -11,7 +11,7 @@ public class VmStatus {
 	int coreCapacity;
 	Resources resourcesInUse;
 	
-	public VmStatus(VM vm, long timeStamp){
+	public VmStatus(Vm vm, long timeStamp){
 		this.timeStamp = timeStamp;
 		
 		id = vm.getId();

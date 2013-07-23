@@ -46,7 +46,7 @@ public class StaticAverage extends SimulationTask {
 	public void setup(Simulation simulation) {
 		AutonomicManager dcAM = ExampleHelper.createDataCentre(simulation);
 		
-		ArrayList<VMAllocationRequest> vmList = ExampleHelper.createVmList(simulation, true);
+		ArrayList<VmAllocationRequest> vmList = ExampleHelper.createVmList(simulation, true);
 				
 		ExampleHelper.placeVms(vmList, dcAM, simulation);
 	}

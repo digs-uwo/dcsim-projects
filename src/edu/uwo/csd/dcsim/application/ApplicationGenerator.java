@@ -14,7 +14,7 @@ import edu.uwo.csd.dcsim.core.events.DaemonRunEvent;
 import edu.uwo.csd.dcsim.core.metrics.AggregateMetric;
 import edu.uwo.csd.dcsim.management.AutonomicManager;
 import edu.uwo.csd.dcsim.management.events.VmPlacementEvent;
-import edu.uwo.csd.dcsim.vm.VMAllocationRequest;
+import edu.uwo.csd.dcsim.vm.VmAllocationRequest;
 
 /**
  * The ApplicationGenerator class generates new Applications and submits them to a data centre based on given parameters. 
@@ -91,7 +91,7 @@ public abstract class ApplicationGenerator implements SimulationEventListener {
 		Application application = buildApplication();
 		
 		
-		ArrayList<VMAllocationRequest> vmAllocationRequests = application.createInitialVmRequests();
+		ArrayList<VmAllocationRequest> vmAllocationRequests = application.createInitialVmRequests();
 		
 		simulation.getLogger().debug("Created New Application");
 		

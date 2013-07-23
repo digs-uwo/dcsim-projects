@@ -28,7 +28,7 @@ import edu.uwo.csd.dcsim.projects.distributed.events.HostPowerOnEvent;
 import edu.uwo.csd.dcsim.projects.distributed.events.HostShuttingDownEvent;
 import edu.uwo.csd.dcsim.projects.distributed.events.RejectOfferEvent;
 import edu.uwo.csd.dcsim.projects.distributed.events.UpdatePowerStateListEvent;
-import edu.uwo.csd.dcsim.vm.VMAllocationRequest;
+import edu.uwo.csd.dcsim.vm.VmAllocationRequest;
 
 public class VmPlacementPolicyBroadcast extends Policy {
 
@@ -57,7 +57,7 @@ public class VmPlacementPolicyBroadcast extends Policy {
 		HostPoolManagerBroadcast hostPool = manager.getCapability(HostPoolManagerBroadcast.class);
 				
 		//TODO there is a very good chance this will fail with multiple simultaneous VM requests
-		for (VMAllocationRequest request : event.getVMAllocationRequests()) {
+		for (VmAllocationRequest request : event.getVMAllocationRequests()) {
 			//send resource request message
 			Resources resources = new Resources();
 			resources.setCpu(request.getCpu());

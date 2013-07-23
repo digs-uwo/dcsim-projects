@@ -166,14 +166,14 @@ public class SimpleExampleDetailed extends SimulationTask {
 		 * has 1 virtual core with 2500 capacity, 1024MB of RAM, 12800KB of bandwidth (100Mb/s), and 1024MB storage. We specify that
 		 * it will run applications created by our application tier.
 		 */
-		VMDescription vmDescription = new VMDescription(1, 2500, 1024, 12800, 1024, appTier);
+		VmDescription vmDescription = new VmDescription(1, 2500, 1024, 12800, 1024, appTier);
 		
 		/*
 		 * Finally, we create a VMAllocationRequest to submit to the DataCentre. A VMAllocationRequest represents a request for a Host to allocate
 		 * resources for the instantiation of a VM. We can create one based on a VMDescription, which we can grab from the single tier of our
 		 * Service.
 		 */
-		VMAllocationRequest vmAllocationRequest = new VMAllocationRequest(vmDescription);
+		VmAllocationRequest vmAllocationRequest = new VmAllocationRequest(vmDescription);
 		
 		/*
 		 * Next we submit the VMAllocationRequest to the DataCentre, which will place it on a Host. Since we only have one Host, that is 

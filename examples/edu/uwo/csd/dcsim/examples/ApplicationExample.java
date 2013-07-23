@@ -23,7 +23,7 @@ import edu.uwo.csd.dcsim.management.AutonomicManager;
 import edu.uwo.csd.dcsim.management.capabilities.*;
 import edu.uwo.csd.dcsim.management.events.VmPlacementEvent;
 import edu.uwo.csd.dcsim.management.policies.*;
-import edu.uwo.csd.dcsim.vm.VMAllocationRequest;
+import edu.uwo.csd.dcsim.vm.VmAllocationRequest;
 
 public class ApplicationExample extends SimulationTask {
 
@@ -108,7 +108,7 @@ public class ApplicationExample extends SimulationTask {
 		}
 		
 		//Create applications
-		ArrayList<VMAllocationRequest> vmRequests = new ArrayList<VMAllocationRequest>();
+		ArrayList<VmAllocationRequest> vmRequests = new ArrayList<VmAllocationRequest>();
 		
 		for (int i = 0; i < 50; ++i) {
 //			Workload workload = new StaticWorkload(simulation, 100);

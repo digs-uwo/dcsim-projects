@@ -104,9 +104,9 @@ public class ExampleHelper {
 		return hosts;
 	}
 	
-	public static ArrayList<VMAllocationRequest> createVmList(Simulation simulation, boolean allocAvg) {
+	public static ArrayList<VmAllocationRequest> createVmList(Simulation simulation, boolean allocAvg) {
 		
-		ArrayList<VMAllocationRequest> vmList = new ArrayList<VMAllocationRequest>(N_VMS);
+		ArrayList<VmAllocationRequest> vmList = new ArrayList<VmAllocationRequest>(N_VMS);
 		
 		for (int i = 0; i < N_VMS; ++i) {
 			String trace = TRACES[i % N_TRACES];
@@ -120,7 +120,7 @@ public class ExampleHelper {
 			
 			//vmList.addAll(service.createInitialVmRequests());
 			
-			VMAllocationRequest vmAllocationRequest = new VMAllocationRequest(service.getServiceTiers().get(0).getVMDescription());
+			VmAllocationRequest vmAllocationRequest = new VmAllocationRequest(service.getServiceTiers().get(0).getVMDescription());
 			
 			if (allocAvg)
 				vmAllocationRequest.setCpu((int)Math.round(TRACE_AVG[i % N_TRACES] * (size - CPU_OVERHEAD) + CPU_OVERHEAD));
@@ -150,7 +150,7 @@ public class ExampleHelper {
 
 	}
 	
-	public static void placeVms(ArrayList<VMAllocationRequest> vmList, AutonomicManager dcAM, Simulation simulation) {
+	public static void placeVms(ArrayList<VmAllocationRequest> vmList, AutonomicManager dcAM, Simulation simulation) {
 		
 		VmPlacementEvent vmPlacementEvent = new VmPlacementEvent(dcAM, vmList);
 		

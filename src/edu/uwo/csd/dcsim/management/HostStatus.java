@@ -32,14 +32,14 @@ public class HostStatus {
 		
 		privDomain = new VmStatus(host.getPrivDomainAllocation().getVm(), timeStamp);
 		
-		for (VMAllocation vmAlloc : host.getVMAllocations()) {
+		for (VmAllocation vmAlloc : host.getVMAllocations()) {
 			if (vmAlloc.getVm() != null) {
 				vms.add(new VmStatus(vmAlloc.getVm(), timeStamp));
 			}
 		}
 		
 		//keep track of resources promised to incoming VMs
-		for (VMAllocation vmAlloc : host.getMigratingIn()) {
+		for (VmAllocation vmAlloc : host.getMigratingIn()) {
 			Resources resources = new Resources();
 			resources.setCpu(vmAlloc.getVMDescription().getCpu());
 			resources.setMemory(vmAlloc.getVMDescription().getMemory());

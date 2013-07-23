@@ -13,22 +13,22 @@ import edu.uwo.csd.dcsim.host.Resources;
  * @author Michael Tighe
  *
  */
-public class VM implements SimulationEventListener {
+public class Vm implements SimulationEventListener {
 
 	private static final String VM_COUNT_METRIC = "vmCount";
 	
 	Simulation simulation;
 	int id;
-	VMDescription vmDescription;
-	VMAllocation vmAllocation; //the allocation this VM is running within
+	VmDescription vmDescription;
+	VmAllocation vmAllocation; //the allocation this VM is running within
 	
 	TaskInstance taskInstance;
 	
 	protected Resources resourcesScheduled = new Resources();
 	
-	public VM(Simulation simulation, VMDescription vmDescription, TaskInstance taskInstance) {
+	public Vm(Simulation simulation, VmDescription vmDescription, TaskInstance taskInstance) {
 		this.simulation = simulation;
-		this.id = simulation.nextId(VM.class.toString());
+		this.id = simulation.nextId(Vm.class.toString());
 		this.vmDescription = vmDescription;
 		this.taskInstance = taskInstance;
 		taskInstance.setVM(this);
@@ -123,15 +123,15 @@ public class VM implements SimulationEventListener {
 		return taskInstance;
 	}
 	
-	public VMDescription getVMDescription() {
+	public VmDescription getVMDescription() {
 		return vmDescription;
 	}
 	
-	public VMAllocation getVMAllocation() {
+	public VmAllocation getVMAllocation() {
 		return vmAllocation;
 	}
 	
-	public void setVMAllocation(VMAllocation vmAllocation) {
+	public void setVMAllocation(VmAllocation vmAllocation) {
 		this.vmAllocation = vmAllocation;
 	}
 

@@ -3,9 +3,9 @@ package edu.uwo.csd.dcsim.host.resourcemanager;
 import java.util.Collection;
 
 import edu.uwo.csd.dcsim.host.Host;
-import edu.uwo.csd.dcsim.vm.VMAllocation;
-import edu.uwo.csd.dcsim.vm.VMAllocationRequest;
-import edu.uwo.csd.dcsim.vm.VMDescription;
+import edu.uwo.csd.dcsim.vm.VmAllocation;
+import edu.uwo.csd.dcsim.vm.VmAllocationRequest;
+import edu.uwo.csd.dcsim.vm.VmDescription;
 
 public abstract class ResourceManager {
 
@@ -44,7 +44,7 @@ public abstract class ResourceManager {
 			cpuInUse += host.getPrivDomainAllocation().getResourcesInUse().getCpu();
 		}
 		
-		for (VMAllocation allocation : host.getVMAllocations()) {
+		for (VmAllocation allocation : host.getVMAllocations()) {
 			cpuInUse += allocation.getResourcesInUse().getCpu();
 		}
 		
@@ -78,7 +78,7 @@ public abstract class ResourceManager {
 			allocatedCpu += host.getPrivDomainAllocation().getCpu();
 		}
 		
-		for (VMAllocation vmAllocation : host.getVMAllocations()) {
+		for (VmAllocation vmAllocation : host.getVMAllocations()) {
 			allocatedCpu += vmAllocation.getCpu();
 		}
 	
@@ -107,7 +107,7 @@ public abstract class ResourceManager {
 			memory += host.getPrivDomainAllocation().getMemory();
 		}
 		
-		for (VMAllocation vmAllocation : host.getVMAllocations()) {
+		for (VmAllocation vmAllocation : host.getVMAllocations()) {
 			memory += vmAllocation.getMemory();
 		}
 		return memory;
@@ -147,7 +147,7 @@ public abstract class ResourceManager {
 			bandwidth += host.getPrivDomainAllocation().getBandwidth();
 		}
 		
-		for (VMAllocation allocation : host.getVMAllocations()) {
+		for (VmAllocation allocation : host.getVMAllocations()) {
 			bandwidth += allocation.getBandwidth();
 		}
 		return bandwidth;
@@ -180,7 +180,7 @@ public abstract class ResourceManager {
 		if (host.getPrivDomainAllocation() != null)
 			storage += host.getPrivDomainAllocation().getStorage();
 		
-		for (VMAllocation vmAllocation : host.getVMAllocations()) {
+		for (VmAllocation vmAllocation : host.getVMAllocations()) {
 			storage += vmAllocation.getStorage();
 		}
 		return storage;
@@ -203,7 +203,7 @@ public abstract class ResourceManager {
 	 * @param vmDescription
 	 * @return
 	 */
-	public final boolean isCapable(VMDescription vmDescription) {
+	public final boolean isCapable(VmDescription vmDescription) {
 		//check cores and core capacity
 		if (vmDescription.getCores() > this.getHost().getCoreCount())
 			return false;
@@ -236,14 +236,14 @@ public abstract class ResourceManager {
 	 * @param vmAllocate
 	 * @return
 	 */
-	public abstract boolean hasCapacity(VMAllocationRequest vmAllocationRequest);
+	public abstract boolean hasCapacity(VmAllocationRequest vmAllocationRequest);
 	
 	/**
 	 * Determine if the Host has enough remaining capacity to host a set of VMs
 	 * @param vmAllocationRequests
 	 * @return
 	 */
-	public abstract boolean hasCapacity(Collection<VMAllocationRequest> vmAllocationRequests);
+	public abstract boolean hasCapacity(Collection<VmAllocationRequest> vmAllocationRequests);
 	
 	/**
 	 * Allocate resources to a VMAllocation based on requested resources in the VMAllocationRequest
@@ -251,18 +251,18 @@ public abstract class ResourceManager {
 	 * @param vmAllocation Actual allocation object to grant request resources to
 	 * @return
 	 */
-	public abstract boolean allocateResource(VMAllocationRequest vmAllocationRequest, VMAllocation vmAllocation);
+	public abstract boolean allocateResource(VmAllocationRequest vmAllocationRequest, VmAllocation vmAllocation);
 	
 	/**
 	 * Deallocate resources from the VMAllocation
 	 * @param vmAllocation
 	 */
-	public abstract void deallocateResource(VMAllocation vmAllocation);
+	public abstract void deallocateResource(VmAllocation vmAllocation);
 	
 	/**
 	 * Allocate resources to the privileged domain
 	 * @param privDomainAllocation
 	 */
-	public abstract void allocatePrivDomain(VMAllocation privDomainAllocation, int cpu, int memory, int bandwidth, int storage);
+	public abstract void allocatePrivDomain(VmAllocation privDomainAllocation, int cpu, int memory, int bandwidth, int storage);
 	
 }

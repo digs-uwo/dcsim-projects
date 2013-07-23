@@ -9,7 +9,7 @@ import edu.uwo.csd.dcsim.management.action.InstantiateVmAction;
 import edu.uwo.csd.dcsim.management.capabilities.HostPoolManager;
 import edu.uwo.csd.dcsim.management.events.ShutdownVmEvent;
 import edu.uwo.csd.dcsim.management.events.VmPlacementEvent;
-import edu.uwo.csd.dcsim.vm.VMAllocationRequest;
+import edu.uwo.csd.dcsim.vm.VmAllocationRequest;
 
 /**
  * DefaultVmPlacementPolicy takes a very basic approach to placement. It simply iterates through the set of hosts, in
@@ -43,7 +43,7 @@ public class DefaultVmPlacementPolicy extends Policy {
 		}
 		
 		//iterate though each VM to place
-		for (VMAllocationRequest vmAllocationRequest : event.getVMAllocationRequests()) {
+		for (VmAllocationRequest vmAllocationRequest : event.getVMAllocationRequests()) {
 			HostData allocatedHost = null;
 			
 			//simply iterate through the list of hosts until we find one that has enough capacity for the VM

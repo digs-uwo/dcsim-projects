@@ -2,7 +2,7 @@ package edu.uwo.csd.dcsim.host.scheduler;
 
 import edu.uwo.csd.dcsim.host.Host;
 import edu.uwo.csd.dcsim.host.Resources;
-import edu.uwo.csd.dcsim.vm.VMAllocation;
+import edu.uwo.csd.dcsim.vm.VmAllocation;
 
 public abstract class ResourceScheduler {
 
@@ -13,7 +13,7 @@ public abstract class ResourceScheduler {
 	 */
 	public final void resetScheduling() {
 		host.getPrivDomainAllocation().getVm().scheduleResources(new Resources());
-		for (VMAllocation vmAlloc : host.getVMAllocations()) {
+		for (VmAllocation vmAlloc : host.getVMAllocations()) {
 			vmAlloc.getVm().scheduleResources(new Resources());
 		}
 	}

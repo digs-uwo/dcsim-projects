@@ -94,7 +94,7 @@ public class AutonomicManagement extends SimulationTask {
 		}
 		
 		//Instantiate VMs and submit them to the datacentre
-		ArrayList<VMAllocationRequest> vmList = new ArrayList<VMAllocationRequest>();
+		ArrayList<VmAllocationRequest> vmList = new ArrayList<VmAllocationRequest>();
 		for (int i = 0; i < N_VMS; ++i) {
 			//create a new workload for this VM
 			Workload workload = new TraceWorkload(simulation, "traces/clarknet", 2200, (int)(simulation.getRandom().nextDouble() * 200000000));
@@ -104,7 +104,7 @@ public class AutonomicManagement extends SimulationTask {
 			Application service = Applications.singleTierInteractiveService(workload, 1, 2500, 512, 12800, 1024, 1, 300, 1, Integer.MAX_VALUE);
 			
 			//create a new VMAllocationRequest using the VMDescription from the service, add it to the vm list
-			vmList.add(new VMAllocationRequest(service.getServiceTiers().get(0).getVMDescription()));
+			vmList.add(new VmAllocationRequest(service.getServiceTiers().get(0).getVMDescription()));
 		}
 		
 		//submit the VMs to the datacentre for placement

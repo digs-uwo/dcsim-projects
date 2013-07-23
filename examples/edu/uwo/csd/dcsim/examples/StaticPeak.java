@@ -47,7 +47,7 @@ public class StaticPeak extends SimulationTask {
 	public void setup(Simulation simulation) {
 		AutonomicManager dcAM = ExampleHelper.createDataCentre(simulation);
 		
-		ArrayList<VMAllocationRequest> vmList = ExampleHelper.createVmList(simulation, false);
+		ArrayList<VmAllocationRequest> vmList = ExampleHelper.createVmList(simulation, false);
 				
 		ExampleHelper.placeVms(vmList, dcAM, simulation);
 

@@ -10,10 +10,10 @@ import java.util.Comparator;
  * @author Gaston Keller
  *
  */
-public class VMAllocationRequestCapacityComparator implements Comparator<VMAllocationRequest> {
+public class VmAllocationRequestCapacityComparator implements Comparator<VmAllocationRequest> {
 
 	@Override
-	public int compare(VMAllocationRequest arg0, VMAllocationRequest arg1) {
+	public int compare(VmAllocationRequest arg0, VmAllocationRequest arg1) {
 		if (arg0.getMemory() != arg1.getMemory())
 			return arg0.getMemory() - arg1.getMemory();
 		else

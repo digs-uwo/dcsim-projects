@@ -37,13 +37,13 @@ public abstract class Application {
 	 * 
 	 * @return
 	 */
-	public ArrayList<VMAllocationRequest> createInitialVmRequests() {
-		ArrayList<VMAllocationRequest> vmList = new ArrayList<VMAllocationRequest>();
+	public ArrayList<VmAllocationRequest> createInitialVmRequests() {
+		ArrayList<VmAllocationRequest> vmList = new ArrayList<VmAllocationRequest>();
 		
 		//create a VMAllocationRequest for the minimum number of replicas in each tier
 		for (Task task : getTasks()) {
 			for (int i = 0; i < task.getDefaultInstances(); ++i)
-				vmList.add(new VMAllocationRequest(new VMDescription(task)));
+				vmList.add(new VmAllocationRequest(new VmDescription(task)));
 		}
 		return vmList;
 	}
@@ -67,8 +67,8 @@ public abstract class Application {
 		for (Task task : getTasks()) {
 			ArrayList<TaskInstance> instances = task.getInstances();
 			for (TaskInstance instance : instances) {
-				VM vm = instance.getVM();
-				VMAllocation vmAlloc = vm.getVMAllocation();
+				Vm vm = instance.getVM();
+				VmAllocation vmAlloc = vm.getVMAllocation();
 				Host host = vmAlloc.getHost();
 				
 				if (vm.isMigrating() || instance.getVM().isPendingMigration())
