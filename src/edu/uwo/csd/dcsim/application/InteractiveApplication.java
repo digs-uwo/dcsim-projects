@@ -49,6 +49,8 @@ public class InteractiveApplication extends Application {
 		for (InteractiveTask task : tasks) {
 			for (InteractiveTaskInstance instance : task.getInteractiveTaskInstances()) {
 				instance.resourceScheduled = new Resources(task.getResourceSize());
+				instance.resourceScheduled.setCpu(instance.getVM().getMaxCpu()); //use the VMs max CPU capacity, as it may be on a different speed core than the Task size specifies 
+				
 				instance.setFullDemand(null); //will be calculated on first 'updateDemand' call
 				instance.updateVisitRatio(); //gets the current visit ratio from the task load balancer
 				
@@ -71,9 +73,9 @@ public class InteractiveApplication extends Application {
 		for (InteractiveTask task : tasks) {
 			for (InteractiveTaskInstance instance : task.getInteractiveTaskInstances()) {
 				if (instance.getResourceDemand().getCpu() > instance.getResourceScheduled().getCpu()) {
-					instance.setEffectiveServiceTime(task.getServiceTime() * (instance.getResourceDemand().getCpu() / (float)instance.getResourceScheduled().getCpu()));
+					instance.setEffectiveServiceTime(instance.getServiceTime() * (instance.getResourceDemand().getCpu() / (float)instance.getResourceScheduled().getCpu()));
 				} else {
-					instance.setEffectiveServiceTime(task.getServiceTime());
+					instance.setEffectiveServiceTime(instance.getServiceTime());
 				}
 			}
 		}
@@ -112,7 +114,7 @@ public class InteractiveApplication extends Application {
 				instance.setThroughput(throughput * instance.getVisitRatio());
 				
 				float lastUtilization = instance.getUtilization();
-				instance.setUtilization(throughput * task.getServiceTime() * instance.getVisitRatio());
+				instance.setUtilization(throughput * instance.getServiceTime() * instance.getVisitRatio());
 				
 				instance.getUtilizationDeltas().addValue(Math.abs(lastUtilization - instance.getUtilization()));
 				
@@ -120,7 +122,7 @@ public class InteractiveApplication extends Application {
 					updated = true;
 				}
 				
-				instance.getResourceDemand().setCpu((int)((task.getResourceSize().getCpu() * instance.getUtilization()) * (instance.getEffectiveServiceTime() / task.getServiceTime())));
+				instance.getResourceDemand().setCpu((int)((instance.getVM().getMaxCpu() * instance.getUtilization()) * (instance.getEffectiveServiceTime() / instance.getServiceTime())));
 				
 				if (instance.getFullDemand() == null) {
 					//the first time demand is calculated, we get the full resource demand assuming full resource availability (no contention)

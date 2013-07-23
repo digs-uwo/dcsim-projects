@@ -33,7 +33,7 @@ public class ApplicationExample extends SimulationTask {
 	
 		Simulation.initializeLogging();
 		
-		SimulationTask task = new ApplicationExample("AppExample", SimTime.days(1));
+		SimulationTask task = new ApplicationExample("AppExample", SimTime.minutes(5));
 		
 		task.run();
 		
@@ -77,7 +77,7 @@ public class ApplicationExample extends SimulationTask {
 		
 		//Instantiate the Hosts
 		ArrayList<Host> hosts = new ArrayList<Host>();
-		for (int i = 0; i < 100; ++i) {
+		for (int i = 0; i < 1; ++i) {
 			Host host = hostBuilder.build();
 			
 			//Create an AutonomicManager for the Host, with the HostManager capability (provides access to the host being managed)
@@ -107,13 +107,13 @@ public class ApplicationExample extends SimulationTask {
 		//Create applications
 		ArrayList<VmAllocationRequest> vmRequests = new ArrayList<VmAllocationRequest>();
 		
-		for (int i = 0; i < 50; ++i) {
-//			Workload workload = new StaticWorkload(simulation, 100);
-			Workload workload = new TraceWorkload(simulation, "traces/clarknet", 100, (int)(simulation.getRandom().nextDouble() * 200000000));
+		for (int i = 0; i < 1; ++i) {
+			Workload workload = new StaticWorkload(simulation, 100);
+//			Workload workload = new TraceWorkload(simulation, "traces/clarknet", 100, (int)(simulation.getRandom().nextDouble() * 200000000));
 			InteractiveApplication.Builder appBuilder = new InteractiveApplication.Builder(simulation).workload(workload).thinkTime(4)
-					.task(1, new Resources(2500,1,1,1), 0.05f, 1)
-					.task(4, new Resources(2500,1,1,1), 0.2f, 1)
-					.task(2, new Resources(2500,1,1,1), 0.1f, 1);
+					.task(1, new Resources(2000,1,1,1), 0.05f, 1)
+					.task(1, new Resources(2000,1,1,1), 0.2f, 1)
+					.task(1, new Resources(2000,1,1,1), 0.1f, 1);
 			
 			InteractiveApplication app = appBuilder.build();
 			

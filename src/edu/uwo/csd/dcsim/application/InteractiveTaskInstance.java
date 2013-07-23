@@ -26,6 +26,10 @@ public class InteractiveTaskInstance extends TaskInstance {
 		//nothing to do
 	}
 	
+	public float getServiceTime() {
+		return task.getNormalServiceTime() * (task.getResourceSize().getCpu() / (float)vm.getMaxCpu());
+	}
+	
 	public float getEffectiveServiceTime() {
 		return effectiveServiceTime;
 	}
