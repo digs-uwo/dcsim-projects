@@ -52,8 +52,7 @@ public class InteractiveApplication extends Application {
 				instance.setFullDemand(null); //will be calculated on first 'updateDemand' call
 				instance.updateVisitRatio(); //gets the current visit ratio from the task load balancer
 				
-				instance.getPrevUtilization()[0] = 0;
-				instance.getPrevUtilization()[1] = 0;
+				instance.getUtilizationDeltas().clear();
 			}
 		}		
 	}
@@ -112,12 +111,12 @@ public class InteractiveApplication extends Application {
 			for (InteractiveTaskInstance instance : task.getInteractiveTaskInstances()) {
 				instance.setThroughput(throughput * instance.getVisitRatio());
 				
-				//check against 2 previous utilization values to determine if utilization is still changing (utilization can thrash between two values)
-				instance.getPrevUtilization()[1] = instance.getPrevUtilization()[0];
-				instance.getPrevUtilization()[0] = instance.getUtilization();
-
+				float lastUtilization = instance.getUtilization();
 				instance.setUtilization(throughput * task.getServiceTime() * instance.getVisitRatio());
-				if (instance.getPrevUtilization()[0] != instance.getUtilization() && instance.getPrevUtilization()[1] != instance.getUtilization()) {
+				
+				instance.getUtilizationDeltas().addValue(Math.abs(lastUtilization - instance.getUtilization()));
+				
+				if (instance.getUtilizationDeltas().getMean() > 0.02) {
 					updated = true;
 				}
 				

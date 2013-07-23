@@ -49,9 +49,6 @@ public class ApplicationExample extends SimulationTask {
 	
 	public ApplicationExample(String name, long duration) {
 		super(name, duration);
-
-		this.setRandomSeed(-2689723060153053794l); //cpu util > 100
-//		this.setRandomSeed(2323603701469083897l); //non-termination
 	}
 
 	@Override

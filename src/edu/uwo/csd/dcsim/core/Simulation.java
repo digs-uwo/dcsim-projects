@@ -362,10 +362,6 @@ public class Simulation implements SimulationEventListener {
 		int c = 0;
 		while (!done) {
 			++c;
-			if (c > 50) {
-				//TODO THIS IS A TEMPORARY MEASURE TO ENSURE THAT THE ALG. TERMINATES. REPLACE WITH A BETTER TERMINATION CONDITION.
-				break;
-			}
 			
 			done = true;
 			//schedule cpu on all hosts (in no order)

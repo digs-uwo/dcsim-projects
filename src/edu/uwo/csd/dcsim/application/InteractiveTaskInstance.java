@@ -1,5 +1,7 @@
 package edu.uwo.csd.dcsim.application;
 
+import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
+
 /**
  * @author Michael Tighe
  *
@@ -12,7 +14,7 @@ public class InteractiveTaskInstance extends TaskInstance {
 	private float responseTime;
 	private float throughput;
 	private float utilization;
-	private float[] prevUtilization = {0, 0};
+	private DescriptiveStatistics utilizationDeltas = new DescriptiveStatistics(5);
 	private float visitRatio;
 	
 	public InteractiveTaskInstance(InteractiveTask task) {
@@ -64,12 +66,8 @@ public class InteractiveTaskInstance extends TaskInstance {
 		this.utilization = utilization;
 	}
 	
-	public float[] getPrevUtilization() {
-		return prevUtilization;
-	}
-	
-	public void setPrevUtilization(float prevUtilization[]) {
-		this.prevUtilization = prevUtilization;
+	public DescriptiveStatistics getUtilizationDeltas() {
+		return utilizationDeltas;
 	}
 	
 	public void updateVisitRatio() {
