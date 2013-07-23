@@ -12,7 +12,7 @@ public class InteractiveTaskInstance extends TaskInstance {
 	private float responseTime;
 	private float throughput;
 	private float utilization;
-	private float prevUtilization;
+	private float[] prevUtilization = {0, 0};
 	private float visitRatio;
 	
 	public InteractiveTaskInstance(InteractiveTask task) {
@@ -64,11 +64,11 @@ public class InteractiveTaskInstance extends TaskInstance {
 		this.utilization = utilization;
 	}
 	
-	public float getPrevUtilization() {
+	public float[] getPrevUtilization() {
 		return prevUtilization;
 	}
 	
-	public void setPrevUtilization(float prevUtilization) {
+	public void setPrevUtilization(float prevUtilization[]) {
 		this.prevUtilization = prevUtilization;
 	}
 	

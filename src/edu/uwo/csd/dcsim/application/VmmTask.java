@@ -15,7 +15,7 @@ public class VmmTask extends Task {
 	
 	public VmmTask(VmmApplication application, int defaultInstances, int minInstances, int maxInstances,
 			Resources resourceSize) {
-		super(defaultInstances, minInstances, maxInstances, resourceSize);
+		super(defaultInstances, resourceSize);
 		
 		this.application = application;
 		instance = new VmmTaskInstance(this);

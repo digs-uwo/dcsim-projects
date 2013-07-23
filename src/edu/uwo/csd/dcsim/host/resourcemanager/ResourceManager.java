@@ -55,7 +55,7 @@ public abstract class ResourceManager {
 	 * Get the fraction of physical CPU capacity that is current in use (real usage, not allocation)
 	 * @return
 	 */
-	public final float getCpuUtilization() { return getCpuInUse() / getTotalCpu(); }
+	public final float getCpuUtilization() { return (float)getCpuInUse() / (float)getTotalCpu(); }
 	
 	/**
 	 * Get the amount of CPU not being used (real usage, not allocation)

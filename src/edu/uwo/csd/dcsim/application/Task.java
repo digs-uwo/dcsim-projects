@@ -11,22 +11,11 @@ import edu.uwo.csd.dcsim.host.Resources;
  */
 public abstract class Task {
 
-	protected int minInstances;
-	protected int maxInstances;
 	protected int defaultInstances;
 	protected Resources resourceSize;
 	
 	public Task(int defaultInstances, Resources resourceSize) {
 		this.defaultInstances = defaultInstances;
-		this.minInstances = defaultInstances;
-		this.maxInstances = defaultInstances;
-		this.resourceSize = resourceSize;
-	}
-	
-	public Task(int defaultInstances, int minInstances, int maxInstances, Resources resourceSize) {
-		this.defaultInstances = defaultInstances;
-		this.minInstances = minInstances;
-		this.maxInstances = maxInstances;
 		this.resourceSize = resourceSize;
 	}
 
@@ -50,15 +39,7 @@ public abstract class Task {
 	public int getDefaultInstances() {
 		return defaultInstances;
 	}
-	
-	public int getMaxInstances() {
-		return maxInstances;
-	}
-	
-	public int getMinInstances() {
-		return minInstances;
-	}
-	
+
 	public Resources getResourceSize() {
 		return resourceSize;
 	}

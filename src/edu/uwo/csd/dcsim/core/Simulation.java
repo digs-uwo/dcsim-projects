@@ -351,7 +351,7 @@ public class Simulation implements SimulationEventListener {
 		for (Application application : applications) {
 			application.initializeScheduling();
 		}
-		
+
 		//update application demands (includes solving MVA and updating cpu demand)
 		for (Application application : applications) {
 			application.updateDemand();
@@ -359,9 +359,15 @@ public class Simulation implements SimulationEventListener {
 		
 		//while not done
 		boolean done = false;
+		int c = 0;
 		while (!done) {
-			done = true;
+			++c;
+			if (c > 50) {
+				//TODO THIS IS A TEMPORARY MEASURE TO ENSURE THAT THE ALG. TERMINATES. REPLACE WITH A BETTER TERMINATION CONDITION.
+				break;
+			}
 			
+			done = true;
 			//schedule cpu on all hosts (in no order)
 			for (Host host : hosts) {
 				//schedule cpu
@@ -369,12 +375,14 @@ public class Simulation implements SimulationEventListener {
 					host.getResourceScheduler().scheduleResources();
 				}
 			}
-			
+
 			for (Application application : applications) {
-				done = done && application.updateDemand(); //stop when no calls to updateDemand result in changes  
+				boolean appUpdate = application.updateDemand(); 
+				done = done && !appUpdate; //stop when no calls to updateDemand result in changes  
 			}
 		}
-
+		
+		
 	}
 	
 	private void postScheduling() {

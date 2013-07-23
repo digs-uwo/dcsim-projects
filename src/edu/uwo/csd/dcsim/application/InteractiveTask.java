@@ -20,11 +20,11 @@ public class InteractiveTask extends Task {
 	private ArrayList<InteractiveTaskInstance> instances = new ArrayList<InteractiveTaskInstance>();
 	
 	public InteractiveTask(InteractiveApplication application,
-			int defaultInstances, int minInstances, int maxInstances,
+			int defaultInstances,
 			Resources resourceSize,
 			float serviceTime,
 			float visitRatio) {
-		super(defaultInstances, minInstances, maxInstances, resourceSize);
+		super(defaultInstances, resourceSize);
 
 		this.serviceTime = serviceTime;
 		this.visitRatio = visitRatio;
@@ -34,12 +34,12 @@ public class InteractiveTask extends Task {
 	}
 	
 	public InteractiveTask(InteractiveApplication application,
-			int defaultInstances, int minInstances, int maxInstances,
+			int defaultInstances,
 			Resources resourceSize,
 			float serviceTime,
 			float visitRatio,
 			LoadBalancer loadBalancer) {
-		super(defaultInstances, minInstances, maxInstances, resourceSize);
+		super(defaultInstances, resourceSize);
 
 		this.serviceTime = serviceTime;
 		this.visitRatio = visitRatio;

@@ -7,7 +7,7 @@ public class DefaultResourceScheduler extends ResourceScheduler {
 	
 	@Override
 	public void scheduleResources() {
-		
+
 		Resources resourcesRemaining = new Resources (host.getResourceManager().getTotalCpu(), 
 				host.getResourceManager().getTotalMemory(),
 				host.getResourceManager().getTotalBandwidth(),
@@ -39,7 +39,7 @@ public class DefaultResourceScheduler extends ResourceScheduler {
 		}
 		
 		privDomainVm.scheduleResources(privResourceDemand);
-		
+
 		//initialize resource scheduling
 		for (VMAllocation vmAlloc : host.getVMAllocations()) {
 			VM vm = vmAlloc.getVm();
@@ -68,14 +68,22 @@ public class DefaultResourceScheduler extends ResourceScheduler {
 			vm.scheduleResources(scheduled);
 			
 		}
-		
+
 		//now, we schedule CPU fairly among all VMs
 		int cpuShare = 0;
 		int incompleteVms = host.getVMAllocations().size();
 		
+		//adjust incompleteVm count to remove any VMs that have 0 CPU demand
+		for (VMAllocation vmAlloc : host.getVMAllocations()) {
+			if (vmAlloc.getVm().getResourceDemand().getCpu() == 0) --incompleteVms;
+		}
+		
 		while (resourcesRemaining.getCpu() > 0 && incompleteVms > 0) {
 			cpuShare = resourcesRemaining.getCpu() / incompleteVms;
 			
+			//if resourcesRemaining is small enough, it could be rounded to 0. Set '1' as minimum share. 
+			cpuShare = Math.max(cpuShare, 1);
+
 			for (VMAllocation vmAlloc : host.getVMAllocations()) {
 				VM vm = vmAlloc.getVm();
 				Resources scheduled = vm.getResourcesScheduled();
@@ -86,12 +94,17 @@ public class DefaultResourceScheduler extends ResourceScheduler {
 						scheduled.setCpu(scheduled.getCpu() + remainingCpuDemand);
 						resourcesRemaining.setCpu(resourcesRemaining.getCoreCapacity() - remainingCpuDemand);
 						--incompleteVms;
+
 					} else {
 						scheduled.setCpu(scheduled.getCpu() + cpuShare);
 						resourcesRemaining.setCpu(resourcesRemaining.getCpu() - cpuShare);
 					}
 					vm.scheduleResources(scheduled);
 				}
+				
+				//check if we are out of CPU. This can occur when share is defaulted to '1' as minimum
+				if (resourcesRemaining.getCpu() == 0) break;
+
 			}
 		}
 		

@@ -345,6 +345,35 @@ public final class Host implements SimulationEventListener {
 		simulation.getLogger().debug(simulation.getSimulationTime() + " Host #" + this.getId() + " allocated & created VM #" + newAllocation.getVm().getId());
 		simulation.getTraceLogger().info("#vs," + newVm.getId() + "," + newVm.getVMAllocation().getHost().getId());
 	}
+	
+	/**
+	 * Helper function to facilitate testing by allowing VMs to be directly placed onto specific hosts. Should not be called during normal usage.
+	 * @param vmAllocationRequest
+	 */
+	public void submitVm(VMAllocationRequest vmAllocationRequest) {
+		
+		VMAllocation newAllocation;
+		
+		//create new allocation & allocate it resources
+		try {
+			newAllocation = allocate(vmAllocationRequest);
+		} catch (AllocationFailedException e) {
+			throw new RuntimeException("Allocation failed on Host #" + this.getId() + 
+					" VM submission", e);
+			
+		}
+		
+		//add the allocation to the Host list of allocations
+		vmAllocations.add(newAllocation);
+		
+		//create a new VM in the allocation
+		VM newVm = newAllocation.getVMDescription().createVM(simulation);
+		newAllocation.setVm(newVm);
+		newVm.setVMAllocation(newAllocation);
+		
+		simulation.getLogger().debug(simulation.getSimulationTime() + " Host #" + this.getId() + " allocated & created VM #" + newAllocation.getVm().getId());
+		simulation.getTraceLogger().info("#vs," + newVm.getId() + "," + newVm.getVMAllocation().getHost().getId());
+	}
 
 	
 	public boolean isCapable(VMDescription vmDescription) {
@@ -676,7 +705,6 @@ public final class Host implements SimulationEventListener {
 		
 		
 		if (state == HostState.ON) {
-			
 			HostAvgCpuUtilMetric.getMetric(simulation, AVERAGE_UTILIZATION_METRIC).addHostUtilization(getResourceManager().getCpuUtilization());
 			ActiveHostMetric.getMetric(simulation, ACTIVE_HOST_METRIC).incrementHostCount();
 			MaxMetric.getMetric(simulation, MAX_ACTIVE_METRIC).incrementCount();

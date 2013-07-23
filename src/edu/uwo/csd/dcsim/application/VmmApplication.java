@@ -44,7 +44,6 @@ public class VmmApplication extends Application {
 
 	@Override
 	public boolean updateDemand() {
-		
 		//VMM resource demand is independent of all other task resource demands and therefore needs only to be calculated once 		
 		
 		return false;

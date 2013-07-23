@@ -5,6 +5,9 @@ import java.util.ArrayList;
 import edu.uwo.csd.dcsim.application.loadbalancer.LoadBalancer;
 import edu.uwo.csd.dcsim.application.workload.*;
 import edu.uwo.csd.dcsim.core.Simulation;
+import edu.uwo.csd.dcsim.core.metrics.AvgValueMetric;
+import edu.uwo.csd.dcsim.core.metrics.CpuUnderprovisionDurationMetric;
+import edu.uwo.csd.dcsim.core.metrics.CpuUnderprovisionMetric;
 import edu.uwo.csd.dcsim.common.*;
 import edu.uwo.csd.dcsim.host.Resources;
 
@@ -14,6 +17,9 @@ import edu.uwo.csd.dcsim.host.Resources;
  */
 public class InteractiveApplication extends Application {
 
+	public static final String CPU_UNDERPROVISION_METRIC = "cpuUnderprovision";
+	public static final String CPU_UNDERPROVISION_DURATION_METRIC = "cpuUnderprovisionDuration";
+	
 	private Workload workload;
 	private ArrayList<InteractiveTask> tasks = new ArrayList<InteractiveTask>();
 	float thinkTime = 0;
@@ -45,6 +51,9 @@ public class InteractiveApplication extends Application {
 				instance.resourceScheduled = new Resources(task.getResourceSize());
 				instance.setFullDemand(null); //will be calculated on first 'updateDemand' call
 				instance.updateVisitRatio(); //gets the current visit ratio from the task load balancer
+				
+				instance.getPrevUtilization()[0] = 0;
+				instance.getPrevUtilization()[1] = 0;
 			}
 		}		
 	}
@@ -95,7 +104,7 @@ public class InteractiveApplication extends Application {
 					instance.setQueueLength(throughput * instance.getVisitRatio() * instance.getResponseTime());
 				}
 			}
-			
+
 		}
 		
 		boolean updated = false;
@@ -103,9 +112,12 @@ public class InteractiveApplication extends Application {
 			for (InteractiveTaskInstance instance : task.getInteractiveTaskInstances()) {
 				instance.setThroughput(throughput * instance.getVisitRatio());
 				
-				instance.setPrevUtilization(instance.getUtilization());
+				//check against 2 previous utilization values to determine if utilization is still changing (utilization can thrash between two values)
+				instance.getPrevUtilization()[1] = instance.getPrevUtilization()[0];
+				instance.getPrevUtilization()[0] = instance.getUtilization();
+
 				instance.setUtilization(throughput * task.getServiceTime() * instance.getVisitRatio());
-				if (instance.getPrevUtilization() != instance.getUtilization()) {
+				if (instance.getPrevUtilization()[0] != instance.getUtilization() && instance.getPrevUtilization()[1] != instance.getUtilization()) {
 					updated = true;
 				}
 				
@@ -118,7 +130,19 @@ public class InteractiveApplication extends Application {
 				
 			}
 		}
-		
+
+		//TODO remove, debugging code
+//		int i = 1;
+//		
+//		for (InteractiveTask task : tasks) {
+//			int j = 1;
+//			for (InteractiveTaskInstance instance : task.getInteractiveTaskInstances()) {
+//				System.out.println("App " + this.getId() + " Task " + i + "-" + j + " U=" + instance.getUtilization());
+//				++j;
+//			}
+//			++i;
+//		}
+				
 		//return true if utilization values changed (there was an update made), false otherwise
 		return updated;
 	}
@@ -131,6 +155,28 @@ public class InteractiveApplication extends Application {
 	@Override
 	public void recordMetrics() {
 		//TODO record metrics, i.e. underprovisioning % and duration, response time, throughput
+		
+		int cpuDemand = 0;
+		int cpuScheduled = 0;
+		for (InteractiveTask task : tasks) {
+			for (InteractiveTaskInstance instance : task.getInteractiveTaskInstances()) {
+				cpuDemand += instance.getFullDemand().getCpu();
+				cpuScheduled += instance.getResourceScheduled().getCpu();
+			}
+		}
+
+		//record the CPU underprovision metrics
+		if (cpuDemand > cpuScheduled) {
+			CpuUnderprovisionMetric.getMetric(simulation, CPU_UNDERPROVISION_METRIC).addSlaVWork(cpuDemand - cpuScheduled);
+		}
+		CpuUnderprovisionMetric.getMetric(simulation, CPU_UNDERPROVISION_METRIC).addWork(cpuDemand);
+		
+		CpuUnderprovisionDurationMetric.getMetric(simulation, CPU_UNDERPROVISION_DURATION_METRIC).addSlaViolationTime(simulation.getElapsedTime());
+		
+		//TODO change
+		AvgValueMetric.getMetric(simulation, "responseTime").addValue(responseTime);
+		AvgValueMetric.getMetric(simulation, "throughput").addValue(throughput);
+		
 	}
 	
 	public float getThinkTime() {
@@ -159,6 +205,7 @@ public class InteractiveApplication extends Application {
 	
 	public static class Builder implements ObjectBuilder<Application> {
 
+		private boolean used = false; //make sure this builder is only used to construct a single instance of InteractiveApplication
 		private Simulation simulation;
 		private Workload workload;
 		private float thinkTime;
@@ -178,24 +225,24 @@ public class InteractiveApplication extends Application {
 			return this;
 		}
 		
-		public Builder task(int defaultInstances, int minInstances, int maxInstances,
+		public Builder task(int defaultInstances,
 				Resources resourceSize,
 				float serviceTime,
 				float visitRatio) {
 			
-			InteractiveTask task = new InteractiveTask(null, defaultInstances, minInstances, maxInstances, resourceSize, serviceTime, visitRatio);
+			InteractiveTask task = new InteractiveTask(null, defaultInstances, resourceSize, serviceTime, visitRatio);
 			tasks.add(task);
 			
 			return this;
 		}
 		
-		public Builder task(int defaultInstances, int minInstances, int maxInstances,
+		public Builder task(int defaultInstances,
 				Resources resourceSize,
 				float serviceTime,
 				float visitRatio,
 				LoadBalancer loadBalancer) {
 			
-			InteractiveTask task = new InteractiveTask(null, defaultInstances, minInstances, maxInstances, resourceSize, serviceTime, visitRatio, loadBalancer);
+			InteractiveTask task = new InteractiveTask(null, defaultInstances, resourceSize, serviceTime, visitRatio, loadBalancer);
 			tasks.add(task);
 			
 			return this;
@@ -203,6 +250,8 @@ public class InteractiveApplication extends Application {
 		
 		@Override
 		public InteractiveApplication build() {
+			if (used) throw new RuntimeException("Cannot use a single InteractiveApplication.Builder to build more than one instance of InteractiveApplication");
+			used = true;
 			return new InteractiveApplication(this);
 		}
 		

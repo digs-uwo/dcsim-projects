@@ -16,7 +16,7 @@ public class EqualShareLoadBalancer extends LoadBalancer {
 			throw new RuntimeException("Load Balancer called with null Task");
 		}
 		
-		return 1 / task.getInstances().size();
+		return 1 / (float)task.getInstances().size();
 	}
 
 

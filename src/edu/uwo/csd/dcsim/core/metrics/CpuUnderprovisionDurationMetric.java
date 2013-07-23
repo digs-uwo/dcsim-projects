@@ -3,11 +3,11 @@ package edu.uwo.csd.dcsim.core.metrics;
 import edu.uwo.csd.dcsim.common.SimTime;
 import edu.uwo.csd.dcsim.core.Simulation;
 
-public class SlaViolationDurationMetric extends Metric {
+public class CpuUnderprovisionDurationMetric extends Metric {
 
 	private double value = 0;
 	
-	public SlaViolationDurationMetric(Simulation simulation, String name) {
+	public CpuUnderprovisionDurationMetric(Simulation simulation, String name) {
 		super(simulation, name);
 	}
 
@@ -35,13 +35,13 @@ public class SlaViolationDurationMetric extends Metric {
 		//nothing to do
 	}
 	
-	public static SlaViolationDurationMetric getMetric(Simulation simulation, String name) {
-		SlaViolationDurationMetric metric;
+	public static CpuUnderprovisionDurationMetric getMetric(Simulation simulation, String name) {
+		CpuUnderprovisionDurationMetric metric;
 		if (simulation.hasMetric(name)) {
-			metric = (SlaViolationDurationMetric)simulation.getMetric(name);
+			metric = (CpuUnderprovisionDurationMetric)simulation.getMetric(name);
 		}
 		else {
-			metric = new SlaViolationDurationMetric(simulation, name);
+			metric = new CpuUnderprovisionDurationMetric(simulation, name);
 			simulation.addMetric(metric);
 		}
 		return metric;	

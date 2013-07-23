@@ -18,11 +18,13 @@ import edu.uwo.csd.dcsim.vm.*;
  */
 public abstract class Application {
 
+	int id;
 	protected Simulation simulation;
 	
 	public Application(Simulation simulation) {
 		this.simulation = simulation;
 		simulation.addApplication(this);
+		this.id = simulation.nextId(Application.class.toString());
 	}
 	
 	public abstract void initializeScheduling();
@@ -93,4 +95,8 @@ public abstract class Application {
 		return simulation;
 	}
 
+	public int getId() {
+		return id;
+	}
+	
 }

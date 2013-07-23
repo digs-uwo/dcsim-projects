@@ -2,7 +2,7 @@ package edu.uwo.csd.dcsim.core.metrics;
 
 import edu.uwo.csd.dcsim.core.Simulation;
 
-public class SlaViolationMetric extends Metric {
+public class CpuUnderprovisionMetric extends Metric {
 
 	private double totalSlaVWork = 0;
 	private double totalWork = 0;
@@ -10,7 +10,7 @@ public class SlaViolationMetric extends Metric {
 	private double currentSlaVWork = 0;
 	private double currentWork = 0;
 	
-	public SlaViolationMetric(Simulation simulation, String name) {
+	public CpuUnderprovisionMetric(Simulation simulation, String name) {
 		super(simulation, name);
 	}
 
@@ -45,13 +45,13 @@ public class SlaViolationMetric extends Metric {
 		//nothing to do
 	}
 	
-	public static SlaViolationMetric getMetric(Simulation simulation, String name) {
-		SlaViolationMetric metric;
+	public static CpuUnderprovisionMetric getMetric(Simulation simulation, String name) {
+		CpuUnderprovisionMetric metric;
 		if (simulation.hasMetric(name)) {
-			metric = (SlaViolationMetric)simulation.getMetric(name);
+			metric = (CpuUnderprovisionMetric)simulation.getMetric(name);
 		}
 		else {
-			metric = new SlaViolationMetric(simulation, name);
+			metric = new CpuUnderprovisionMetric(simulation, name);
 			simulation.addMetric(metric);
 		}
 		return metric;	
