@@ -68,7 +68,7 @@ public class HostData {
 		//return a copy of the history to ensure that it is read-only
 		ArrayList<HostStatus> historyCopy = new ArrayList<HostStatus>();
 		for (HostStatus status : history) {
-			historyCopy.add(status);
+			historyCopy.add(status.copy());
 		}
 		return historyCopy;
 	}
