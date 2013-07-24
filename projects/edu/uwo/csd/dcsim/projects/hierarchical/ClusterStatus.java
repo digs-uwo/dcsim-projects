@@ -7,11 +7,9 @@ public class ClusterStatus {
 
 	private long timeStamp;
 	private int id;
-	
 	private int activeRacks = 0;				// Percentage [0,1] or number?
-	private int minInactiveHosts = 0;			// Mininum number of inactive Hosts among active Racks in the Cluster.
-	// max spare capacity: list of vectors or single vector  ( Resources object ? )
-	
+	private int minInactiveHosts = 0;			// Number of inactive Hosts in the Rack with more active Hosts.
+	private double maxSpareCapacity = 0;		// Amount of spare resources available in the least loaded active Host in the Cluster.
 	private double powerConsumption = 0;		// Sum of power consumption from all Racks and Switches in the Cluster.
 	
 	/**
@@ -31,22 +29,29 @@ public class ClusterStatus {
 		
 		minInactiveHosts = Integer.MAX_VALUE;
 		for (RackData rack : capability.getRacks()) {
-			// Calculate number of active Racks.
-			// TODO If in the future we add *state* to Rack, we could simply check said attribute in each Rack.
-			// In the meantime, we consider a Rack to be active if it has any active Hosts; otherwise, it's consider inactive.
-			RackStatus status = rack.getCurrentStatus();
-			if (status.getActiveHosts() > 0) {
-				activeRacks++;
-				
-				// Find minimum number of inactive Hosts among active Racks.
-				int inactiveHosts = status.getSuspendedHosts() + status.getPoweredOffHosts();
-				if (inactiveHosts < minInactiveHosts)
-					minInactiveHosts = inactiveHosts;
+			// Check Rack status. If invalid, we cannot make any assertions.
+			if (rack.isStatusValid()) {
+				// Calculate number of active Racks.
+				// TODO If in the future we add *state* to Rack, we could simply check said attribute in each Rack.
+				// In the meantime, we consider a Rack to be active if it has any active Hosts; otherwise, it's consider inactive.
+				RackStatus status = rack.getCurrentStatus();
+				if (status.getActiveHosts() > 0) {
+					activeRacks++;
+					
+					// Find minimum number of inactive Hosts among active Racks.
+					int inactiveHosts = status.getSuspendedHosts() + status.getPoweredOffHosts();
+					if (inactiveHosts < minInactiveHosts)
+						minInactiveHosts = inactiveHosts;
+					
+					// Find max spare capacity value among active Racks.
+					if (status.getMaxSpareCapacity() > maxSpareCapacity)
+						maxSpareCapacity = status.getMaxSpareCapacity();
+				}
 			}
 			
-			// max spare capacity ??
-			
 			// Calculate Cluster's total power consumption.
+			// Note: Even Racks with an invalid status are accounted for here, given that
+			// skipping them would represent a good chunk of missing info.
 			powerConsumption += rack.getCurrentStatus().getPowerConsumption();
 		}
 		
@@ -64,12 +69,9 @@ public class ClusterStatus {
 	public ClusterStatus(ClusterStatus status) {
 		timeStamp = status.timeStamp;
 		id = status.id;
-		
 		activeRacks = status.activeRacks;
 		minInactiveHosts = status.minInactiveHosts;
-		
-		// max spare capacity
-		
+		maxSpareCapacity = status.maxSpareCapacity;
 		powerConsumption = status.powerConsumption;
 	}
 	
@@ -91,6 +93,10 @@ public class ClusterStatus {
 	
 	public int getMinInactiveHosts() {
 		return minInactiveHosts;
+	}
+	
+	public double getMaxSpareCapacity() {
+		return maxSpareCapacity;
 	}
 	
 	public double getPowerConsumption() {

@@ -14,9 +14,7 @@ public class RackStatus {
 	private int activeHosts = 0;
 	private int suspendedHosts = 0;
 	private int poweredOffHosts = 0;
-	
-	// max spare capacity: list of vectors or single vector  ( Resources object ? )
-	
+	private double maxSpareCapacity = 0;		// Amount of spare resources available in the least loaded active Host in the Rack.
 	private double powerConsumption = 0;		// Sum of power consumption from all Hosts and Switches in the Rack.
 	
 	/**
@@ -35,18 +33,27 @@ public class RackStatus {
 		id = rack.getId();
 		
 		for (HostData host : capability.getHosts()) {
-			// Calculate number of Active, Suspended and Powered-Off hosts.
-			Host.HostState state = host.getCurrentStatus().getState();
-			if (state == Host.HostState.ON || state == Host.HostState.POWERING_ON)
-				activeHosts++;
-			else if (state == Host.HostState.SUSPENDED || state == Host.HostState.SUSPENDING)
-				suspendedHosts++;
-			else if (state == Host.HostState.OFF || state == Host.HostState.POWERING_OFF)
-				poweredOffHosts++;
-			
-			// max spare capacity ??
+			// Check Host status. If invalid, we cannot make any assertions.
+			if (host.isStatusValid()) {
+				// Calculate number of active, suspended and powered-off hosts.
+				Host.HostState state = host.getCurrentStatus().getState();
+				if (state == Host.HostState.ON || state == Host.HostState.POWERING_ON) {
+					activeHosts++;
+					
+					// Calculate spare capacity for each active Host.
+					double capacity = this.calculateSpareCapacity(host);
+					if (capacity > maxSpareCapacity)
+						maxSpareCapacity = capacity;
+				}
+				else if (state == Host.HostState.SUSPENDED || state == Host.HostState.SUSPENDING)
+					suspendedHosts++;
+				else if (state == Host.HostState.OFF || state == Host.HostState.POWERING_OFF)
+					poweredOffHosts++;
+			}
 			
 			// Calculate Rack's total power consumption.
+			// Note: Even Hosts with an invalid status are accounted for here, given that
+			// skipping them would represent a good chunk of missing info.
 			powerConsumption += host.getCurrentStatus().getPowerConsumption();
 		}
 		
@@ -58,14 +65,32 @@ public class RackStatus {
 	public RackStatus(RackStatus status) {
 		timeStamp = status.timeStamp;
 		id = status.id;
-		
 		activeHosts = status.activeHosts;
 		suspendedHosts = status.suspendedHosts;
 		poweredOffHosts = status.poweredOffHosts;
-		
-		// max spare capacity
-		
+		maxSpareCapacity = status.maxSpareCapacity;
 		powerConsumption = status.powerConsumption;
+	}
+	
+	/**
+	 * Calculates the spare capacity of a Host, measured as the number of "average-sized VMs"
+	 * that can be placed in the Host to use up that spare capacity.
+	 */
+	private double calculateSpareCapacity(HostData host) {
+		
+		// Average-sized VM.
+		// TODO: This value should be obtained from a config file.
+		int cpu = 2500;		// 1 core * 2500 cpu units 
+		int mem = 1024;		// 1 GB
+		int bw = 12800;		// 100 Mb/s
+		//long storage = 1024;	// 1 GB
+		
+		// Check Host status. If invalid, we cannot calculate spare capacity.
+		if (!host.isStatusValid())
+			return 0;
+		
+		Resources spare = host.getHostDescription().getResourceCapacity().subtract(host.getCurrentStatus().getResourcesInUse());
+		return Math.min(spare.getCpu() / cpu, Math.min(spare.getMemory() / mem, spare.getBandwidth() / bw));
 	}
 	
 	public RackStatus copy() {
@@ -90,6 +115,10 @@ public class RackStatus {
 	
 	public int getPoweredOffHosts() {
 		return poweredOffHosts;
+	}
+	
+	public double getMaxSpareCapacity() {
+		return maxSpareCapacity;
 	}
 	
 	public double getPowerConsumption() {
