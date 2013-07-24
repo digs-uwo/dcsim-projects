@@ -10,8 +10,8 @@ import edu.uwo.csd.dcsim.core.Simulation;
  */
 public class TwoLevelWorkload extends Workload {
 
-	int firstLevel;
-	int secondLevel;
+	int firstLevel = 0;
+	int secondLevel = 0;
 	long switchTime;
 	int workLevel;
 	
@@ -22,6 +22,29 @@ public class TwoLevelWorkload extends Workload {
 		this.secondLevel = secondLevel;
 		this.switchTime = switchTime;
 		workLevel = firstLevel;
+	}
+	
+	public TwoLevelWorkload(Simulation simulation, long switchTime) {
+		super(simulation);
+		
+		this.switchTime = switchTime;
+		workLevel = firstLevel;
+	}
+	
+	public void setFirstLevel(int firstLevel) {
+		this.firstLevel = firstLevel;
+	}
+	
+	public int getFirstLevel() {
+		return firstLevel;
+	}
+	
+	public void setSecondLevel(int secondLevel) {
+		this.secondLevel = secondLevel;
+	}
+	
+	public int getSecondLevel() {
+		return secondLevel;
 	}
 	
 	@Override

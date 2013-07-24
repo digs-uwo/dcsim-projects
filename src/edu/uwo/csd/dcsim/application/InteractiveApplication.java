@@ -180,6 +180,66 @@ public class InteractiveApplication extends Application {
 		
 	}
 	
+	public int calculateMaxWorkloadUtilizationLimit(int maxTaskSize, float utilizationLimit) {
+		return calculateMaxWorkload(maxTaskSize, Float.MAX_VALUE, utilizationLimit);
+	}
+	
+	public int calculateMaxWorkloadResponseTimeLimit(int maxTaskSize, float responseTimeLimit) {
+		return calculateMaxWorkload(maxTaskSize, responseTimeLimit, Float.MAX_VALUE);
+	}
+	
+	public int calculateMaxWorkload(int maxTaskSize, float responseTimeLimit, float utilizationLimit) {
+		
+		float responseTime = 0;
+		float throughput = 0;
+		int nClients;
+		ArrayList<DummyTask> dummyTasks = new ArrayList<DummyTask>();
+		
+		//build array of tasks, one for each task instances, assuming each task has maxTaskSize instances
+		for (InteractiveTask task : tasks) {
+			
+			for (int i = 0; i < maxTaskSize; ++i) {
+				DummyTask dummy = new DummyTask(task.getNormalServiceTime(), task.getVisitRatio() / maxTaskSize);
+				dummyTasks.add(dummy);
+				
+			}
+		}
+		
+		//Use MVA algorithm to find the number of clients, terminating when the response time exceeds the limit OR a task utilization reaches 1
+		for (DummyTask t : dummyTasks) {
+			t.queueLength = 0;
+		}
+		
+		boolean done = false;
+		
+		nClients = 0;
+		while (responseTime <= responseTimeLimit && !done) {
+			++nClients;
+			
+			responseTime = 0;
+			for (DummyTask t : dummyTasks) {
+				t.responseTime = t.serviceTime * (t.queueLength + 1);
+				responseTime += t.responseTime * t.visits;
+			}
+			
+			throughput = nClients / (thinkTime + responseTime);
+			
+			for (DummyTask t : dummyTasks) {
+				t.queueLength = throughput * t.visits * t.responseTime;
+				
+				t.utilization = throughput * t.serviceTime * t.visits;
+				
+				//terminate if utilization reaches utilization limit on one task instance
+				if (t.utilization >= utilizationLimit) done = true;
+				
+			}
+
+		}
+
+		return nClients - 1;
+		
+	}
+	
 	public float getThinkTime() {
 		return thinkTime;
 	}
@@ -267,6 +327,19 @@ public class InteractiveApplication extends Application {
 	public ArrayList<Task> getTasks() {
 		ArrayList<Task> simpleTasks = new ArrayList<Task>(tasks);
 		return simpleTasks;
+	}
+	
+	private class DummyTask {
+		float serviceTime;
+		float visits;
+		float queueLength;
+		float responseTime;
+		float utilization;
+		
+		public DummyTask(float serviceTime, float visits) {
+			this.serviceTime = serviceTime;
+			this.visits = visits;
+		}
 	}
 
 }

@@ -11,9 +11,17 @@ public class StaticWorkload extends Workload {
 
 	int workLevel;
 	
+	public StaticWorkload(Simulation simulation) {
+		super(simulation);
+	}
+	
 	public StaticWorkload(Simulation simulation, int workLevel) {
 		super(simulation);
 		
+		this.workLevel = workLevel;
+	}
+	
+	public void setWorkLevel(int workLevel) {
 		this.workLevel = workLevel;
 	}
 
