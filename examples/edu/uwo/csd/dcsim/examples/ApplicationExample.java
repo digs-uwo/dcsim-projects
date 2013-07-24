@@ -34,7 +34,7 @@ public class ApplicationExample extends SimulationTask {
 	
 		Simulation.initializeLogging();
 		
-		SimulationTask task = new ApplicationExample("AppExample", SimTime.minutes(5));
+		SimulationTask task = new ApplicationExample("AppExample", SimTime.days(1));
 		
 		task.run();
 		
@@ -78,7 +78,7 @@ public class ApplicationExample extends SimulationTask {
 		
 		//Instantiate the Hosts
 		ArrayList<Host> hosts = new ArrayList<Host>();
-		for (int i = 2; i < 10; ++i) {
+		for (int i = 1; i < 50; ++i) {
 			Host host = hostBuilder.build();
 			
 			//Create an AutonomicManager for the Host, with the HostManager capability (provides access to the host being managed)
@@ -108,18 +108,18 @@ public class ApplicationExample extends SimulationTask {
 		//Create applications
 		ArrayList<VmAllocationRequest> vmRequests = new ArrayList<VmAllocationRequest>();
 		
-		for (int i = 0; i < 1; ++i) {
+		for (int i = 0; i < 50; ++i) {
 //			StaticWorkload workload = new StaticWorkload(simulation);
 			TraceWorkload workload = new TraceWorkload(simulation, "traces/clarknet", (int)(simulation.getRandom().nextDouble() * 200000000));
 			InteractiveApplication.Builder appBuilder = new InteractiveApplication.Builder(simulation).workload(workload).thinkTime(4)
 					.task(1, new Resources(2500,1,1,1), 0.005f, 1)
-					.task(2, new Resources(2500,1,1,1), 0.02f, 1)
+					.task(1, new Resources(2500,1,1,1), 0.02f, 1)
 					.task(1, new Resources(2500,1,1,1), 0.01f, 1);
 			
 			InteractiveApplication app = appBuilder.build();
-			workload.setScaleFactor(app.calculateMaxWorkloadUtilizationLimit(2, 0.98f));
+			workload.setScaleFactor(app.calculateMaxWorkloadResponseTimeLimit(1, 1)); //scale to 1s response time
 			
-			InteractiveServiceLevelAgreement sla = new InteractiveServiceLevelAgreement(app).responseTime(1);
+			InteractiveServiceLevelAgreement sla = new InteractiveServiceLevelAgreement(app).responseTime(1, 1); //sla limit at 1s response time
 			app.setSla(sla);
 			
 			//place applications
@@ -131,7 +131,7 @@ public class ApplicationExample extends SimulationTask {
 		simulation.sendEvent(vmPlacementEvent, 0);
 		
 		dcAM.installPolicy(new RelocationPolicy(0.5, 0.9, 0.85), SimTime.hours(1), SimTime.hours(1) + 1);
-		dcAM.installPolicy(new ConsolidationPolicy(0.5, 0.9, 0.85), SimTime.hours(2), SimTime.hours(2) + 2);
+		dcAM.installPolicy(new ConsolidationPolicy(0.3, 0.9, 0.85), SimTime.hours(2), SimTime.hours(2) + 2);
 	}
 	
 }

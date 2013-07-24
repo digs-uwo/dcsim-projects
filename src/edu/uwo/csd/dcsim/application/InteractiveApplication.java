@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import edu.uwo.csd.dcsim.application.loadbalancer.LoadBalancer;
 import edu.uwo.csd.dcsim.application.workload.*;
 import edu.uwo.csd.dcsim.core.Simulation;
+import edu.uwo.csd.dcsim.core.metrics.AggregateMetric;
 import edu.uwo.csd.dcsim.core.metrics.AvgValueMetric;
 import edu.uwo.csd.dcsim.core.metrics.CpuUnderprovisionDurationMetric;
 import edu.uwo.csd.dcsim.core.metrics.CpuUnderprovisionMetric;
@@ -176,6 +177,10 @@ public class InteractiveApplication extends Application {
 		//TODO change
 		AvgValueMetric.getMetric(simulation, "responseTime").addValue(responseTime);
 		AvgValueMetric.getMetric(simulation, "throughput").addValue(throughput);
+		
+		if (sla != null && !sla.evaluate()) {
+			AggregateMetric.getMetric(simulation, "slaPenalty").addValue(sla.calculatePenalty());
+		}
 		
 	}
 	
