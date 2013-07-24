@@ -359,10 +359,7 @@ public class Simulation implements SimulationEventListener {
 		
 		//while not done
 		boolean done = false;
-		int c = 0;
 		while (!done) {
-			++c;
-			
 			done = true;
 			//schedule cpu on all hosts (in no order)
 			for (Host host : hosts) {
