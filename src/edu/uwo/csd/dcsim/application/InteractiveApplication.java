@@ -247,6 +247,14 @@ public class InteractiveApplication extends Application {
 		this.thinkTime = thinkTime;
 	}
 	
+	public float getResponseTime() {
+		return responseTime;
+	}
+	
+	public float getThroughput() {
+		return throughput;
+	}
+	
 	/**
 	 * Get the Workload for this Service
 	 * @return
@@ -298,7 +306,7 @@ public class InteractiveApplication extends Application {
 		
 		public Builder task(int defaultInstances,
 				Resources resourceSize,
-				float serviceTime,
+				float serviceTime, 
 				float visitRatio,
 				LoadBalancer loadBalancer) {
 			

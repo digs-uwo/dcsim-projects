@@ -7,6 +7,7 @@ import org.apache.log4j.Logger;
 
 import edu.uwo.csd.dcsim.*;
 import edu.uwo.csd.dcsim.application.InteractiveApplication;
+import edu.uwo.csd.dcsim.application.sla.InteractiveServiceLevelAgreement;
 import edu.uwo.csd.dcsim.application.workload.*;
 import edu.uwo.csd.dcsim.common.SimTime;
 import edu.uwo.csd.dcsim.core.Simulation;
@@ -117,6 +118,9 @@ public class ApplicationExample extends SimulationTask {
 			
 			InteractiveApplication app = appBuilder.build();
 			workload.setScaleFactor(app.calculateMaxWorkloadUtilizationLimit(2, 0.98f));
+			
+			InteractiveServiceLevelAgreement sla = new InteractiveServiceLevelAgreement(app).responseTime(1);
+			app.setSla(sla);
 			
 			//place applications
 			vmRequests.addAll(app.createInitialVmRequests());

@@ -2,6 +2,7 @@ package edu.uwo.csd.dcsim.application;
 
 import java.util.*;
 
+import edu.uwo.csd.dcsim.application.sla.ServiceLevelAgreement;
 import edu.uwo.csd.dcsim.core.Simulation;
 import edu.uwo.csd.dcsim.host.Host;
 import edu.uwo.csd.dcsim.management.AutonomicManager;
@@ -20,6 +21,7 @@ public abstract class Application {
 
 	int id;
 	protected Simulation simulation;
+	ServiceLevelAgreement sla = null;
 	
 	public Application(Simulation simulation) {
 		this.simulation = simulation;
@@ -97,6 +99,14 @@ public abstract class Application {
 
 	public int getId() {
 		return id;
+	}
+	
+	public ServiceLevelAgreement getSla() {
+		return sla;
+	}
+	
+	public void setSla(ServiceLevelAgreement sla) {
+		this.sla = sla;
 	}
 	
 }
