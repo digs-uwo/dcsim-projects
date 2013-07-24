@@ -108,15 +108,15 @@ public class ApplicationExample extends SimulationTask {
 		ArrayList<VmAllocationRequest> vmRequests = new ArrayList<VmAllocationRequest>();
 		
 		for (int i = 0; i < 1; ++i) {
-			StaticWorkload workload = new StaticWorkload(simulation);
-//			TraceWorkload workload = new TraceWorkload(simulation, "traces/clarknet", 100, (int)(simulation.getRandom().nextDouble() * 200000000));
+//			StaticWorkload workload = new StaticWorkload(simulation);
+			TraceWorkload workload = new TraceWorkload(simulation, "traces/clarknet", (int)(simulation.getRandom().nextDouble() * 200000000));
 			InteractiveApplication.Builder appBuilder = new InteractiveApplication.Builder(simulation).workload(workload).thinkTime(4)
 					.task(1, new Resources(2500,1,1,1), 0.005f, 1)
 					.task(2, new Resources(2500,1,1,1), 0.02f, 1)
 					.task(1, new Resources(2500,1,1,1), 0.01f, 1);
 			
 			InteractiveApplication app = appBuilder.build();
-			workload.setWorkLevel(app.calculateMaxWorkloadUtilizationLimit(2, 0.98f));
+			workload.setScaleFactor(app.calculateMaxWorkloadUtilizationLimit(2, 0.98f));
 			
 			//place applications
 			vmRequests.addAll(app.createInitialVmRequests());
