@@ -81,7 +81,7 @@ public class RackData {
 		// Return a copy of the history to ensure that it is read-only.
 		ArrayList<RackStatus> historyCopy = new ArrayList<RackStatus>();
 		for (RackStatus status : history) {
-			historyCopy.add(status);
+			historyCopy.add(status.copy());
 		}
 		return historyCopy;
 	}

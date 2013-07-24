@@ -81,11 +81,7 @@ public class ClusterData {
 		// Return a copy of the history to ensure that it is read-only.
 		ArrayList<ClusterStatus> historyCopy = new ArrayList<ClusterStatus>();
 		for (ClusterStatus status : history) {
-			
-			// Not sure we are actually returning a copy of the list.
-			// Shouldn't we be copying the status objects and inserting the copies into the new list?
-			
-			historyCopy.add(status);
+			historyCopy.add(status.copy());
 		}
 		return historyCopy;
 	}
