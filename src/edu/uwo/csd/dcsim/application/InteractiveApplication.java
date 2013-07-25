@@ -169,10 +169,10 @@ public class InteractiveApplication extends Application {
 
 		//record the CPU underprovision metrics
 		if (cpuDemand > cpuScheduled) {
-			CpuUnderprovisionMetric.getMetric(simulation, CPU_UNDERPROVISION_METRIC).addSlaVWork(cpuDemand - cpuScheduled);
+			CpuUnderprovisionMetric.getMetric(simulation, CPU_UNDERPROVISION_METRIC).addSlaVWork((cpuDemand - cpuScheduled) * simulation.getElapsedSeconds());
 			CpuUnderprovisionDurationMetric.getMetric(simulation, CPU_UNDERPROVISION_DURATION_METRIC).addSlaViolationTime(simulation.getElapsedTime());
 		}
-		CpuUnderprovisionMetric.getMetric(simulation, CPU_UNDERPROVISION_METRIC).addWork(cpuDemand);
+		CpuUnderprovisionMetric.getMetric(simulation, CPU_UNDERPROVISION_METRIC).addWork(cpuDemand * simulation.getElapsedSeconds());
 
 		//TODO change
 		AvgValueMetric.getMetric(simulation, "responseTime").addValue(responseTime);
