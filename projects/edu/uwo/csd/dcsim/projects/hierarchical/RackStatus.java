@@ -80,9 +80,9 @@ public class RackStatus {
 		
 		// Average-sized VM.
 		// TODO: This value should be obtained from a config file.
-		int cpu = 2500;		// 1 core * 2500 cpu units 
-		int mem = 1024;		// 1 GB
-		int bw = 12800;		// 100 Mb/s
+		double cpu = 2500;		// 1 core * 2500 cpu units 
+		double mem = 1024;		// 1 GB
+		double bw = 12800;		// 100 Mb/s
 		//long storage = 1024;	// 1 GB
 		
 		// Check Host status. If invalid, we cannot calculate spare capacity.
@@ -119,6 +119,18 @@ public class RackStatus {
 	
 	public double getMaxSpareCapacity() {
 		return maxSpareCapacity;
+	}
+	
+	public Resources getMaxSpareResources() {
+		
+		// Average-sized VM.
+		// TODO: This value should be obtained from a config file.
+		double cpu = 2500;		// 1 core * 2500 cpu units 
+		double mem = 1024;		// 1 GB
+		double bw = 12800;		// 100 Mb/s
+		long storage = 1024;	// 1 GB
+		
+		return new Resources(cpu * maxSpareCapacity, (int) (mem * maxSpareCapacity), bw * maxSpareCapacity, (long) (storage * maxSpareCapacity));
 	}
 	
 	public double getPowerConsumption() {
