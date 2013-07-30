@@ -37,7 +37,7 @@ public final class Applications {
 		InteractiveApplication.Builder builder = new InteractiveApplication.Builder(simulation)
 				.workload(workload)
 				.thinkTime(4)
-				.task(1, new Resources(cores, coreCapacity, memory, bandwidth, storage), serviceTime, 1);
+				.task(1, 1, new Resources(cores, coreCapacity, memory, bandwidth, storage), serviceTime, 1);
 		return builder.build();	
 	}
 	

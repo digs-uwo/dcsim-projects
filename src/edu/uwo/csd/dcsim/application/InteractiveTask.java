@@ -21,10 +21,11 @@ public class InteractiveTask extends Task {
 	
 	public InteractiveTask(InteractiveApplication application,
 			int defaultInstances,
+			int maxInstances,
 			Resources resourceSize,
 			float normalServiceTime,
 			float visitRatio) {
-		super(defaultInstances, resourceSize);
+		super(defaultInstances, maxInstances, resourceSize);
 
 		this.normalServiceTime = normalServiceTime;
 		this.visitRatio = visitRatio;
@@ -35,11 +36,12 @@ public class InteractiveTask extends Task {
 	
 	public InteractiveTask(InteractiveApplication application,
 			int defaultInstances,
+			int maxInstances,
 			Resources resourceSize,
 			float normalServiceTime,
 			float visitRatio,
 			LoadBalancer loadBalancer) {
-		super(defaultInstances, resourceSize);
+		super(defaultInstances, maxInstances, resourceSize);
 
 		this.normalServiceTime = normalServiceTime;
 		this.visitRatio = visitRatio;

@@ -184,15 +184,15 @@ public class InteractiveApplication extends Application {
 		
 	}
 	
-	public int calculateMaxWorkloadUtilizationLimit(int maxTaskSize, float utilizationLimit) {
-		return calculateMaxWorkload(maxTaskSize, Float.MAX_VALUE, utilizationLimit);
+	public int calculateMaxWorkloadUtilizationLimit(float utilizationLimit) {
+		return calculateMaxWorkload(Float.MAX_VALUE, utilizationLimit);
 	}
 	
-	public int calculateMaxWorkloadResponseTimeLimit(int maxTaskSize, float responseTimeLimit) {
-		return calculateMaxWorkload(maxTaskSize, responseTimeLimit, Float.MAX_VALUE);
+	public int calculateMaxWorkloadResponseTimeLimit(float responseTimeLimit) {
+		return calculateMaxWorkload(responseTimeLimit, Float.MAX_VALUE);
 	}
 	
-	public int calculateMaxWorkload(int maxTaskSize, float responseTimeLimit, float utilizationLimit) {
+	public int calculateMaxWorkload(float responseTimeLimit, float utilizationLimit) {
 		
 		float responseTime = 0;
 		float throughput = 0;
@@ -202,8 +202,8 @@ public class InteractiveApplication extends Application {
 		//build array of tasks, one for each task instances, assuming each task has maxTaskSize instances
 		for (InteractiveTask task : tasks) {
 			
-			for (int i = 0; i < maxTaskSize; ++i) {
-				DummyTask dummy = new DummyTask(task.getNormalServiceTime(), task.getVisitRatio() / maxTaskSize);
+			for (int i = 0; i < task.getMaxInstances(); ++i) {
+				DummyTask dummy = new DummyTask(task.getNormalServiceTime(), task.getVisitRatio() / task.getMaxInstances());
 				dummyTasks.add(dummy);
 				
 			}
@@ -299,23 +299,25 @@ public class InteractiveApplication extends Application {
 		}
 		
 		public Builder task(int defaultInstances,
+				int maxInstances,
 				Resources resourceSize,
 				float serviceTime,
 				float visitRatio) {
 			
-			InteractiveTask task = new InteractiveTask(null, defaultInstances, resourceSize, serviceTime, visitRatio);
+			InteractiveTask task = new InteractiveTask(null, defaultInstances, maxInstances, resourceSize, serviceTime, visitRatio);
 			tasks.add(task);
 			
 			return this;
 		}
 		
 		public Builder task(int defaultInstances,
+				int maxInstances,
 				Resources resourceSize,
 				float serviceTime, 
 				float visitRatio,
 				LoadBalancer loadBalancer) {
 			
-			InteractiveTask task = new InteractiveTask(null, defaultInstances, resourceSize, serviceTime, visitRatio, loadBalancer);
+			InteractiveTask task = new InteractiveTask(null, defaultInstances, maxInstances, resourceSize, serviceTime, visitRatio, loadBalancer);
 			tasks.add(task);
 			
 			return this;

@@ -17,7 +17,6 @@ import edu.uwo.csd.dcsim.examples.management.RelocationPolicy;
 import edu.uwo.csd.dcsim.host.Host;
 import edu.uwo.csd.dcsim.host.HostModels;
 import edu.uwo.csd.dcsim.host.Resources;
-import edu.uwo.csd.dcsim.host.power.LinearHostPowerModel;
 import edu.uwo.csd.dcsim.host.resourcemanager.DefaultResourceManagerFactory;
 import edu.uwo.csd.dcsim.host.scheduler.DefaultResourceSchedulerFactory;
 import edu.uwo.csd.dcsim.management.AutonomicManager;
@@ -112,12 +111,12 @@ public class ApplicationExample extends SimulationTask {
 //			StaticWorkload workload = new StaticWorkload(simulation);
 			TraceWorkload workload = new TraceWorkload(simulation, "traces/clarknet", (int)(simulation.getRandom().nextDouble() * 200000000));
 			InteractiveApplication.Builder appBuilder = new InteractiveApplication.Builder(simulation).workload(workload).thinkTime(4)
-					.task(1, new Resources(2500,1,1,1), 0.005f, 1)
-					.task(1, new Resources(2500,1,1,1), 0.02f, 1)
-					.task(1, new Resources(2500,1,1,1), 0.01f, 1);
+					.task(1, 1, new Resources(2500,1,1,1), 0.005f, 1)
+					.task(2, 2, new Resources(2500,1,1,1), 0.02f, 1)
+					.task(1, 1, new Resources(2500,1,1,1), 0.01f, 1);
 			
 			InteractiveApplication app = appBuilder.build();
-			workload.setScaleFactor(app.calculateMaxWorkloadResponseTimeLimit(1, 1)); //scale to 1s response time
+			workload.setScaleFactor(app.calculateMaxWorkloadResponseTimeLimit(1)); //scale to 1s response time
 			
 			InteractiveServiceLevelAgreement sla = new InteractiveServiceLevelAgreement(app).responseTime(1, 1); //sla limit at 1s response time
 			app.setSla(sla);
