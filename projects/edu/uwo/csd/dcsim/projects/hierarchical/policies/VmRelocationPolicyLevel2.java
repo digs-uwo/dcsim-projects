@@ -1,6 +1,7 @@
 package edu.uwo.csd.dcsim.projects.hierarchical.policies;
 
 import java.util.Collection;
+import java.util.Collections;
 
 import edu.uwo.csd.dcsim.host.Resources;
 import edu.uwo.csd.dcsim.management.*;
@@ -35,14 +36,96 @@ public abstract class VmRelocationPolicyLevel2 extends Policy {
 		Collection<ClusterData> clusters = clusterPool.getClusters();
 		
 		
-		// DO SOMETHING...
+		// TODO Add static efficiency metric to Cluster and ClusterDescription.
+		// This metric would probably be something similar to that from Host, CPU_units per Watt.
 		
+		
+		// Sort Clusters in decreasing order by (Power) Efficiency.
+		// TODO Since Power Efficiency is a static metric, the ClusterPoolManager could maintain 
+		// the list of Clusters sorted (at insertion time) and it wouldn't have to be sorted here 
+		// every time.
+		Collections.sort(clusters, ClusterDataComparator.getComparator(ClusterDataComparator.EFFICIENCY));
+		Collections.reverse(clusters);
+		
+		
+		// For each PowerEff set (that is, the set composed by Clusters of the same PowerEff), 
+		// perform the following 3 tasks:
+		// 
+		// 		1. Find the Cluster with the Host with the most spare capacity;
+		//		2. Find the Cluster with the most loaded Rack (i.e., the Rack with the smallest 
+		//		   number of inactive Hosts) that has at least one inactive Host; and
+		//		3. Find the Cluster with the largest number of active Racks, but that has still 
+		//		   some more Racks to activate.
+		// 
+		// When we change PowerEff sets, check whether any Cluster that could take the VM was 
+		// identified during the iterations over the previous PowerEff set. If so, terminate 
+		// the loop and send the migration request. Otherwise, continue the analysis with the 
+		// new PowerEff set.
+		
+		
+		double maxSpareCapacity = 0;
+		ClusterData maxSpareCapacityCluster = null;
+		int minInactiveHosts = Integer.MAX_VALUE;
+		ClusterData mostLoadedRack = null;
+		int mostActiveRacks = 0;
+		ClusterData mostLoadedCluster = null;
 		
 		ClusterData targetCluster = null;
 		
+		double currentPowerEff = 0;
 		
-		// DO SOMETHING...
-		
+		for (ClusterData cluster : clusters) {
+			// Filter out Clusters with a currently invalid status.
+			if (!cluster.isStatusValid())
+				continue;
+			
+			if (currentPowerEff != cluster.getClusterDescription().getEfficiency()) {
+				// Check if the Cluster with the most spare capacity has enough resources to take the VM.
+				if (null != maxSpareCapacityCluster && this.canHost(event.getVm(), maxSpareCapacityCluster)) {
+					targetCluster = maxSpareCapacityCluster;
+					break;
+				}
+				// Otherwise, make the Cluster with the most loaded Rack the target.
+				else if (null != mostLoadedRack) {
+					targetCluster = mostLoadedRack;
+					break;
+				}
+				// Last recourse: make the most loaded Cluster the target.
+				else if (null != mostLoadedCluster) {
+					targetCluster = mostLoadedCluster;
+					break;
+				}
+				
+				currentPowerEff = cluster.getClusterDescription().getEfficiency();
+				// These two variables could have been modified during the iterations over the previous 
+				// PowerEff set.
+				maxSpareCapacity = 0;
+				maxSpareCapacityCluster = null;
+			}
+			
+			ClusterStatus status = cluster.getCurrentStatus();
+			
+			// Find the Cluster with the Host with the most spare capacity.
+			if (status.getMaxSpareCapacity() > maxSpareCapacity) {
+				maxSpareCapacity = status.getMaxSpareCapacity();
+				maxSpareCapacityCluster = cluster;
+			}
+			
+			// Find the Cluster with the most loaded Rack (i.e., the Rack with the 
+			// smallest number of inactive Hosts) that has at least one inactive Host.
+			if (status.getMinInactiveHosts() < minInactiveHosts && status.getMinInactiveHosts() > 0) {
+				minInactiveHosts = status.getMinInactiveHosts();
+				mostLoadedRack = cluster;
+			}
+			
+			// Find the Cluster with the largest number of active Racks, but that has 
+			// still some more Racks to activate.
+			// TODO This check assumes that Racks are active or inactive, never failed.
+			if (status.getActiveRacks() > mostActiveRacks && status.getActiveRacks() < cluster.getClusterDescription().getRackCount()) {
+				mostActiveRacks = status.getActiveRacks();
+				mostLoadedCluster = cluster;
+			}
+		}
 		
 		if (null != targetCluster) {
 			// Found target. Send migration request.
@@ -55,8 +138,7 @@ public abstract class VmRelocationPolicyLevel2 extends Policy {
 			
 			
 		}
-		
-		// Could not find suitable target Cluster in the Data Centre.
+		// else		// Could not find suitable target Cluster in the Data Centre.
 		
 		// TODO Should I contact RackManager origin to reject/deny the migration request ???
 		// MigRejectEvent may sound better...
