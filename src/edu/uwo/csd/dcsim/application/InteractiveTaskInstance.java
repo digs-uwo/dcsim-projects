@@ -2,6 +2,8 @@ package edu.uwo.csd.dcsim.application;
 
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 
+import edu.uwo.csd.dcsim.core.Simulation;
+
 /**
  * @author Michael Tighe
  *
@@ -27,7 +29,11 @@ public class InteractiveTaskInstance extends TaskInstance {
 	}
 	
 	public float getServiceTime() {
-		return task.getNormalServiceTime() * (task.getResourceSize().getCpu() / (float)vm.getMaxCpu());
+		float serviceTime = task.getNormalServiceTime() * (task.getResourceSize().getCpu() / (float)vm.getMaxCpu());
+		if (vm.isMigrating())
+			serviceTime += serviceTime * Float.parseFloat(Simulation.getProperty("vmMigrationServiceTimePenalty"));
+			
+		return serviceTime;
 	}
 	
 	public float getEffectiveServiceTime() {
