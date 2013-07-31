@@ -5,8 +5,9 @@ import java.util.Collection;
 import edu.uwo.csd.dcsim.host.Resources;
 import edu.uwo.csd.dcsim.management.*;
 import edu.uwo.csd.dcsim.projects.hierarchical.*;
+import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.RackManager;
 import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.RackPoolManager;
-import edu.uwo.csd.dcsim.projects.hierarchical.events.MigRequestEvent;
+import edu.uwo.csd.dcsim.projects.hierarchical.events.*;
 
 /**
  * 
@@ -83,21 +84,30 @@ public abstract class VmRelocationPolicyLevel1 extends Policy {
 			simulation.sendEvent(new MigRequestEvent(targetRack.getRackManager(), event.getVm(), event.getOrigin()));
 			
 			
-			// TODO Should I record here that a MigRequest for VM X from Host Y was sent and is awaiting response ???
+			// TODO Should I record here that a MigRequest for VM X from Host Y was sent to Host Z ???
 			// Should I store the info in a new capability? Probably...
-			// Should I record as well the Host to which the request is forwarded? Don't think so...
+			// Should I record as well the Host to which the request is forwarded? Don't think it's necessary...
 			
 			
 		}
-		
 		// Could not find suitable target Rack in the Cluster.
-		// Request assistance from DC Manager to find a target Host for migrating the selected VM.
-		simulation.sendEvent(new MigRequestEvent(target, event.getVm(), event.getOrigin()));
-		
-		// TODO Should I record here that a MigRequest for VM X from Host Y was forwarded to DC Manager ???
-		// Should I store the info in a new capability? Probably...
-		// Can probably assume this to be the last time to hear about this request... unless unsuccessful.
-		
+		else {
+			// If event's origin belongs in this Cluster, request assistance from DC Manager 
+			// to find a target Host for the VM migration in another Cluster.
+			if (null != rackPool.getRack(event.getOrigin().getCapability(RackManager.class).getRack().getId())) {
+				simulation.sendEvent(new MigRequestEvent(target, event.getVm(), event.getOrigin()));
+				
+				// TODO Should I record here that a MigRequest for VM X from Host Y was forwarded to DC Manager ???
+				// Should I store the info in a new capability? Probably...
+				// Can probably assume this to be the last time to hear about this request... unless unsuccessful.
+				
+			}
+			// Event's origin does not belong in this Cluster.
+			else {
+				// Migration request was sent by DC Manager. Reject migration request.
+				simulation.sendEvent(new MigRejectEvent(target, event.getVm(), event.getOrigin()));
+			}	
+		}
 	}
 	
 	/**
@@ -112,7 +122,7 @@ public abstract class VmRelocationPolicyLevel1 extends Policy {
 			return false;
 		
 		// Check available resources.
-		Resources availableResources = rack.getCurrentStatus().getMaxSpareResources();
+		Resources availableResources = AverageVmSizes.convertCapacityToResources(rack.getCurrentStatus().getMaxSpareCapacity());
 		Resources vmResources = vm.getResourcesInUse();
 		if (availableResources.getCpu() < vmResources.getCpu())
 			return false;

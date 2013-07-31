@@ -41,7 +41,8 @@ public class RackStatus {
 					activeHosts++;
 					
 					// Calculate spare capacity for each active Host.
-					double capacity = this.calculateSpareCapacity(host);
+					//double capacity = this.calculateSpareCapacity(host);
+					double capacity = AverageVmSizes.calculateSpareCapacity(host);
 					if (capacity > maxSpareCapacity)
 						maxSpareCapacity = capacity;
 				}
@@ -72,27 +73,6 @@ public class RackStatus {
 		powerConsumption = status.powerConsumption;
 	}
 	
-	/**
-	 * Calculates the spare capacity of a Host, measured as the number of "average-sized VMs"
-	 * that can be placed in the Host to use up that spare capacity.
-	 */
-	private double calculateSpareCapacity(HostData host) {
-		
-		// Average-sized VM.
-		// TODO: This value should be obtained from a config file.
-		double cpu = 2500;		// 1 core * 2500 cpu units 
-		double mem = 1024;		// 1 GB
-		double bw = 12800;		// 100 Mb/s
-		//long storage = 1024;	// 1 GB
-		
-		// Check Host status. If invalid, we cannot calculate spare capacity.
-		if (!host.isStatusValid())
-			return 0;
-		
-		Resources spare = host.getHostDescription().getResourceCapacity().subtract(host.getCurrentStatus().getResourcesInUse());
-		return Math.min(spare.getCpu() / cpu, Math.min(spare.getMemory() / mem, spare.getBandwidth() / bw));
-	}
-	
 	public RackStatus copy() {
 		return new RackStatus(this);
 	}
@@ -119,18 +99,6 @@ public class RackStatus {
 	
 	public double getMaxSpareCapacity() {
 		return maxSpareCapacity;
-	}
-	
-	public Resources getMaxSpareResources() {
-		
-		// Average-sized VM.
-		// TODO: This value should be obtained from a config file.
-		double cpu = 2500;		// 1 core * 2500 cpu units 
-		double mem = 1024;		// 1 GB
-		double bw = 12800;		// 100 Mb/s
-		long storage = 1024;	// 1 GB
-		
-		return new Resources(cpu * maxSpareCapacity, (int) (mem * maxSpareCapacity), bw * maxSpareCapacity, (long) (storage * maxSpareCapacity));
 	}
 	
 	public double getPowerConsumption() {

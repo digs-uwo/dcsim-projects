@@ -9,7 +9,7 @@ import edu.uwo.csd.dcsim.management.*;
 import edu.uwo.csd.dcsim.management.action.MigrationAction;
 import edu.uwo.csd.dcsim.management.capabilities.HostPoolManager;
 import edu.uwo.csd.dcsim.projects.centralized.events.VmRelocationEvent;
-import edu.uwo.csd.dcsim.projects.hierarchical.events.MigRequestEvent;
+import edu.uwo.csd.dcsim.projects.hierarchical.events.*;
 
 /**
  * This policy implements the VM Relocation process in two steps. First, the 
@@ -101,7 +101,7 @@ public abstract class VmRelocationPolicyLevel0 extends Policy {
 	/**
 	 * 
 	 */
-	public void execute(MigDeniedEvent event) {
+	public void execute(MigRejectEvent event) {
 		// TODO
 	}
 	

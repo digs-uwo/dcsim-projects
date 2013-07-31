@@ -152,16 +152,16 @@ public abstract class VmRelocationPolicyLevel2 extends Policy {
 	/**
 	 * 
 	 */
-	protected boolean canHost(VmStatus vm, RackData rack) {
+	protected boolean canHost(VmStatus vm, ClusterData cluster) {
 		// Check Host capabilities (e.g. core count, core capacity).
-		HostDescription hostDescription = rack.getRackDescription().getHostDescription();
+		HostDescription hostDescription = cluster.getClusterDescription().getRackDescription().getHostDescription();
 		if (hostDescription.getCpuCount() * hostDescription.getCoreCount() < vm.getCores())
 			return false;
 		if (hostDescription.getCoreCapacity() < vm.getCoreCapacity())
 			return false;
 		
 		// Check available resources.
-		Resources availableResources = rack.getCurrentStatus().getMaxSpareResources();
+		Resources availableResources = AverageVmSizes.convertCapacityToResources(cluster.getCurrentStatus().getMaxSpareCapacity());
 		Resources vmResources = vm.getResourcesInUse();
 		if (availableResources.getCpu() < vmResources.getCpu())
 			return false;
