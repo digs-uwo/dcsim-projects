@@ -17,8 +17,8 @@ public final class Rack implements SimulationEventListener {
 	private Simulation simulation;
 	
 	private int id = 0;
-	private int nSlots = 0;				// Number of hosts that can be hosted in the rack.
-	private int nHosts = 0;				// Number of hosts actually hosted in the rack.
+	private int nSlots = 0;								// Number of hosts that can be hosted in the rack.
+	private int nHosts = 0;								// Number of hosts actually hosted in the rack.
 	
 	private ArrayList<Host> hosts = null;					// List of hosts.
 	
@@ -61,6 +61,7 @@ public final class Rack implements SimulationEventListener {
 		
 		// Set default state.
 		//state = RackState.OFF;
+		
 	}
 	
 	/**
