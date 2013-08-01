@@ -10,7 +10,7 @@ import edu.uwo.csd.dcsim.application.*;
 import edu.uwo.csd.dcsim.application.workload.*;
 import edu.uwo.csd.dcsim.common.SimTime;
 import edu.uwo.csd.dcsim.core.*;
-import edu.uwo.csd.dcsim.core.metrics.Metric;
+import edu.uwo.csd.dcsim.core.metrics.AbstractMetric;
 import edu.uwo.csd.dcsim.examples.management.*;
 import edu.uwo.csd.dcsim.host.*;
 import edu.uwo.csd.dcsim.host.resourcemanager.DefaultResourceManagerFactory;
@@ -39,9 +39,9 @@ public class AutonomicManagement extends SimulationTask {
 		
 		task.run();
 		
-		Collection<Metric> metrics = task.getResults();
+		Collection<AbstractMetric> metrics = task.getResults();
 		
-		for (Metric metric : metrics) {
+		for (AbstractMetric metric : metrics) {
 			logger.info(metric.getName() + "=" + metric.toString()); //metric.getValue() returns the raw value, while toString() provides formatting
 		}
 		

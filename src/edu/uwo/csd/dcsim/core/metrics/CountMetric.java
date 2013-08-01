@@ -2,7 +2,7 @@ package edu.uwo.csd.dcsim.core.metrics;
 
 import edu.uwo.csd.dcsim.core.Simulation;
 
-public class CountMetric extends Metric {
+public class CountMetric extends AbstractMetric {
 
 	private double total = 0;
 	private double current = 0;

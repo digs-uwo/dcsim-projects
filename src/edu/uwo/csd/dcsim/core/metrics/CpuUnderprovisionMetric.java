@@ -2,7 +2,7 @@ package edu.uwo.csd.dcsim.core.metrics;
 
 import edu.uwo.csd.dcsim.core.Simulation;
 
-public class CpuUnderprovisionMetric extends Metric {
+public class CpuUnderprovisionMetric extends AbstractMetric {
 
 	private double totalSlaVWork = 0;
 	private double totalWork = 0;

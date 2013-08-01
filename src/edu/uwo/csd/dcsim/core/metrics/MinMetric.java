@@ -2,7 +2,7 @@ package edu.uwo.csd.dcsim.core.metrics;
 
 import edu.uwo.csd.dcsim.core.Simulation;
 
-public class MinMetric extends Metric {
+public class MinMetric extends AbstractMetric {
 
 	private double min = Double.MAX_VALUE;
 	private double count = 0;

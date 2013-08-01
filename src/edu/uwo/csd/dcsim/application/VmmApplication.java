@@ -13,6 +13,7 @@ public class VmmApplication extends Application {
 	private int migOverhead;
 	private VmmTask vmmTask;
 	private VmmTaskInstance vmmTaskInstance;
+	private int cpuDemand;
 	
 	public VmmApplication(Simulation simulation, Host host,
 			int cpu, int memory, int bandwidth, int storage) {
@@ -40,6 +41,8 @@ public class VmmApplication extends Application {
 		
 		vmmTaskInstance.setResourceDemand(resourcesDemand);
 		vmmTaskInstance.setFullDemand(resourcesDemand);
+		
+		cpuDemand = resourcesDemand.getCpu();
 	}
 
 	@Override
@@ -59,6 +62,16 @@ public class VmmApplication extends Application {
 	public void advanceSimulation() {
 		// TODO Auto-generated method stub
 		
+	}
+	
+	@Override
+	public int getTotalCpuDemand() {
+		return cpuDemand;
+	}
+
+	@Override
+	public int getTotalCpuScheduled() {
+		return cpuDemand; //scheduled is the same as demand, as we assume the Vmm always gets full demand
 	}
 
 	@Override
@@ -80,5 +93,7 @@ public class VmmApplication extends Application {
 		tasks.add(vmmTask);
 		return tasks;
 	}
+
+
 
 }

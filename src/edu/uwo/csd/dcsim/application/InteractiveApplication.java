@@ -26,6 +26,9 @@ public class InteractiveApplication extends Application {
 	float thinkTime = 0;
 	float responseTime = 0;
 	float throughput = 0;
+	
+	int totalCpuDemand;
+	int totalCpuScheduled;
 
 	public InteractiveApplication(Simulation simulation) {
 		super(simulation);
@@ -151,7 +154,23 @@ public class InteractiveApplication extends Application {
 
 	@Override
 	public void advanceSimulation() {
-		//TODO not sure if anything actually needs to be done here. In an batch application, this might compute progress
+		for (InteractiveTask task : tasks) {
+			for (InteractiveTaskInstance instance : task.getInteractiveTaskInstances()) {
+				totalCpuDemand += instance.getFullDemand().getCpu();
+				totalCpuScheduled += instance.getResourceScheduled().getCpu();
+			}
+		}
+	}
+	
+
+	@Override
+	public int getTotalCpuDemand() {
+		return totalCpuDemand;
+	}
+
+	@Override
+	public int getTotalCpuScheduled() {
+		return totalCpuScheduled;
 	}
 	
 	@Override
@@ -160,12 +179,7 @@ public class InteractiveApplication extends Application {
 		
 		int cpuDemand = 0;
 		int cpuScheduled = 0;
-		for (InteractiveTask task : tasks) {
-			for (InteractiveTaskInstance instance : task.getInteractiveTaskInstances()) {
-				cpuDemand += instance.getFullDemand().getCpu();
-				cpuScheduled += instance.getResourceScheduled().getCpu();
-			}
-		}
+		
 
 		//record the CPU underprovision metrics
 		if (cpuDemand > cpuScheduled) {
@@ -355,5 +369,6 @@ public class InteractiveApplication extends Application {
 			this.visits = visits;
 		}
 	}
+
 
 }

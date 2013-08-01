@@ -5,7 +5,8 @@ import java.util.Collection;
 import org.apache.log4j.Logger;
 
 import edu.uwo.csd.dcsim.core.Simulation;
-import edu.uwo.csd.dcsim.core.metrics.Metric;
+import edu.uwo.csd.dcsim.core.metrics.AbstractMetric;
+import edu.uwo.csd.dcsim.core.metrics.SimulationMetrics;
 import edu.uwo.csd.dcsim.core.metrics.ValueMetric;
 
 /**
@@ -22,7 +23,7 @@ public abstract class SimulationTask implements Runnable {
 	private final Simulation simulation;
 	private long duration;
 	private long metricRecordStart = 0;
-	private Collection<Metric> metrics = null;
+	private Collection<AbstractMetric> metrics = null;
 	private boolean complete = false;
 	
 	/**
@@ -96,11 +97,18 @@ public abstract class SimulationTask implements Runnable {
 		
 	}
 	
-	public Collection<Metric> getResults() {
+	public Collection<AbstractMetric> getResults() {
 		if (!complete)
 			throw new IllegalStateException("Simulation task results cannot be obtained until the task has been run");
 		
 		return metrics;
+	}
+	
+	public SimulationMetrics getSimulationMetrics() {
+		if (!complete)
+			throw new IllegalStateException("Simulation task results cannot be obtained until the task has been run");
+		
+		return simulation.getSimulationMetrics();
 	}
 	
 }

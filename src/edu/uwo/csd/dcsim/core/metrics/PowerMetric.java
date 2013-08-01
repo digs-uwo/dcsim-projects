@@ -2,7 +2,7 @@ package edu.uwo.csd.dcsim.core.metrics;
 
 import edu.uwo.csd.dcsim.core.Simulation;
 
-public class PowerMetric extends Metric {
+public class PowerMetric extends AbstractMetric {
 
 	private double powerConsumed = 0;			//the total power consumed during the simulation, in watt-seconds
 	private double currentPowerConsumption = 0;	//the current rate of power consumption, in watt-seconds

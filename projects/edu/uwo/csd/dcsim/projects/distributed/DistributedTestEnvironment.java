@@ -19,7 +19,7 @@ import edu.uwo.csd.dcsim.common.SimTime;
 import edu.uwo.csd.dcsim.common.Tuple;
 import edu.uwo.csd.dcsim.core.Simulation;
 import edu.uwo.csd.dcsim.core.SimulationEventBroadcastGroup;
-import edu.uwo.csd.dcsim.core.metrics.Metric;
+import edu.uwo.csd.dcsim.core.metrics.AbstractMetric;
 import edu.uwo.csd.dcsim.host.Host;
 import edu.uwo.csd.dcsim.host.HostModels;
 import edu.uwo.csd.dcsim.host.resourcemanager.DefaultResourceManagerFactory;
@@ -293,8 +293,8 @@ Now, let's look at how contention is handled. CPU is given fairly to each VM on 
 	 * 
 	 * @param metrics	simulation run results
 	 */
-	public static void printMetrics(Collection<Metric> metrics) {
-		for (Metric metric : metrics) {
+	public static void printMetrics(Collection<AbstractMetric> metrics) {
+		for (AbstractMetric metric : metrics) {
 			logger.info(metric.getName() +
 					" = " +
 					metric.toString());

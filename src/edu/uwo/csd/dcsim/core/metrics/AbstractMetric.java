@@ -4,13 +4,13 @@ import java.util.*;
 
 import edu.uwo.csd.dcsim.core.Simulation;
 
-public abstract class Metric {
+public abstract class AbstractMetric {
 
 	protected Simulation simulation;
 	private final String name;
 	private ArrayList<MetricRecord> recordedValues =  new ArrayList<MetricRecord>();
 	
-	public Metric(Simulation simulation, String name) {
+	public AbstractMetric(Simulation simulation, String name) {
 		this.simulation = simulation;
 		this.name = name;
 	}

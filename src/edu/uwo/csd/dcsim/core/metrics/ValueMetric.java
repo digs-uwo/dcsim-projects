@@ -2,7 +2,7 @@ package edu.uwo.csd.dcsim.core.metrics;
 
 import edu.uwo.csd.dcsim.core.Simulation;
 
-public class ValueMetric extends Metric {
+public class ValueMetric extends AbstractMetric {
 
 	private double value = 0;
 	

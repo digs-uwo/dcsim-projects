@@ -2,7 +2,7 @@ package edu.uwo.csd.dcsim.core.metrics;
 
 import edu.uwo.csd.dcsim.core.Simulation;
 
-public class PowerEfficiencyMetric extends Metric {
+public class PowerEfficiencyMetric extends AbstractMetric {
 
 	private double totalCpuUsed = 0;
 	private double totalPowerConsumed = 0;

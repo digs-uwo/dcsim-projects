@@ -3,7 +3,7 @@ package edu.uwo.csd.dcsim.core.metrics;
 import edu.uwo.csd.dcsim.common.SimTime;
 import edu.uwo.csd.dcsim.core.Simulation;
 
-public class CpuUnderprovisionDurationMetric extends Metric {
+public class CpuUnderprovisionDurationMetric extends AbstractMetric {
 
 	private double value = 0;
 	

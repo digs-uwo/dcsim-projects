@@ -11,7 +11,7 @@ import edu.uwo.csd.dcsim.application.workload.TraceWorkload;
 import edu.uwo.csd.dcsim.application.workload.Workload;
 import edu.uwo.csd.dcsim.common.SimTime;
 import edu.uwo.csd.dcsim.core.*;
-import edu.uwo.csd.dcsim.core.metrics.Metric;
+import edu.uwo.csd.dcsim.core.metrics.AbstractMetric;
 import edu.uwo.csd.dcsim.examples.management.RelocationPolicy;
 import edu.uwo.csd.dcsim.host.Host;
 import edu.uwo.csd.dcsim.host.HostModels;
@@ -50,10 +50,10 @@ public class SimpleExample extends SimulationTask {
 		task.run();
 		
 		//get the results of the simulation
-		Collection<Metric> metrics = task.getResults();
+		Collection<AbstractMetric> metrics = task.getResults();
 		
 		//output metric values
-		for (Metric metric : metrics) {
+		for (AbstractMetric metric : metrics) {
 			logger.info(metric.getName() + "=" + metric.toString()); //metric.getValue() returns the raw value, while toString() provides formatting
 		}
 

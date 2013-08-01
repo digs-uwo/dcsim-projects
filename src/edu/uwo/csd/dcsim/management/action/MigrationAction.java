@@ -87,6 +87,7 @@ public class MigrationAction extends ManagementAction {
 		
 		if (simulation.isRecordingMetrics()) {
 			CountMetric.getMetric(simulation, MIGRATION_COUNT_METRIC + "-" + triggeringEntity.getClass().getSimpleName()).incrementCount();
+			simulation.getSimulationMetrics().getManagementMetrics().addMigration(triggeringEntity.getClass());
 		}
 
 		//TODO improve logging output

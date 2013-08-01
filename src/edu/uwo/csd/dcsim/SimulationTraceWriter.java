@@ -5,8 +5,8 @@ import java.io.*;
 import org.apache.log4j.Logger;
 
 import edu.uwo.csd.dcsim.core.Simulation;
-import edu.uwo.csd.dcsim.core.metrics.Metric;
-import edu.uwo.csd.dcsim.core.metrics.Metric.MetricRecord;
+import edu.uwo.csd.dcsim.core.metrics.AbstractMetric;
+import edu.uwo.csd.dcsim.core.metrics.AbstractMetric.MetricRecord;
 
 public class SimulationTraceWriter {
 
@@ -26,7 +26,7 @@ public class SimulationTraceWriter {
 			FileWriter fstream = new FileWriter(Simulation.getLogDirectory() + "/" + task.getName() + ".metrictrace");
 			BufferedWriter out = new BufferedWriter(fstream);
 			
-			for (Metric metric : task.getResults()) {
+			for (AbstractMetric metric : task.getResults()) {
 				for (MetricRecord record : metric.getRecordedValues()) {
 					out.write(record.time + "," + metric.getName() + "," + record.value);
 					out.newLine();

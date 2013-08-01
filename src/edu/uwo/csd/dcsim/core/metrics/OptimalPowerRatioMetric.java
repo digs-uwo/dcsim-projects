@@ -7,7 +7,7 @@ import edu.uwo.csd.dcsim.core.Simulation;
 import edu.uwo.csd.dcsim.host.Host;
 import edu.uwo.csd.dcsim.host.comparator.HostComparator;
 
-public class OptimalPowerRatioMetric extends Metric {
+public class OptimalPowerRatioMetric extends AbstractMetric {
 
 	private double totalCpuUsed = 0;
 	private double totalPowerConsumed = 0;

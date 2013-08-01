@@ -2,7 +2,7 @@ package edu.uwo.csd.dcsim.core.metrics;
 
 import edu.uwo.csd.dcsim.core.Simulation;
 
-public class DCCpuUtilMetric extends Metric {
+public class DCCpuUtilMetric extends AbstractMetric {
 
 	private double totalInUse = 0;
 	private double totalCapacity = 0;

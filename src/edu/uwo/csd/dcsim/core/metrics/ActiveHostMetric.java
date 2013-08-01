@@ -2,7 +2,7 @@ package edu.uwo.csd.dcsim.core.metrics;
 
 import edu.uwo.csd.dcsim.core.Simulation;
 
-public class ActiveHostMetric extends Metric {
+public class ActiveHostMetric extends AbstractMetric {
 
 	private double total = 0;
 	private double totalWeight = 0;

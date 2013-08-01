@@ -11,7 +11,7 @@ import edu.uwo.csd.dcsim.application.sla.InteractiveServiceLevelAgreement;
 import edu.uwo.csd.dcsim.application.workload.*;
 import edu.uwo.csd.dcsim.common.SimTime;
 import edu.uwo.csd.dcsim.core.Simulation;
-import edu.uwo.csd.dcsim.core.metrics.Metric;
+import edu.uwo.csd.dcsim.core.metrics.AbstractMetric;
 import edu.uwo.csd.dcsim.examples.management.ConsolidationPolicy;
 import edu.uwo.csd.dcsim.examples.management.RelocationPolicy;
 import edu.uwo.csd.dcsim.host.Host;
@@ -38,17 +38,20 @@ public class ApplicationExample extends SimulationTask {
 		task.run();
 		
 		//get the results of the simulation
-		Collection<Metric> metrics = task.getResults();
+		Collection<AbstractMetric> metrics = task.getResults();
 		
 		//output metric values
-		for (Metric metric : metrics) {
+		for (AbstractMetric metric : metrics) {
 			logger.info(metric.getName() + "=" + metric.toString()); //metric.getValue() returns the raw value, while toString() provides formatting
 		}
+		
+		task.getSimulationMetrics().printDefault(System.out);
 		
 	}
 	
 	public ApplicationExample(String name, long duration) {
 		super(name, duration);
+		this.setMetricRecordStart(SimTime.hours(1));
 	}
 
 	@Override

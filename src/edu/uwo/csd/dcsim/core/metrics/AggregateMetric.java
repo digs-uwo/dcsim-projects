@@ -2,7 +2,7 @@ package edu.uwo.csd.dcsim.core.metrics;
 
 import edu.uwo.csd.dcsim.core.Simulation;
 
-public class AggregateMetric extends Metric {
+public class AggregateMetric extends AbstractMetric {
 
 	private double value = 0;
 	private double currentValue = 0;

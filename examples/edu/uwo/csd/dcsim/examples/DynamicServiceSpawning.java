@@ -12,7 +12,7 @@ import edu.uwo.csd.dcsim.application.workload.*;
 import edu.uwo.csd.dcsim.common.SimTime;
 import edu.uwo.csd.dcsim.common.Tuple;
 import edu.uwo.csd.dcsim.core.Simulation;
-import edu.uwo.csd.dcsim.core.metrics.Metric;
+import edu.uwo.csd.dcsim.core.metrics.AbstractMetric;
 import edu.uwo.csd.dcsim.examples.management.ConsolidationPolicy;
 import edu.uwo.csd.dcsim.examples.management.RelocationPolicy;
 import edu.uwo.csd.dcsim.host.*;
@@ -38,10 +38,10 @@ public class DynamicServiceSpawning extends SimulationTask {
 		task.run();
 		
 		//get the results of the simulation
-		Collection<Metric> metrics = task.getResults();
+		Collection<AbstractMetric> metrics = task.getResults();
 		
 		//output metric values
-		for (Metric metric : metrics) {
+		for (AbstractMetric metric : metrics) {
 			logger.info(metric.getName() + "=" + metric.toString()); //metric.getValue() returns the raw value, while toString() provides formatting
 		}
 		

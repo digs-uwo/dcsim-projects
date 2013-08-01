@@ -12,7 +12,7 @@ import edu.uwo.csd.dcsim.application.*;
 import edu.uwo.csd.dcsim.application.workload.*;
 import edu.uwo.csd.dcsim.common.*;
 import edu.uwo.csd.dcsim.core.Simulation;
-import edu.uwo.csd.dcsim.core.metrics.Metric;
+import edu.uwo.csd.dcsim.core.metrics.AbstractMetric;
 import edu.uwo.csd.dcsim.host.*;
 import edu.uwo.csd.dcsim.host.resourcemanager.DefaultResourceManagerFactory;
 import edu.uwo.csd.dcsim.host.scheduler.DefaultResourceSchedulerFactory;
@@ -265,8 +265,8 @@ public class SVM2013TestEnvironment {
 	 * 
 	 * @param metrics	simulation run results
 	 */
-	public static void printMetrics(Collection<Metric> metrics) {
-		for (Metric metric : metrics) {
+	public static void printMetrics(Collection<AbstractMetric> metrics) {
+		for (AbstractMetric metric : metrics) {
 			logger.info(metric.getName() +
 					" = " +
 					metric.toString());

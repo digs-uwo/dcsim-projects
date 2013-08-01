@@ -11,7 +11,7 @@ import edu.uwo.csd.dcsim.application.*;
 import edu.uwo.csd.dcsim.application.workload.*;
 import edu.uwo.csd.dcsim.common.SimTime;
 import edu.uwo.csd.dcsim.core.*;
-import edu.uwo.csd.dcsim.core.metrics.Metric;
+import edu.uwo.csd.dcsim.core.metrics.AbstractMetric;
 import edu.uwo.csd.dcsim.examples.management.VmPlacementPolicy;
 import edu.uwo.csd.dcsim.host.*;
 import edu.uwo.csd.dcsim.host.resourcemanager.*;
@@ -170,8 +170,8 @@ public class ExampleHelper {
 		simulation.sendEvent(vmPlacementEvent, 0);
 	}
 	
-	public static void printMetrics(Collection<Metric> metrics) {
-		for (Metric metric : metrics) {
+	public static void printMetrics(Collection<AbstractMetric> metrics) {
+		for (AbstractMetric metric : metrics) {
 			logger.info(metric.getName() +
 					" = " +
 					metric.toString());

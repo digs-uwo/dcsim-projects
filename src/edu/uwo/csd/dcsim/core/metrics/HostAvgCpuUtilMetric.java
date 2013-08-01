@@ -2,7 +2,7 @@ package edu.uwo.csd.dcsim.core.metrics;
 
 import edu.uwo.csd.dcsim.core.Simulation;
 
-public class HostAvgCpuUtilMetric extends Metric {
+public class HostAvgCpuUtilMetric extends AbstractMetric {
 
 	/*
 	 * Utilization for the entire simulation

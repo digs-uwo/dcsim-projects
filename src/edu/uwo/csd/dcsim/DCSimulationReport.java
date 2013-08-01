@@ -6,7 +6,7 @@ import java.util.*;
 import org.apache.commons.math3.stat.descriptive.*;
 import org.apache.log4j.Logger;
 
-import edu.uwo.csd.dcsim.core.metrics.Metric;
+import edu.uwo.csd.dcsim.core.metrics.AbstractMetric;
 
 public class DCSimulationReport {
 
@@ -31,7 +31,7 @@ public class DCSimulationReport {
 		
 		//Initialize the metric stats map with all metric names found in any task. This requires checking every task for metrics.
 		for (SimulationTask task : tasks) {
-			for (Metric metric : task.getResults()) {
+			for (AbstractMetric metric : task.getResults()) {
 				if (!metricStats.containsKey(metric.getName())) {
 					metricStats.put(metric.getName(), new DescriptiveStatistics());
 				}
@@ -45,7 +45,7 @@ public class DCSimulationReport {
 				double val = 0;
 				
 				//find the metric value
-				for (Metric metric : task.getResults()) {
+				for (AbstractMetric metric : task.getResults()) {
 					if (metric.getName().equals(metricName)) {
 						val = metric.getValue();
 					}

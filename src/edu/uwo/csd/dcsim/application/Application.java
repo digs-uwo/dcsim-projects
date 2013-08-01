@@ -84,6 +84,9 @@ public abstract class Application {
 		simulation.removeApplication(this);
 	}
 	
+	public abstract int getTotalCpuDemand();
+	public abstract int getTotalCpuScheduled();
+	
 	public abstract void recordMetrics();
 	
 	/**
