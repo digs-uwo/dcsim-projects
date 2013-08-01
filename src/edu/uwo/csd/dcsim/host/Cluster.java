@@ -17,16 +17,16 @@ public final class Cluster implements SimulationEventListener {
 	private Simulation simulation;
 	
 	private int id = 0;
-	private int nRacks = 0;				// Number of racks in the cluster.
-	private int nSwitches = 0;			// Number of switches in the cluster.
+	private int nRacks = 0;								// Number of racks in the cluster.
+	private int nSwitches = 0;								// Number of switches in the cluster.
 	
-	private ArrayList<Rack> racks = null;						// List of racks.
+	private ArrayList<Rack> racks = null;					// List of racks.
 	
-	private ArrayList<Switch> dataSwitches = null;				// Data network switches.
-	private ArrayList<Switch> mgmtSwitches = null;				// Management network switches.
+	private ArrayList<Switch> dataSwitches = null;			// Data network switches.
+	private ArrayList<Switch> mgmtSwitches = null;			// Management network switches.
 	
-	private Switch mainDataSwitch = null;						// Data network main (top-level) switch.
-	private Switch mainMgmtSwitch = null;						// Management network main (top-level) switch.
+	private Switch mainDataSwitch = null;					// Data network main (top-level) switch.
+	private Switch mainMgmtSwitch = null;					// Management network main (top-level) switch.
 	
 	// Do we want a _state_ attribute ???
 	
