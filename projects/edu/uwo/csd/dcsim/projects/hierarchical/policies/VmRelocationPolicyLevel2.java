@@ -1,5 +1,6 @@
 package edu.uwo.csd.dcsim.projects.hierarchical.policies;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 
@@ -33,18 +34,20 @@ public abstract class VmRelocationPolicyLevel2 extends Policy {
 	 */
 	public void execute(MigRequestEvent event) {
 		ClusterPoolManager clusterPool = manager.getCapability(ClusterPoolManager.class);
-		Collection<ClusterData> clusters = clusterPool.getClusters();
+		ArrayList<ClusterData> clusters = new ArrayList<ClusterData>(clusterPool.getClusters());
 		
 		
-		// TODO Add static efficiency metric to Cluster and ClusterDescription.
-		// This metric would probably be something similar to that from Host, CPU_units per Watt.
+		
+		// TODO Check all Clusters EXCEPT the one that sent the migration request.
 		
 		
-		// Sort Clusters in decreasing order by (Power) Efficiency.
+		
+		
+		// Sort Clusters in decreasing order by power efficiency.
 		// TODO Since Power Efficiency is a static metric, the ClusterPoolManager could maintain 
-		// the list of Clusters sorted (at insertion time) and it wouldn't have to be sorted here 
-		// every time.
-		Collections.sort(clusters, ClusterDataComparator.getComparator(ClusterDataComparator.EFFICIENCY));
+		// the list of Clusters sorted (at insertion time) and in that way the list would not 
+		// have to be sorted here every time.
+		Collections.sort(clusters, ClusterDataComparator.getComparator(ClusterDataComparator.POWER_EFFICIENCY));
 		Collections.reverse(clusters);
 		
 		
@@ -79,7 +82,7 @@ public abstract class VmRelocationPolicyLevel2 extends Policy {
 			if (!cluster.isStatusValid())
 				continue;
 			
-			if (currentPowerEff != cluster.getClusterDescription().getEfficiency()) {
+			if (currentPowerEff != cluster.getClusterDescription().getPowerEfficiency()) {
 				// Check if the Cluster with the most spare capacity has enough resources to take the VM.
 				if (null != maxSpareCapacityCluster && this.canHost(event.getVm(), maxSpareCapacityCluster)) {
 					targetCluster = maxSpareCapacityCluster;
@@ -96,7 +99,7 @@ public abstract class VmRelocationPolicyLevel2 extends Policy {
 					break;
 				}
 				
-				currentPowerEff = cluster.getClusterDescription().getEfficiency();
+				currentPowerEff = cluster.getClusterDescription().getPowerEfficiency();
 				// These two variables could have been modified during the iterations over the previous 
 				// PowerEff set.
 				maxSpareCapacity = 0;

@@ -35,6 +35,14 @@ public abstract class VmRelocationPolicyLevel1 extends Policy {
 		RackPoolManager rackPool = manager.getCapability(RackPoolManager.class);
 		Collection<RackData> racks = rackPool.getRacks();
 		
+		
+		
+		
+		// TODO Check all Racks EXCEPT the one that sent the migration request (if said Rack belongs in this Cluster).		
+		
+		
+		
+		
 		double maxSpareCapacity = 0;
 		RackData maxSpareCapacityRack = null;
 		int minInactiveHosts = Integer.MAX_VALUE;
@@ -94,6 +102,11 @@ public abstract class VmRelocationPolicyLevel1 extends Policy {
 		else {
 			// If event's origin belongs in this Cluster, request assistance from DC Manager 
 			// to find a target Host for the VM migration in another Cluster.
+			
+			// TODO I shouldn't be able to access info through the reference to the manager Origin. Said reference 
+			// should be used only as a pointer to send messages. If I need more info, it may have to be sent in 
+			// the message's payload.
+			
 			if (null != rackPool.getRack(event.getOrigin().getCapability(RackManager.class).getRack().getId())) {
 				simulation.sendEvent(new MigRequestEvent(target, event.getVm(), event.getOrigin()));
 				
