@@ -7,7 +7,7 @@ public class ClusterStatus {
 
 	private long timeStamp;
 	private int id;
-	private int activeRacks = 0;				// Percentage [0,1] or number?
+	private int activeRacks = 0;				// Number of active Racks.
 	private int minInactiveHosts = 0;			// Number of inactive Hosts in the Rack with more active Hosts.
 	private double maxSpareCapacity = 0;		// Amount of spare resources available in the least loaded active Host in the Cluster.
 	private double powerConsumption = 0;		// Sum of power consumption from all Racks and Switches in the Cluster.
