@@ -1,7 +1,9 @@
 package edu.uwo.csd.dcsim.core.metrics;
 
+import java.io.PrintStream;
 import java.util.*;
 
+import edu.uwo.csd.dcsim.common.Utility;
 import edu.uwo.csd.dcsim.core.Simulation;
 import edu.uwo.csd.dcsim.host.Host;
 import edu.uwo.csd.dcsim.vm.VmAllocation;
@@ -84,9 +86,24 @@ public class HostMetrics extends MetricCollection {
 	}
 
 	@Override
-	public void completeTimeStep() {
-		// TODO Auto-generated method stub
+	public void printDefault(PrintStream out) {
+		out.println("-- HOSTS --");
+		out.println("Active Hosts");
+		out.println("   max: " + getActiveHosts().getMax());
+		out.println("   mean: " + getActiveHosts().getMean());
+		out.println("   min: " + getActiveHosts().getMin());
+		out.println("   util: " + getHostUtilization().getMean());
+		out.println("   total util: " + getTotalUtilization().getMean());
+		
+		out.println("Power");
+		out.println("   consumed: " + (Utility.toKWH(getPowerConsumption().getSum())) + "kWh");
+		out.println("   max: " + getPowerConsumption().getMax());
+		out.println("   mean: " + getPowerConsumption().getMean());
+		out.println("   min: " + getPowerConsumption().getMin());
+		out.println("   efficiency: " + getPowerEfficiency().getMean());
+		
+		out.println("VM");
+		out.println("    count: " + getVmCount());
 		
 	}
-
 }

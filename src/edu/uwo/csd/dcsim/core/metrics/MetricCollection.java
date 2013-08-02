@@ -1,5 +1,7 @@
 package edu.uwo.csd.dcsim.core.metrics;
 
+import java.io.PrintStream;
+
 import edu.uwo.csd.dcsim.core.Simulation;
 
 public abstract class MetricCollection {
@@ -10,7 +12,7 @@ public abstract class MetricCollection {
 		this.simulation = simulation;
 	}
 	
-	public abstract void completeTimeStep();
 	public abstract void completeSimulation();
 	
+	public abstract void printDefault(PrintStream out);
 }

@@ -39,15 +39,7 @@ public class AutonomicManagement extends SimulationTask {
 		
 		task.run();
 		
-		Collection<AbstractMetric> metrics = task.getResults();
-		
-		for (AbstractMetric metric : metrics) {
-			logger.info(metric.getName() + "=" + metric.toString()); //metric.getValue() returns the raw value, while toString() provides formatting
-		}
-		
-		//write the metric values to a trace file
-//		SimulationTraceWriter traceWriter = new SimulationTraceWriter(task);
-//		traceWriter.writeTrace();
+		task.getMetrics().printDefault(System.out);
 	}
 	
 	public AutonomicManagement(String name, long randomSeed) {

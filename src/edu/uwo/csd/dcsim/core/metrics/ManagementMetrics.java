@@ -1,6 +1,8 @@
 package edu.uwo.csd.dcsim.core.metrics;
 
+import java.io.PrintStream;
 import java.util.*;
+import java.util.Map.Entry;
 
 import edu.uwo.csd.dcsim.core.Simulation;
 import edu.uwo.csd.dcsim.management.events.MessageEvent;
@@ -92,8 +94,20 @@ public class ManagementMetrics extends MetricCollection {
 	}
 
 	@Override
-	public void completeTimeStep() {
-		
+	public void printDefault(PrintStream out) {
+		out.println("-- MANAGEMENT --");
+		out.println("Messages");
+		for (Entry<Class<? extends MessageEvent>, Long> entry : getMessageCount().entrySet()) {
+			out.println("    " + entry.getKey().getName() + ": " + entry.getValue());
+		}
+		out.println("Message BW");
+		for (Entry<Class<? extends MessageEvent>, Double> entry : getMessageBw().entrySet()) {
+			out.println("    " + entry.getKey().getName() + ": " + entry.getValue());
+		}
+		out.println("Migrations");
+		for (Entry<Class<?>, Long> entry : getMigrationCount().entrySet()) {
+			out.println("    " + entry.getKey().getName() + ": " + entry.getValue());
+		}
 	}
 	
 }

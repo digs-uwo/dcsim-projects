@@ -1,5 +1,6 @@
 package edu.uwo.csd.dcsim.core.metrics;
 
+import java.io.PrintStream;
 import java.util.*;
 
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
@@ -8,6 +9,7 @@ import org.apache.commons.math3.stat.descriptive.summary.Sum;
 
 import edu.uwo.csd.dcsim.application.Application;
 import edu.uwo.csd.dcsim.application.InteractiveApplication;
+import edu.uwo.csd.dcsim.common.Utility;
 import edu.uwo.csd.dcsim.core.Simulation;
 
 public class ApplicationMetrics extends MetricCollection {
@@ -209,9 +211,37 @@ public class ApplicationMetrics extends MetricCollection {
 	}
 
 	@Override
-	public void completeTimeStep() {
-		// TODO Auto-generated method stub
-		
+	public void printDefault(PrintStream out) {
+		out.println("-- APPLICATIONS --");
+		out.println("CPU Underprovision");
+		out.println("   percentage: " + Utility.toPercentage(getAggregateCpuUnderProvision().getSum() / getAggregateCpuDemand().getSum()));
+		out.println("SLA");
+		out.println("  aggregate penalty");
+		out.println("    total: " + getAggregateSlaPenalty().getSum());
+		out.println("    max: " + getAggregateSlaPenalty().getMax());
+		out.println("    mean: " + getAggregateSlaPenalty().getMean());
+		out.println("    min: " + getAggregateSlaPenalty().getMin());
+		out.println("  per application penalty");
+		out.println("    mean: " + getSlaPenaltyStats().getMean());
+		out.println("    stdev: " + getSlaPenaltyStats().getStandardDeviation());
+		out.println("    max: " + getSlaPenaltyStats().getMax());
+		out.println("    95th: " + getSlaPenaltyStats().getPercentile(95));
+		out.println("    75th: " + getSlaPenaltyStats().getPercentile(75));
+		out.println("    50th: " + getSlaPenaltyStats().getPercentile(50));
+		out.println("    25th: " + getSlaPenaltyStats().getPercentile(25));
+		out.println("    min: " + getSlaPenaltyStats().getMin());
+		out.println("Response Time");
+		out.println("    max: " + getAggregateResponseTime().getMax());
+		out.println("    mean: " + getAggregateResponseTime().getMean());
+		out.println("    min: " + getAggregateResponseTime().getMin());
+		out.println("Throughput");
+		out.println("    max: " + getAggregateThroughput().getMax());
+		out.println("    mean: " + getAggregateThroughput().getMean());
+		out.println("    min: " + getAggregateThroughput().getMin());
+		out.println("Spawning");
+		out.println("   spawned: " + getApplicationsSpawned());
+		out.println("   shutdown: " + getApplicationsShutdown());
+		out.println("   failed placement: " + getApplicationPlacementsFailed());
 	}
 		
 }
