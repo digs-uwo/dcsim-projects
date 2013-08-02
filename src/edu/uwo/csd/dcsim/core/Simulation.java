@@ -293,10 +293,6 @@ public class Simulation implements SimulationEventListener {
 					simulationMetrics.getApplicationMetrics().recordApplicationMetrics(applications);
 					
 				}
-				
-				//inform metrics of completed time interval
-				simulationMetrics.completeTimeStep();
-				
 			}
 
 			//log current state
