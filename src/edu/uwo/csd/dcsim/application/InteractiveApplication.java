@@ -193,7 +193,7 @@ public class InteractiveApplication extends Application {
 		AvgValueMetric.getMetric(simulation, "throughput").addValue(throughput);
 		
 		if (sla != null && !sla.evaluate()) {
-			AggregateMetric.getMetric(simulation, "slaPenalty").addValue(sla.calculatePenalty());
+			AggregateMetric.getMetric(simulation, "slaPenalty").addValue(sla.calculatePenalty() * simulation.getElapsedSeconds());
 		}
 		
 	}

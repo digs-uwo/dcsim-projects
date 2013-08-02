@@ -8,14 +8,14 @@ import edu.uwo.csd.dcsim.vm.VmAllocation;
 
 public class HostMetrics extends MetricCollection {
 
-	WeightedMetric powerConsumption = new WeightedMetric(this);
-	WeightedMetric powerEfficiency = new WeightedMetric(this);
+	WeightedMetric powerConsumption = new WeightedMetric();
+	WeightedMetric powerEfficiency = new WeightedMetric();
 	
-	WeightedMetric activeHosts = new WeightedMetric(this);
-	WeightedMetric hostUtilization = new WeightedMetric(this);
-	WeightedMetric totalUtilization = new WeightedMetric(this);
+	WeightedMetric activeHosts = new WeightedMetric();
+	WeightedMetric hostUtilization = new WeightedMetric();
+	WeightedMetric totalUtilization = new WeightedMetric();
 	
-	WeightedMetric vmCount = new WeightedMetric(this);
+	long vmCount = 0;
 	
 	public HostMetrics(Simulation simulation) {
 		super(simulation);
@@ -24,45 +24,33 @@ public class HostMetrics extends MetricCollection {
 	public void recordHostMetrics(Collection<Host> hosts) {
 		double currentPowerConsumption = 0;
 		double currentActiveHosts = 0;
-		double currentHostUtilization = 0;
 		double currentTotalInUse = 0;
 		double currentTotalCapacity = 0;
 		double currentTotalUtilization;
-		double currentVmCount = 0;
-		
-		updateTimeWeights();
 		
 		for (Host host : hosts) {
 			currentPowerConsumption += host.getCurrentPowerConsumption();
 			
 			for (VmAllocation vmAlloc : host.getVMAllocations()) {
-				if (vmAlloc.getVm() != null) ++currentVmCount;
+				if (vmAlloc.getVm() != null) ++vmCount;
 			}
 			
 			if (host.getState() == Host.HostState.ON) {
 				++currentActiveHosts;
-				currentHostUtilization += host.getResourceManager().getCpuUtilization();
+				hostUtilization.add(host.getResourceManager().getCpuUtilization(), simulation.getElapsedTime());
 			}
 			
 			currentTotalInUse += host.getResourceManager().getCpuInUse();
 			currentTotalCapacity += host.getResourceManager().getTotalCpu();
-			
 		}
-		
-		currentHostUtilization = currentHostUtilization / currentActiveHosts;
+			
 		currentTotalUtilization = currentTotalInUse / currentTotalCapacity;
 		
-		powerConsumption.add(currentPowerConsumption / 1000); //divide by 1000 because weighted time is in ms, not seconds
-		powerEfficiency.add(currentTotalInUse / currentPowerConsumption);
-		activeHosts.add(currentActiveHosts);
-		hostUtilization.add(currentHostUtilization);
-		totalUtilization.add(currentTotalUtilization);
-		vmCount.add(currentVmCount);
+		powerConsumption.add(currentPowerConsumption, simulation.getElapsedSeconds());
+		powerEfficiency.add(currentTotalInUse / currentPowerConsumption, simulation.getElapsedSeconds());
+		activeHosts.add(currentActiveHosts, simulation.getElapsedTime());
+		totalUtilization.add(currentTotalUtilization, simulation.getElapsedTime());
 		
-	}
-	
-	public ArrayList<Double> getTimeWeights() {
-		return timeWeights;
 	}
 	
 	public WeightedMetric getPowerConsumption() {
@@ -85,7 +73,7 @@ public class HostMetrics extends MetricCollection {
 		return totalUtilization;
 	}
 	
-	public WeightedMetric getVmCount() {
+	public long getVmCount() {
 		return vmCount;
 	}
 

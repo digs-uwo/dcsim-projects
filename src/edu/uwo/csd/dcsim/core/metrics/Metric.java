@@ -9,15 +9,13 @@ import org.apache.commons.math3.stat.descriptive.rank.Median;
 import org.apache.commons.math3.stat.descriptive.rank.Min;
 import org.apache.commons.math3.stat.descriptive.summary.Sum;
 
-public class WeightedMetric {
+public class Metric {
 
-	private ArrayList<Double> weights = new ArrayList<Double>();
 	private ArrayList<Double> values = new ArrayList<Double>();
 	private double tempValue = 0;
 	
-	public void add(double val, double weight) {
+	public void add(double val) {
 		values.add(val);
-		weights.add(weight);
 	}
 	
 	public double getTempValue() {
@@ -32,10 +30,6 @@ public class WeightedMetric {
 		return values;
 	}
 	
-	public ArrayList<Double> getWeights() {
-		return weights;
-	}
-	
 	public double[] valuesArray() {
 		double[] array = new double[values.size()];
 		
@@ -46,20 +40,10 @@ public class WeightedMetric {
 		return array;
 	}
 	
-	public double[] weightsArray() {
-		double[] array = new double[weights.size()];
-		
-		for (int i = 0; i < weights.size(); ++i) {
-			array[i] = weights.get(i);
-		}
-		
-		return array;
-	}
-	
 	public double getMean() {
 		if (values.size() > 0) {
 			Mean mean = new Mean();
-			return mean.evaluate(valuesArray(), weightsArray());
+			return mean.evaluate(valuesArray());
 		}
 		return 0;
 	}
@@ -67,7 +51,7 @@ public class WeightedMetric {
 	public double getVariance() {
 		if (values.size() > 0) {
 			Variance variance = new Variance();
-			return variance.evaluate(valuesArray(), weightsArray());
+			return variance.evaluate(valuesArray());
 		}
 		return 0;
 	}
@@ -75,7 +59,7 @@ public class WeightedMetric {
 	public double getSum() {
 		if (values.size() > 0) {
 			Sum sum = new Sum();
-			return sum.evaluate(valuesArray(), weightsArray());
+			return sum.evaluate(valuesArray());
 		}
 		return 0;
 	}

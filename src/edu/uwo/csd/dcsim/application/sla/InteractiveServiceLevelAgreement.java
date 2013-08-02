@@ -54,11 +54,11 @@ public class InteractiveServiceLevelAgreement implements ServiceLevelAgreement {
 		double penalty = 0;
 		
 		if (application.getResponseTime() > responseTime) {
-			penalty += application.getSimulation().getElapsedSeconds() * responseTimePenalty;
+			penalty += responseTimePenalty;
 		}
 		
 		if (application.getThroughput() > throughput) {
-			penalty += application.getSimulation().getElapsedSeconds() * throughputPenalty;
+			penalty += throughputPenalty;
 		}
 		
 		return penalty;

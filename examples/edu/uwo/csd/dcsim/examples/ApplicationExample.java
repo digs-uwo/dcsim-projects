@@ -33,7 +33,7 @@ public class ApplicationExample extends SimulationTask {
 	
 		Simulation.initializeLogging();
 		
-		SimulationTask task = new ApplicationExample("AppExample", SimTime.days(1));
+		SimulationTask task = new ApplicationExample("AppExample", SimTime.hours(10));
 		
 		task.run();
 		
@@ -51,7 +51,7 @@ public class ApplicationExample extends SimulationTask {
 	
 	public ApplicationExample(String name, long duration) {
 		super(name, duration);
-		this.setMetricRecordStart(SimTime.hours(1));
+//		this.setMetricRecordStart(SimTime.hours(1));
 	}
 
 	@Override
@@ -80,7 +80,7 @@ public class ApplicationExample extends SimulationTask {
 		
 		//Instantiate the Hosts
 		ArrayList<Host> hosts = new ArrayList<Host>();
-		for (int i = 1; i < 50; ++i) {
+		for (int i = 0; i < 50; ++i) {
 			Host host = hostBuilder.build();
 			
 			//Create an AutonomicManager for the Host, with the HostManager capability (provides access to the host being managed)
@@ -120,6 +120,7 @@ public class ApplicationExample extends SimulationTask {
 			
 			InteractiveApplication app = appBuilder.build();
 			workload.setScaleFactor(app.calculateMaxWorkloadResponseTimeLimit(1)); //scale to 1s response time
+//			workload.setWorkLevel(app.calculateMaxWorkloadUtilizationLimit(0.98f));
 			
 			InteractiveServiceLevelAgreement sla = new InteractiveServiceLevelAgreement(app).responseTime(1, 1); //sla limit at 1s response time
 			app.setSla(sla);

@@ -34,7 +34,7 @@ public class ActiveHostMetric extends AbstractMetric {
 	}
 
 	@Override
-	public void onCompleteTimeInterval() {
+	public void onCompleteTimeInterval() {		
 		//add the current number of hosts * the time they were active to the total
 		total += current * simulation.getSimulationTime();
 		//add the time interval to the total weight

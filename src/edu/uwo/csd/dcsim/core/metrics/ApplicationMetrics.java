@@ -19,11 +19,11 @@ public class ApplicationMetrics extends MetricCollection {
 	Map<Application, WeightedMetric> responseTime = new HashMap<Application, WeightedMetric>();
 	Map<Application, WeightedMetric> throughput = new HashMap<Application, WeightedMetric>();
 	
-	WeightedMetric aggregateCpuUnderProvision = new WeightedMetric(this);
-	WeightedMetric aggregateCpuDemand = new WeightedMetric(this);
-	WeightedMetric aggregateSlaPenalty = new WeightedMetric(this);
-	WeightedMetric aggregateResponseTime = new WeightedMetric(this);
-	WeightedMetric aggregateThroughput = new WeightedMetric(this);
+	WeightedMetric aggregateCpuUnderProvision = new WeightedMetric();
+	WeightedMetric aggregateCpuDemand = new WeightedMetric();
+	WeightedMetric aggregateSlaPenalty = new WeightedMetric();
+	WeightedMetric aggregateResponseTime = new WeightedMetric();
+	WeightedMetric aggregateThroughput = new WeightedMetric();
 	
 	DescriptiveStatistics slaPenaltyStats;
 	DescriptiveStatistics responseTimeStats;
@@ -41,56 +41,54 @@ public class ApplicationMetrics extends MetricCollection {
 		double currentResponseTime = 0;
 		double currentThroughput = 0;
 		
-		updateTimeWeights();
-		
 		double val;
 		for (Application application : applications) {
 			
 			if (!cpuUnderProvision.containsKey(application)) {
-				cpuUnderProvision.put(application, new WeightedMetric(this));
-				cpuDemand.put(application, new WeightedMetric(this));
-				slaPenalty.put(application, new WeightedMetric(this));
+				cpuUnderProvision.put(application, new WeightedMetric());
+				cpuDemand.put(application, new WeightedMetric());
+				slaPenalty.put(application, new WeightedMetric());
 			}
 			
 			if (application.getTotalCpuDemand() > application.getTotalCpuScheduled()) {
 				val = (double)application.getTotalCpuDemand() - application.getTotalCpuScheduled();
-				cpuUnderProvision.get(application).add(val);
+				cpuUnderProvision.get(application).add(val, simulation.getElapsedTime());
 				currentCpuUnderProvision += val;
 			}
 			val = (double)application.getTotalCpuDemand();
-			cpuDemand.get(application).add(val);
+			cpuDemand.get(application).add(val, simulation.getElapsedTime());
 			currentCpuDemand += val;
 			
 			if (application.getSla() != null) {
 				val = application.getSla().calculatePenalty();
-				slaPenalty.get(application).add(val);
+				slaPenalty.get(application).add(val, simulation.getElapsedSeconds());
 				currentSlaPenalty += val;
 			}
 			
 			if (application instanceof InteractiveApplication) {
 				
 				if (!responseTime.containsKey(application)) {
-					responseTime.put(application, new WeightedMetric(this));
-					throughput.put(application, new WeightedMetric(this));
+					responseTime.put(application, new WeightedMetric());
+					throughput.put(application, new WeightedMetric());
 				}
 				
 				InteractiveApplication interactiveApplication = (InteractiveApplication)application;
 				
 				val = (double)interactiveApplication.getResponseTime();
-				responseTime.get(interactiveApplication).add(val);
+				responseTime.get(interactiveApplication).add(val, simulation.getElapsedTime());
 				currentResponseTime += val;
 				
 				val = (double)interactiveApplication.getThroughput();
-				throughput.get(interactiveApplication).add(val);
+				throughput.get(interactiveApplication).add(val, simulation.getElapsedTime());
 				currentThroughput += val;
 			}
 		}
-		
-		aggregateCpuUnderProvision.add(currentCpuUnderProvision);
-		aggregateCpuDemand.add(currentCpuDemand);
-		aggregateSlaPenalty.add(currentSlaPenalty);
-		aggregateResponseTime.add(currentResponseTime);
-		aggregateThroughput.add(currentThroughput);
+
+		aggregateCpuUnderProvision.add(currentCpuUnderProvision, simulation.getElapsedTime());
+		aggregateCpuDemand.add(currentCpuDemand, simulation.getElapsedTime());
+		aggregateSlaPenalty.add(currentSlaPenalty, simulation.getElapsedSeconds());
+		aggregateResponseTime.add(currentResponseTime, simulation.getElapsedTime());
+		aggregateThroughput.add(currentThroughput, simulation.getElapsedTime());
 	}
 	
 	public Map<Application, WeightedMetric> getCpuUnderProvision() {
@@ -153,19 +151,19 @@ public class ApplicationMetrics extends MetricCollection {
 		
 		for (Application application : slaPenalty.keySet()) {
 			Sum sum = new Sum();
-			slaPenaltyStats.addValue(sum.evaluate(slaPenalty.get(application).toDoubleArray()));
+			slaPenaltyStats.addValue(sum.evaluate(slaPenalty.get(application).valuesArray()));
 		}
 		
 		for (Application application : responseTime.keySet()) {
 			Mean mean = new Mean();
-			responseTimeStats.addValue(mean.evaluate(responseTime.get(application).toDoubleArray(), 
-					toDoubleArray(timeWeights)));
+			responseTimeStats.addValue(mean.evaluate(responseTime.get(application).valuesArray(), 
+					responseTime.get(application).weightsArray()));
 		}
 		
 		for (Application application : throughput.keySet()) {
 			Mean mean = new Mean();
-			throughputStats.addValue(mean.evaluate(throughput.get(application).toDoubleArray(), 
-					toDoubleArray(timeWeights)));
+			throughputStats.addValue(mean.evaluate(throughput.get(application).valuesArray(), 
+					throughput.get(application).weightsArray()));
 		}
 		
 	}
