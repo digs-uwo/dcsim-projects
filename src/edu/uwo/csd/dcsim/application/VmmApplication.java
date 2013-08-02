@@ -73,11 +73,6 @@ public class VmmApplication extends Application {
 	public int getTotalCpuScheduled() {
 		return cpuDemand; //scheduled is the same as demand, as we assume the Vmm always gets full demand
 	}
-
-	@Override
-	public void recordMetrics() {
-		// TODO Auto-generated method stub
-	}
 	
 	public VmmTask getVmmTask() {
 		return vmmTask;

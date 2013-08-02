@@ -1,13 +1,9 @@
 package edu.uwo.csd.dcsim;
 
-import java.util.Collection;
-
 import org.apache.log4j.Logger;
 
 import edu.uwo.csd.dcsim.core.Simulation;
-import edu.uwo.csd.dcsim.core.metrics.AbstractMetric;
 import edu.uwo.csd.dcsim.core.metrics.SimulationMetrics;
-import edu.uwo.csd.dcsim.core.metrics.ValueMetric;
 
 /**
  * SimulationTask represents a single configuration and execution of a simulation.
@@ -23,7 +19,7 @@ public abstract class SimulationTask implements Runnable {
 	private final Simulation simulation;
 	private long duration;
 	private long metricRecordStart = 0;
-	private Collection<AbstractMetric> metrics = null;
+	private SimulationMetrics metrics = null;
 	private boolean complete = false;
 	
 	/**
@@ -84,10 +80,7 @@ public abstract class SimulationTask implements Runnable {
 			
 			long endTime = System.currentTimeMillis();
 			
-			//add the real execution time of the simulation to the list of metrics
-			ValueMetric timeMetric = new ValueMetric(simulation, "simExecTime");
-			timeMetric.setValue(endTime - startTime);
-			metrics.add(timeMetric);
+			metrics.setExecutionTime(endTime - startTime);
 			
 			complete = true;
 		} catch (Exception e) {
@@ -96,19 +89,12 @@ public abstract class SimulationTask implements Runnable {
 		}
 		
 	}
-	
-	public Collection<AbstractMetric> getResults() {
+
+	public SimulationMetrics getMetrics() {
 		if (!complete)
 			throw new IllegalStateException("Simulation task results cannot be obtained until the task has been run");
 		
 		return metrics;
-	}
-	
-	public SimulationMetrics getSimulationMetrics() {
-		if (!complete)
-			throw new IllegalStateException("Simulation task results cannot be obtained until the task has been run");
-		
-		return simulation.getSimulationMetrics();
 	}
 	
 }

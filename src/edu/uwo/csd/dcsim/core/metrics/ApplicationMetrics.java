@@ -29,6 +29,10 @@ public class ApplicationMetrics extends MetricCollection {
 	DescriptiveStatistics responseTimeStats;
 	DescriptiveStatistics throughputStats;
 	
+	long applicationsSpawned = 0;
+	long applicationsShutdown = 0;
+	long applicationPlacementsFailed = 0;
+	
 	public ApplicationMetrics(Simulation simulation) {
 		super(simulation);
 	}
@@ -131,18 +135,54 @@ public class ApplicationMetrics extends MetricCollection {
 		return aggregateThroughput;
 	}
 	
-	DescriptiveStatistics getSlaPenaltyStats() {
+	public DescriptiveStatistics getSlaPenaltyStats() {
 		return slaPenaltyStats;
 	}
 	
-	DescriptiveStatistics getResponseTimeStats() {
+	public DescriptiveStatistics getResponseTimeStats() {
 		return responseTimeStats;
 	}
 	
-	DescriptiveStatistics getThroughputStats() {
+	public DescriptiveStatistics getThroughputStats() {
 		return throughputStats;
 	}
 	
+	public long getApplicationsSpawned() {
+		return applicationsSpawned;
+	}
+
+	public void setApplicationsSpawned(long applicationsSpawned) {
+		this.applicationsSpawned = applicationsSpawned;
+	}
+	
+	public void incrementApplicationsSpawned() {
+		++applicationsSpawned;
+	}
+	
+	public long getApplicationsShutdown() {
+		return applicationsShutdown;
+	}
+	
+	public void setApplicationShutdown(long applicationShutdown) {
+		this.applicationsShutdown = applicationShutdown;
+	}
+	
+	public void incrementApplicationShutdown() {
+		++applicationsShutdown;
+	}
+	
+	public long getApplicationPlacementsFailed() {
+		return applicationPlacementsFailed;
+	}
+	
+	public void setApplicationPlacementFailed(long applicationPlacementFailed) {
+		this.applicationPlacementsFailed = applicationPlacementFailed;
+	}
+	
+	public void incrementApplicationPlacementsFailed() {
+		++ applicationPlacementsFailed;
+	}
+
 	@Override
 	public void completeSimulation() {
 		slaPenaltyStats = new DescriptiveStatistics();

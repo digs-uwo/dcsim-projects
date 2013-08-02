@@ -15,6 +15,7 @@ public class ManagementMetrics extends MetricCollection {
 	Map<Class<? extends MessageEvent>, Long> messageCount = new HashMap<Class<? extends MessageEvent>, Long>();
 	Map<Class<? extends MessageEvent>, Double> messageBw = new HashMap<Class<? extends MessageEvent>, Double>();
 	Map<Class<?>, Long> migrationCount = new HashMap<Class<?>, Long>();
+	long placements;
 	
 	public void addMessage(MessageEvent message) {
 		

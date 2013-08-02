@@ -11,7 +11,6 @@ import edu.uwo.csd.dcsim.core.EventCallbackListener;
 import edu.uwo.csd.dcsim.core.Simulation;
 import edu.uwo.csd.dcsim.core.SimulationEventListener;
 import edu.uwo.csd.dcsim.core.events.DaemonRunEvent;
-import edu.uwo.csd.dcsim.core.metrics.AggregateMetric;
 import edu.uwo.csd.dcsim.management.AutonomicManager;
 import edu.uwo.csd.dcsim.management.events.VmPlacementEvent;
 import edu.uwo.csd.dcsim.vm.VmAllocationRequest;
@@ -24,10 +23,6 @@ import edu.uwo.csd.dcsim.vm.VmAllocationRequest;
  */
 public abstract class ApplicationGenerator implements SimulationEventListener {
 
-	private final static String SPAWN_COUNT_METRIC = "applicationsSpawned";
-	private final static String PLACEMENT_FAIL_METRIC = "applicationPlacementsFailed";
-	private final static String SHUTDOWN_COUNT_METRIC = "applicationsEnded";
-	
 	AutonomicManager dcTarget;
 	RealDistribution lifespanDist; //if null, create services that do not stop
 	ExponentialDistribution arrivalDist;
@@ -95,7 +90,7 @@ public abstract class ApplicationGenerator implements SimulationEventListener {
 		
 		simulation.getLogger().debug("Created New Application");
 		
-		AggregateMetric.getMetric(simulation, SPAWN_COUNT_METRIC).addValue(1);
+		simulation.getSimulationMetrics().getApplicationMetrics().incrementApplicationsSpawned();
 		
 		VmPlacementEvent placementEvent = new VmPlacementEvent(dcTarget, vmAllocationRequests);
 		
@@ -114,7 +109,7 @@ public abstract class ApplicationGenerator implements SimulationEventListener {
 		//check to see if the application is ready to shutdown (i.e. no VMs are migrating)
 		if (application.canShutdown()) {
 			application.shutdownApplication(dcTarget, simulation);
-			AggregateMetric.getMetric(simulation, SHUTDOWN_COUNT_METRIC).addValue(1);
+			simulation.getSimulationMetrics().getApplicationMetrics().incrementApplicationShutdown();
 			
 			simulation.getLogger().debug("Shutdown Application");
 		}
@@ -195,7 +190,7 @@ public abstract class ApplicationGenerator implements SimulationEventListener {
 				}
 			} else {
 				simulation.getLogger().debug("Application Placement Failed");
-				AggregateMetric.getMetric(simulation, PLACEMENT_FAIL_METRIC).addValue(1);
+				simulation.getSimulationMetrics().getApplicationMetrics().incrementApplicationPlacementsFailed();
 			}
 		}
 		

@@ -3,7 +3,6 @@ package edu.uwo.csd.dcsim.vm;
 import edu.uwo.csd.dcsim.application.*;
 import edu.uwo.csd.dcsim.common.Utility;
 import edu.uwo.csd.dcsim.core.*;
-import edu.uwo.csd.dcsim.core.metrics.VmCountMetric;
 import edu.uwo.csd.dcsim.host.Host;
 import edu.uwo.csd.dcsim.host.Resources;
 
@@ -15,8 +14,6 @@ import edu.uwo.csd.dcsim.host.Resources;
  */
 public class Vm implements SimulationEventListener {
 
-	private static final String VM_COUNT_METRIC = "vmCount";
-	
 	Simulation simulation;
 	int id;
 	VmDescription vmDescription;
@@ -75,13 +72,6 @@ public class Vm implements SimulationEventListener {
 	
 	public void stopTaskInstance() {
 		vmDescription.getTask().stopInstance(taskInstance);
-	}
-	
-	public void updateMetrics() {
-		
-		VmCountMetric.getMetric(simulation, VM_COUNT_METRIC).incrementVmCount();
-		
-		//application.updateMetrics();
 	}
 	
 	public void logState() {

@@ -1,7 +1,6 @@
 package edu.uwo.csd.dcsim.examples;
 
 import java.util.ArrayList;
-import java.util.Collection;
 
 import org.apache.log4j.Logger;
 
@@ -11,7 +10,6 @@ import edu.uwo.csd.dcsim.application.sla.InteractiveServiceLevelAgreement;
 import edu.uwo.csd.dcsim.application.workload.*;
 import edu.uwo.csd.dcsim.common.SimTime;
 import edu.uwo.csd.dcsim.core.Simulation;
-import edu.uwo.csd.dcsim.core.metrics.AbstractMetric;
 import edu.uwo.csd.dcsim.examples.management.ConsolidationPolicy;
 import edu.uwo.csd.dcsim.examples.management.RelocationPolicy;
 import edu.uwo.csd.dcsim.host.Host;
@@ -33,25 +31,17 @@ public class ApplicationExample extends SimulationTask {
 	
 		Simulation.initializeLogging();
 		
-		SimulationTask task = new ApplicationExample("AppExample", SimTime.hours(10));
+		SimulationTask task = new ApplicationExample("AppExample", SimTime.hours(4));
 		
 		task.run();
 		
-		//get the results of the simulation
-		Collection<AbstractMetric> metrics = task.getResults();
-		
-		//output metric values
-		for (AbstractMetric metric : metrics) {
-			logger.info(metric.getName() + "=" + metric.toString()); //metric.getValue() returns the raw value, while toString() provides formatting
-		}
-		
-		task.getSimulationMetrics().printDefault(System.out);
+		task.getMetrics().printDefault(System.out);
 		
 	}
 	
 	public ApplicationExample(String name, long duration) {
 		super(name, duration);
-//		this.setMetricRecordStart(SimTime.hours(1));
+		this.setMetricRecordStart(SimTime.minutes(10));
 	}
 
 	@Override
@@ -80,7 +70,7 @@ public class ApplicationExample extends SimulationTask {
 		
 		//Instantiate the Hosts
 		ArrayList<Host> hosts = new ArrayList<Host>();
-		for (int i = 0; i < 50; ++i) {
+		for (int i = 0; i < 10; ++i) {
 			Host host = hostBuilder.build();
 			
 			//Create an AutonomicManager for the Host, with the HostManager capability (provides access to the host being managed)
@@ -110,7 +100,7 @@ public class ApplicationExample extends SimulationTask {
 		//Create applications
 		ArrayList<VmAllocationRequest> vmRequests = new ArrayList<VmAllocationRequest>();
 		
-		for (int i = 0; i < 50; ++i) {
+		for (int i = 0; i < 5; ++i) {
 //			StaticWorkload workload = new StaticWorkload(simulation);
 			TraceWorkload workload = new TraceWorkload(simulation, "traces/clarknet", (int)(simulation.getRandom().nextDouble() * 200000000));
 			InteractiveApplication.Builder appBuilder = new InteractiveApplication.Builder(simulation).workload(workload).thinkTime(4)

@@ -4,6 +4,8 @@ import java.io.PrintStream;
 
 import java.util.Map.Entry;
 
+import edu.uwo.csd.dcsim.common.SimTime;
+import edu.uwo.csd.dcsim.common.Utility;
 import edu.uwo.csd.dcsim.core.Simulation;
 import edu.uwo.csd.dcsim.management.events.MessageEvent;
 
@@ -13,6 +15,8 @@ public class SimulationMetrics {
 	HostMetrics hostMetrics;
 	ApplicationMetrics applicationMetrics;
 	ManagementMetrics managementMetrics;
+	
+	long executionTime;
 	
 	public SimulationMetrics(Simulation simulation) {
 		this.simulation = simulation;
@@ -46,6 +50,14 @@ public class SimulationMetrics {
 		managementMetrics.completeSimulation();
 	}
 	
+	public void setExecutionTime(long time) {
+		executionTime = time;
+	}
+	
+	public long getExecutionTime() {
+		return executionTime;
+	}
+	
 	public void printDefault(PrintStream out) {
 		out.println("-- HOSTS --");
 		out.println("Active Hosts");
@@ -56,7 +68,7 @@ public class SimulationMetrics {
 		out.println("   total util: " + hostMetrics.getTotalUtilization().getMean());
 		
 		out.println("Power");
-		out.println("   consumed: " + (hostMetrics.getPowerConsumption().getSum() / 3600000) + "kWh");
+		out.println("   consumed: " + (Utility.toKWH(hostMetrics.getPowerConsumption().getSum())) + "kWh");
 		out.println("   max: " + hostMetrics.getPowerConsumption().getMax());
 		out.println("   mean: " + hostMetrics.getPowerConsumption().getMean());
 		out.println("   min: " + hostMetrics.getPowerConsumption().getMin());
@@ -69,7 +81,7 @@ public class SimulationMetrics {
 		
 		out.println("-- APPLICATIONS --");
 		out.println("CPU Underprovision");
-		out.println("   percentage: " + applicationMetrics.getAggregateCpuUnderProvision().getSum() / applicationMetrics.getAggregateCpuDemand().getSum());
+		out.println("   percentage: " + Utility.toPercentage(applicationMetrics.getAggregateCpuUnderProvision().getSum() / applicationMetrics.getAggregateCpuDemand().getSum()));
 		out.println("SLA");
 		out.println("  aggregate penalty");
 		out.println("    total: " + applicationMetrics.getAggregateSlaPenalty().getSum());
@@ -93,6 +105,10 @@ public class SimulationMetrics {
 		out.println("    max: " + applicationMetrics.getAggregateThroughput().getMax());
 		out.println("    mean: " + applicationMetrics.getAggregateThroughput().getMean());
 		out.println("    min: " + applicationMetrics.getAggregateThroughput().getMin());
+		out.println("Spawning");
+		out.println("   spawned: " + applicationMetrics.getApplicationsSpawned());
+		out.println("   shutdown: " + applicationMetrics.getApplicationsShutdown());
+		out.println("   failed placement: " + applicationMetrics.getApplicationPlacementsFailed());
 		
 		out.println("");
 		
@@ -109,29 +125,11 @@ public class SimulationMetrics {
 		for (Entry<Class<?>, Long> entry : managementMetrics.getMigrationCount().entrySet()) {
 			out.println("    " + entry.getKey().getName() + ": " + entry.getValue());
 		}
+
+		out.println("");
 		
+		out.println("-- SIMULATION --");
+		out.println("   execution time: " + SimTime.toHumanReadable(getExecutionTime()));
+	
 	}
-	
-//	INFO  edu.uwo.csd.dcsim.examples.ApplicationExample      - activeHosts=14.584
-//			INFO  edu.uwo.csd.dcsim.examples.ApplicationExample      - avgDcUtil=18.452%
-//			INFO  edu.uwo.csd.dcsim.examples.ApplicationExample      - avgHostStateSize=12.535
-//			INFO  edu.uwo.csd.dcsim.examples.ApplicationExample      - avgHostUtil=56.835%
-//			INFO  edu.uwo.csd.dcsim.examples.ApplicationExample      - cpuUnderprovision=5.171%
-//			INFO  edu.uwo.csd.dcsim.examples.ApplicationExample      - cpuUnderprovisionDuration=7.466 days
-//			INFO  edu.uwo.csd.dcsim.examples.ApplicationExample      - hostTime=381.792hrs
-//			INFO  edu.uwo.csd.dcsim.examples.ApplicationExample      - maxActiveHosts=25.0
-//			INFO  edu.uwo.csd.dcsim.examples.ApplicationExample      - messageCount-HostStatusEvent=4595.0
-//			INFO  edu.uwo.csd.dcsim.examples.ApplicationExample      - migrationCount-ConsolidationPolicy=88.0
-//			INFO  edu.uwo.csd.dcsim.examples.ApplicationExample      - migrationCount-RelocationPolicy=70.0
-//			INFO  edu.uwo.csd.dcsim.examples.ApplicationExample      - minActiveHosts=14.0
-//			INFO  edu.uwo.csd.dcsim.examples.ApplicationExample      - optimalPowerEfficiencyRatio=1.4524367849439643
-//			INFO  edu.uwo.csd.dcsim.examples.ApplicationExample      - powerConsumption=75.844kWh
-//			INFO  edu.uwo.csd.dcsim.examples.ApplicationExample      - powerEfficiency=57.22 cpu/watt
-//			INFO  edu.uwo.csd.dcsim.examples.ApplicationExample      - responseTime=0.275
-//			INFO  edu.uwo.csd.dcsim.examples.ApplicationExample      - slaPenalty=395300.016
-//			INFO  edu.uwo.csd.dcsim.examples.ApplicationExample      - throughput=40.269
-//			INFO  edu.uwo.csd.dcsim.examples.ApplicationExample      - vmCount=200.0
-//			INFO  edu.uwo.csd.dcsim.examples.ApplicationExample      - vmStatesSent=57600.0
-//			INFO  edu.uwo.csd.dcsim.examples.ApplicationExample      - simExecTime=7728.0
-	
 }

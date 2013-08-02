@@ -5,10 +5,6 @@ import java.util.ArrayList;
 import edu.uwo.csd.dcsim.application.loadbalancer.LoadBalancer;
 import edu.uwo.csd.dcsim.application.workload.*;
 import edu.uwo.csd.dcsim.core.Simulation;
-import edu.uwo.csd.dcsim.core.metrics.AggregateMetric;
-import edu.uwo.csd.dcsim.core.metrics.AvgValueMetric;
-import edu.uwo.csd.dcsim.core.metrics.CpuUnderprovisionDurationMetric;
-import edu.uwo.csd.dcsim.core.metrics.CpuUnderprovisionMetric;
 import edu.uwo.csd.dcsim.common.*;
 import edu.uwo.csd.dcsim.host.Resources;
 
@@ -17,9 +13,6 @@ import edu.uwo.csd.dcsim.host.Resources;
  *
  */
 public class InteractiveApplication extends Application {
-
-	public static final String CPU_UNDERPROVISION_METRIC = "cpuUnderprovision";
-	public static final String CPU_UNDERPROVISION_DURATION_METRIC = "cpuUnderprovisionDuration";
 	
 	private Workload workload;
 	private ArrayList<InteractiveTask> tasks = new ArrayList<InteractiveTask>();
@@ -171,31 +164,6 @@ public class InteractiveApplication extends Application {
 	@Override
 	public int getTotalCpuScheduled() {
 		return totalCpuScheduled;
-	}
-	
-	@Override
-	public void recordMetrics() {
-		//TODO record metrics, i.e. underprovisioning % and duration, response time, throughput
-		
-		int cpuDemand = 0;
-		int cpuScheduled = 0;
-		
-
-		//record the CPU underprovision metrics
-		if (cpuDemand > cpuScheduled) {
-			CpuUnderprovisionMetric.getMetric(simulation, CPU_UNDERPROVISION_METRIC).addSlaVWork((cpuDemand - cpuScheduled) * simulation.getElapsedSeconds());
-			CpuUnderprovisionDurationMetric.getMetric(simulation, CPU_UNDERPROVISION_DURATION_METRIC).addSlaViolationTime(simulation.getElapsedTime());
-		}
-		CpuUnderprovisionMetric.getMetric(simulation, CPU_UNDERPROVISION_METRIC).addWork(cpuDemand * simulation.getElapsedSeconds());
-
-		//TODO change
-		AvgValueMetric.getMetric(simulation, "responseTime").addValue(responseTime);
-		AvgValueMetric.getMetric(simulation, "throughput").addValue(throughput);
-		
-		if (sla != null && !sla.evaluate()) {
-			AggregateMetric.getMetric(simulation, "slaPenalty").addValue(sla.calculatePenalty() * simulation.getElapsedSeconds());
-		}
-		
 	}
 	
 	public int calculateMaxWorkloadUtilizationLimit(float utilizationLimit) {

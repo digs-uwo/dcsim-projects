@@ -87,8 +87,6 @@ public abstract class Application {
 	public abstract int getTotalCpuDemand();
 	public abstract int getTotalCpuScheduled();
 	
-	public abstract void recordMetrics();
-	
 	/**
 	 * Get the tasks that this Application consists of 
 	 * @return

@@ -66,7 +66,6 @@ public class Simulation implements SimulationEventListener {
 	private long metricRecordStart;
 	private boolean recordingMetrics;
 	private long eventSendCount = 0;
-	protected Map<String, AbstractMetric> metrics = new HashMap<String, AbstractMetric>();
 	protected SimulationMetrics simulationMetrics;
 		
 	private Random random;
@@ -229,7 +228,7 @@ public class Simulation implements SimulationEventListener {
 		
 	}
 	
-	public final Collection<AbstractMetric> run(long duration, long metricRecordStart) {
+	public final SimulationMetrics run(long duration, long metricRecordStart) {
 		
 		//ensure this simulation hasn't been run yet
 		if (complete)
@@ -272,10 +271,6 @@ public class Simulation implements SimulationEventListener {
 			if (e.getTime() != 0) {
 				//Simulation time is advancing
 				
-				//inform metrics of new time interval
-				for (AbstractMetric metric : this.metrics.values())
-					metric.startTimeInterval();
-				
 				//schedule/allocate resources
 				scheduleResources(hosts);
 
@@ -291,23 +286,15 @@ public class Simulation implements SimulationEventListener {
 				advanceSimulation(hosts);
 
 				if (this.isRecordingMetrics()) {	
-					//update data centre/host/vm metrics
-					for (DataCentre dc : datacentres) {
-						dc.recordMetrics();
-					}
+					//update host metrics
 					simulationMetrics.getHostMetrics().recordHostMetrics(hosts);
 					
-					for (Application app : applications) {
-						app.recordMetrics();
-					}
+					//update application metrics
 					simulationMetrics.getApplicationMetrics().recordApplicationMetrics(applications);
 					
 				}
 				
 				//inform metrics of completed time interval
-				for (AbstractMetric metric : this.metrics.values())
-					metric.completeTimeInterval();
-				
 				simulationMetrics.completeTimeStep();
 				
 			}
@@ -337,12 +324,8 @@ public class Simulation implements SimulationEventListener {
 		simLogger.info("Completed simulation " + name);
 		
 		complete = true;
-		
-		//wrap result in new Collection so that Collection is modifiable, as modifying the values() collection of a HashMap directly breaks things.
-		Vector<AbstractMetric> result = new Vector<AbstractMetric>(metrics.values());
-		Collections.sort(result, new MetricAlphaComparator());
-		
-		return result;
+
+		return simulationMetrics;
 		
 	}
 
@@ -509,22 +492,6 @@ public class Simulation implements SimulationEventListener {
 	public final void setRandomSeed(long seed) {
 		randomSeed = seed;
 		random = new Random(randomSeed);
-	}
-	
-	public final boolean hasMetric(String name) {
-		return metrics.containsKey(name);
-	}
-	
-	public final AbstractMetric getMetric(String name) {
-		return metrics.get(name);
-	}
-	
-	public final void addMetric(AbstractMetric metric) {
-		if (!metrics.containsKey(metric)) {
-			metrics.put(metric.getName(), metric);
-		} else {
-			throw new RuntimeException("Metric " + metric.getName() + " already exists in simulation. Cannot add multiple copies of the same metric to the same simulation.");
-		}
 	}
 
 	public final long getSimulationTime() {

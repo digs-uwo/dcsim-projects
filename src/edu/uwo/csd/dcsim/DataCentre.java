@@ -4,8 +4,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 
 import edu.uwo.csd.dcsim.core.*;
-import edu.uwo.csd.dcsim.core.metrics.DCCpuUtilMetric;
-import edu.uwo.csd.dcsim.core.metrics.OptimalPowerRatioMetric;
 import edu.uwo.csd.dcsim.host.*;
 
 /**
@@ -20,9 +18,6 @@ import edu.uwo.csd.dcsim.host.*;
  */
 public class DataCentre implements SimulationEventListener {
 	
-	public static final String DC_UTIL_METRIC = "avgDcUtil";
-	public static final String OPTIMAL_POWER_RATIO_METRIC = "optimalPowerEfficiencyRatio";
-
 	private ArrayList<Host> hosts; //the hosts in this datacentre
 	Simulation simulation;
 	
@@ -78,22 +73,6 @@ public class DataCentre implements SimulationEventListener {
 	@Override
 	public void handleEvent(Event e) {
 		//at present, there are no events received by DataCentre. This is left as a hook in case of future need
-	}
-
-	/**
-	 * Update metrics regarding the DataCentre
-	 */
-	public void recordMetrics() {
-		
-		DCCpuUtilMetric dcUtilMetric = DCCpuUtilMetric.getMetric(simulation, DC_UTIL_METRIC);
-		
-		for (Host host : hosts) {
-			host.updateMetrics();
-			
-			dcUtilMetric.addHostUse(host.getResourceManager().getCpuInUse(), host.getTotalCpu());
-		}
-		
-		OptimalPowerRatioMetric.getMetric(simulation, OPTIMAL_POWER_RATIO_METRIC).update(hosts);
 	}
 	
 	/**

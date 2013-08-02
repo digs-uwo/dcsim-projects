@@ -8,7 +8,6 @@ import edu.uwo.csd.dcsim.common.ObjectBuilder;
 import edu.uwo.csd.dcsim.common.ObjectFactory;
 import edu.uwo.csd.dcsim.common.Utility;
 import edu.uwo.csd.dcsim.core.*;
-import edu.uwo.csd.dcsim.core.metrics.*;
 import edu.uwo.csd.dcsim.host.events.*;
 import edu.uwo.csd.dcsim.host.events.PowerStateEvent.PowerState;
 import edu.uwo.csd.dcsim.host.power.*;
@@ -24,16 +23,6 @@ import edu.uwo.csd.dcsim.vm.*;
  *
  */
 public final class Host implements SimulationEventListener {
-	
-	public static final String ACTIVE_HOST_METRIC = "activeHosts";
-	public static final String MIN_ACTIVE_METRIC = "minActiveHosts";
-	public static final String MAX_ACTIVE_METRIC = "maxActiveHosts";
-	public static final String POWER_CONSUMPTION_METRIC = "powerConsumption";
-	public static final String AVERAGE_UTILIZATION_METRIC = "avgHostUtil";
-	public static final String HOST_TIME_METRIC = "hostTime";
-	public static final String DC_UTIL_METRIC = "avgDcUtil";
-	public static final String POWER_EFFICIENCY_METRIC = "powerEfficiency";
-	public static final String FAILED_MIG_ALLOC_METRIC = "failedMigrationAllocation";
 	
 	private Simulation simulation;
 	
@@ -695,37 +684,6 @@ public final class Host implements SimulationEventListener {
 			}
 		}
 		
-	}
-	
-	public void updateMetrics() {
-		
-		if (getResourceManager().getCpuUtilization() > 1)
-			throw new IllegalStateException("Host #" + getId() + " reporting CPU utilization of " + (getResourceManager().getCpuUtilization() * 100));
-	
-		if (getResourceManager().getCpuUtilization() < 0)
-			throw new IllegalStateException("Host #" + getId() + " reporting CPU utilization of " + (getResourceManager().getCpuUtilization() * 100));	
-		
-		
-		if (state == HostState.ON) {
-			HostAvgCpuUtilMetric.getMetric(simulation, AVERAGE_UTILIZATION_METRIC).addHostUtilization(getResourceManager().getCpuUtilization());
-			ActiveHostMetric.getMetric(simulation, ACTIVE_HOST_METRIC).incrementHostCount();
-			MaxMetric.getMetric(simulation, MAX_ACTIVE_METRIC).incrementCount();
-			MinMetric.getMetric(simulation, MIN_ACTIVE_METRIC).incrementCount();
-			HostTimeMetric.getSimulationMetric(simulation, HOST_TIME_METRIC).addValue(simulation.getElapsedSeconds());
-			
-		}
-		
-		//Power metrics
-		PowerMetric.getMetric(simulation, POWER_CONSUMPTION_METRIC).addHostPowerConsumption(getCurrentPowerConsumption());
-		PowerEfficiencyMetric.getMetric(simulation, POWER_EFFICIENCY_METRIC).addHostInfo(getResourceManager().getCpuInUse(), getCurrentPowerConsumption());
-		
-		//DataCentre utilization metric
-		DCCpuUtilMetric.getMetric(simulation, DC_UTIL_METRIC).addHostUse(getResourceManager().getCpuInUse(), getTotalCpu());
-		
-		for (VmAllocation vmAllocation : vmAllocations) {
-			if (vmAllocation.getVm() != null)
-				vmAllocation.getVm().updateMetrics();
-		}
 	}
 	
 	/**
