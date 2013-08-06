@@ -15,7 +15,7 @@ public class DefaultResourceManager extends ResourceManager {
 
 	@Override
 	public boolean hasCapacity(int cpu, int memory, int bandwidth, int storage) {
-		
+
 		//note that we don't check CPU, as we are oversubscribing it
 		return 	(memory <= getAvailableMemory()) &&
 				(bandwidth <= getAvailableBandwidth()) &&

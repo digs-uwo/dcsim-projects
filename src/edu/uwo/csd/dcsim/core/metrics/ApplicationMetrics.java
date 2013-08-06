@@ -214,7 +214,7 @@ public class ApplicationMetrics extends MetricCollection {
 	public void printDefault(PrintStream out) {
 		out.println("-- APPLICATIONS --");
 		out.println("CPU Underprovision");
-		out.println("   percentage: " + Utility.toPercentage(getAggregateCpuUnderProvision().getSum() / getAggregateCpuDemand().getSum()));
+		out.println("   percentage: " + Utility.toPercentage(getAggregateCpuUnderProvision().getSum() / getAggregateCpuDemand().getSum()) + "%");
 		out.println("SLA");
 		out.println("  aggregate penalty");
 		out.println("    total: " + getAggregateSlaPenalty().getSum());

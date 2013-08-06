@@ -121,6 +121,11 @@ public class InteractiveApplication extends Application {
 				
 				instance.getResourceDemand().setCpu((int)((instance.getVM().getMaxCpu() * instance.getUtilization()) * (instance.getEffectiveServiceTime() / instance.getServiceTime())));
 				
+				//set other resource demands to full task size
+				instance.getResourceDemand().setMemory(task.getResourceSize().getMemory());
+				instance.getResourceDemand().setBandwidth(task.getResourceSize().getBandwidth());
+				instance.getResourceDemand().setStorage(task.getResourceSize().getStorage());
+				
 				if (instance.getFullDemand() == null) {
 					//the first time demand is calculated, we get the full resource demand assuming full resource availability (no contention)
 					instance.setFullDemand(new Resources(instance.getResourceDemand()));

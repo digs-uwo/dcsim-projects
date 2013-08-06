@@ -34,7 +34,7 @@ public class DynamicManagement extends SimulationTask {
 		
 		for(SimulationTask task : completedTasks) {
 			logger.info(task.getName());
-			ExampleHelper.printMetrics(task.getResults());
+			task.getMetrics().printDefault(System.out);
 		}
 
 	}

@@ -14,7 +14,9 @@ public abstract class ResourceScheduler {
 	public final void resetScheduling() {
 		host.getPrivDomainAllocation().getVm().scheduleResources(new Resources());
 		for (VmAllocation vmAlloc : host.getVMAllocations()) {
-			vmAlloc.getVm().scheduleResources(new Resources());
+			if (vmAlloc.getVm() != null) { //null if this is an allocation for a migrating in VM
+				vmAlloc.getVm().scheduleResources(new Resources());
+			}
 		}
 	}
 

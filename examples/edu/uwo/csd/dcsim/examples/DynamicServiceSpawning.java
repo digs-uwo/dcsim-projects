@@ -1,7 +1,6 @@
 package edu.uwo.csd.dcsim.examples;
 
 import java.util.ArrayList;
-import java.util.Collection;
 
 import org.apache.commons.math3.distribution.*;
 import org.apache.log4j.Logger;
@@ -12,7 +11,6 @@ import edu.uwo.csd.dcsim.application.workload.*;
 import edu.uwo.csd.dcsim.common.SimTime;
 import edu.uwo.csd.dcsim.common.Tuple;
 import edu.uwo.csd.dcsim.core.Simulation;
-import edu.uwo.csd.dcsim.core.metrics.AbstractMetric;
 import edu.uwo.csd.dcsim.examples.management.ConsolidationPolicy;
 import edu.uwo.csd.dcsim.examples.management.RelocationPolicy;
 import edu.uwo.csd.dcsim.host.*;
@@ -28,6 +26,7 @@ import edu.uwo.csd.dcsim.management.policies.DefaultVmPlacementPolicy;
 
 public class DynamicServiceSpawning extends SimulationTask {
 
+	@SuppressWarnings("unused")
 	private static Logger logger = Logger.getLogger(DynamicServiceSpawning.class);
 	
 	public static void main(String args[]) {
@@ -37,13 +36,7 @@ public class DynamicServiceSpawning extends SimulationTask {
 		
 		task.run();
 		
-		//get the results of the simulation
-		Collection<AbstractMetric> metrics = task.getResults();
-		
-		//output metric values
-		for (AbstractMetric metric : metrics) {
-			logger.info(metric.getName() + "=" + metric.toString()); //metric.getValue() returns the raw value, while toString() provides formatting
-		}
+		task.getMetrics().printDefault(System.out);
 		
 	}
 	
@@ -109,10 +102,12 @@ public class DynamicServiceSpawning extends SimulationTask {
 
 			@Override
 			public Application buildApplication() {
-				Workload workload = new TraceWorkload(simulation, "traces/clarknet", 2200, 0);
-				simulation.addWorkload(workload);
+				TraceWorkload workload = new TraceWorkload(simulation, "traces/clarknet", 2200, 0);
 				
-				return Applications.singleTierInteractiveService(workload, 1, 2500, 1024, 12800, 1024, 1, 300, 1, Integer.MAX_VALUE);
+				InteractiveApplication application = Applications.singleTaskInteractiveApplication(simulation, workload, 1, 2500, 1024, 12800, 1024, 0.001f);
+				workload.setScaleFactor(application.calculateMaxWorkloadUtilizationLimit(0.98f));
+				
+				return application;
 			}
 			
 		};

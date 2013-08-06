@@ -1,7 +1,6 @@
 package edu.uwo.csd.dcsim.examples;
 
 import java.util.ArrayList;
-import java.util.Collection;
 
 import org.apache.log4j.Logger;
 
@@ -10,7 +9,6 @@ import edu.uwo.csd.dcsim.application.*;
 import edu.uwo.csd.dcsim.application.workload.*;
 import edu.uwo.csd.dcsim.common.SimTime;
 import edu.uwo.csd.dcsim.core.*;
-import edu.uwo.csd.dcsim.core.metrics.AbstractMetric;
 import edu.uwo.csd.dcsim.examples.management.*;
 import edu.uwo.csd.dcsim.host.*;
 import edu.uwo.csd.dcsim.host.resourcemanager.DefaultResourceManagerFactory;
@@ -26,6 +24,7 @@ import edu.uwo.csd.dcsim.vm.*;
 
 public class AutonomicManagement extends SimulationTask {
 
+	@SuppressWarnings("unused")
 	private static Logger logger = Logger.getLogger(AutonomicManagement.class);
 	
 	private static final int N_HOSTS = 10;
@@ -35,7 +34,7 @@ public class AutonomicManagement extends SimulationTask {
 		//MUST initialize logging when starting simulations
 		Simulation.initializeLogging();
 		
-		SimulationTask task = new AutonomicManagement("autonomic_management", 1088501048448116498l);
+		SimulationTask task = new AutonomicManagement("autonomic_management");
 		
 		task.run();
 		
@@ -50,6 +49,7 @@ public class AutonomicManagement extends SimulationTask {
 	
 	public AutonomicManagement(String name) {
 		super(name, SimTime.days(5));
+		this.setMetricRecordStart(SimTime.minutes(1));
 	}
 
 	@Override
@@ -89,14 +89,13 @@ public class AutonomicManagement extends SimulationTask {
 		ArrayList<VmAllocationRequest> vmList = new ArrayList<VmAllocationRequest>();
 		for (int i = 0; i < N_VMS; ++i) {
 			//create a new workload for this VM
-			Workload workload = new TraceWorkload(simulation, "traces/clarknet", 2200, (int)(simulation.getRandom().nextDouble() * 200000000));
-			simulation.addWorkload(workload);
+			TraceWorkload workload = new TraceWorkload(simulation, "traces/clarknet", (int)(simulation.getRandom().nextDouble() * 200000000));
 			
-			//create the service this VM will be a part of
-			Application service = Applications.singleTierInteractiveService(workload, 1, 2500, 512, 12800, 1024, 1, 300, 1, Integer.MAX_VALUE);
+			//create the application
+			InteractiveApplication application = Applications.singleTaskInteractiveApplication(simulation, workload, 1, 2500, 512, 12800, 1024, 0.001f);
+			workload.setScaleFactor((int)application.calculateMaxWorkloadUtilizationLimit(0.98f));
 			
-			//create a new VMAllocationRequest using the VMDescription from the service, add it to the vm list
-			vmList.add(new VmAllocationRequest(service.getServiceTiers().get(0).getVMDescription()));
+			vmList.addAll(application.createInitialVmRequests());
 		}
 		
 		//submit the VMs to the datacentre for placement

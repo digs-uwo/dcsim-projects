@@ -92,15 +92,15 @@ public class HostMetrics extends MetricCollection {
 		out.println("   max: " + getActiveHosts().getMax());
 		out.println("   mean: " + getActiveHosts().getMean());
 		out.println("   min: " + getActiveHosts().getMin());
-		out.println("   util: " + getHostUtilization().getMean());
-		out.println("   total util: " + getTotalUtilization().getMean());
+		out.println("   util: " + Utility.toPercentage(getHostUtilization().getMean()) + "%");
+		out.println("   total util: " + Utility.toPercentage(getTotalUtilization().getMean()) + "%");
 		
 		out.println("Power");
 		out.println("   consumed: " + (Utility.toKWH(getPowerConsumption().getSum())) + "kWh");
-		out.println("   max: " + getPowerConsumption().getMax());
-		out.println("   mean: " + getPowerConsumption().getMean());
-		out.println("   min: " + getPowerConsumption().getMin());
-		out.println("   efficiency: " + getPowerEfficiency().getMean());
+		out.println("   max: " + getPowerConsumption().getMax() + "Ws");
+		out.println("   mean: " + getPowerConsumption().getMean() + "Ws");
+		out.println("   min: " + getPowerConsumption().getMin() + "Ws");
+		out.println("   efficiency: " + getPowerEfficiency().getMean() + "cpu/watt");
 		
 		out.println("VM");
 		out.println("    count: " + getVmCount());

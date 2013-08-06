@@ -25,6 +25,7 @@ import edu.uwo.csd.dcsim.vm.VmAllocationRequest;
 
 public class ApplicationExample extends SimulationTask {
 
+	@SuppressWarnings("unused")
 	private static Logger logger = Logger.getLogger(ApplicationExample.class);
 	
 	public static void main(String args[]) {
@@ -70,7 +71,7 @@ public class ApplicationExample extends SimulationTask {
 		
 		//Instantiate the Hosts
 		ArrayList<Host> hosts = new ArrayList<Host>();
-		for (int i = 0; i < 30; ++i) {
+		for (int i = 0; i < 20; ++i) {
 			Host host = hostBuilder.build();
 			
 			//Create an AutonomicManager for the Host, with the HostManager capability (provides access to the host being managed)
@@ -85,9 +86,7 @@ public class ApplicationExample extends SimulationTask {
 			//Optionally, we can "install" the manager into the Host. This ensures that the manager does not run when the host is
 			//not 'ON', and triggers hooks in the manager and policies on power on and off.
 			host.installAutonomicManager(hostAM);
-			
-//			host.setState(Host.HostState.ON);
-			
+
 			//Add the Host to the DataCentre
 			dc.addHost(host);
 			
@@ -100,7 +99,7 @@ public class ApplicationExample extends SimulationTask {
 		//Create applications
 		ArrayList<VmAllocationRequest> vmRequests = new ArrayList<VmAllocationRequest>();
 		
-		for (int i = 0; i < 20; ++i) {
+		for (int i = 0; i < 80; ++i) {
 //			StaticWorkload workload = new StaticWorkload(simulation);
 			TraceWorkload workload = new TraceWorkload(simulation, "traces/clarknet", (int)(simulation.getRandom().nextDouble() * 200000000));
 			InteractiveApplication.Builder appBuilder = new InteractiveApplication.Builder(simulation).workload(workload).thinkTime(4)
@@ -109,8 +108,8 @@ public class ApplicationExample extends SimulationTask {
 					.task(1, 1, new Resources(2500,1,1,1), 0.01f, 1);
 			
 			InteractiveApplication app = appBuilder.build();
-			workload.setScaleFactor(app.calculateMaxWorkloadResponseTimeLimit(1)); //scale to 1s response time
-//			workload.setWorkLevel(app.calculateMaxWorkloadUtilizationLimit(0.98f));
+//			workload.setScaleFactor(app.calculateMaxWorkloadResponseTimeLimit(1)); //scale to 1s response time
+			workload.setScaleFactor(app.calculateMaxWorkloadUtilizationLimit(0.98f)); //scale to 98% utilization. Scaling to 100% will result in an explosion in work level
 			
 			InteractiveServiceLevelAgreement sla = new InteractiveServiceLevelAgreement(app).responseTime(1, 1); //sla limit at 1s response time
 			app.setSla(sla);
@@ -123,8 +122,8 @@ public class ApplicationExample extends SimulationTask {
 		VmPlacementEvent vmPlacementEvent = new VmPlacementEvent(dcAM, vmRequests);
 		simulation.sendEvent(vmPlacementEvent, 0);
 		
-		dcAM.installPolicy(new RelocationPolicy(0.5, 0.9, 0.85), SimTime.hours(1), SimTime.hours(1) + 1);
-		dcAM.installPolicy(new ConsolidationPolicy(0.3, 0.9, 0.85), SimTime.hours(2), SimTime.hours(2) + 2);
+//		dcAM.installPolicy(new RelocationPolicy(0.5, 0.9, 0.85), SimTime.hours(1), SimTime.hours(1) + 1);
+//		dcAM.installPolicy(new ConsolidationPolicy(0.5, 0.9, 0.85), SimTime.hours(2), SimTime.hours(2) + 2);
 	}
 	
 }

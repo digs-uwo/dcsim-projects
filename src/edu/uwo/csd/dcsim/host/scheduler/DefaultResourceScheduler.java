@@ -1,5 +1,7 @@
 package edu.uwo.csd.dcsim.host.scheduler;
 
+import java.util.ArrayList;
+
 import edu.uwo.csd.dcsim.host.Resources;
 import edu.uwo.csd.dcsim.vm.*;
 
@@ -39,9 +41,16 @@ public class DefaultResourceScheduler extends ResourceScheduler {
 		}
 		
 		privDomainVm.scheduleResources(privResourceDemand);
+		
+		//build list of VM allocations that current contain a VM
+		ArrayList<VmAllocation> vmAllocations = new ArrayList<VmAllocation>();
+		for (VmAllocation vmAlloc : host.getVMAllocations()) {
+			if (vmAlloc.getVm() != null) vmAllocations.add(vmAlloc);
+		}
 
 		//initialize resource scheduling
-		for (VmAllocation vmAlloc : host.getVMAllocations()) {
+		for (VmAllocation vmAlloc : vmAllocations) {
+			
 			Vm vm = vmAlloc.getVm();
 			
 			//start with CPU at 0 and all other resources equal to demand
@@ -71,10 +80,10 @@ public class DefaultResourceScheduler extends ResourceScheduler {
 
 		//now, we schedule CPU fairly among all VMs
 		int cpuShare = 0;
-		int incompleteVms = host.getVMAllocations().size();
+		int incompleteVms = vmAllocations.size();
 		
 		//adjust incompleteVm count to remove any VMs that have 0 CPU demand
-		for (VmAllocation vmAlloc : host.getVMAllocations()) {
+		for (VmAllocation vmAlloc : vmAllocations) {
 			if (vmAlloc.getVm().getResourceDemand().getCpu() == 0) --incompleteVms;
 		}
 		
@@ -84,7 +93,7 @@ public class DefaultResourceScheduler extends ResourceScheduler {
 			//if resourcesRemaining is small enough, it could be rounded to 0. Set '1' as minimum share. 
 			cpuShare = Math.max(cpuShare, 1);
 
-			for (VmAllocation vmAlloc : host.getVMAllocations()) {
+			for (VmAllocation vmAlloc : vmAllocations) {
 				Vm vm = vmAlloc.getVm();
 				Resources scheduled = vm.getResourcesScheduled();
 				int remainingCpuDemand = vm.getResourceDemand().getCpu() - scheduled.getCpu();
