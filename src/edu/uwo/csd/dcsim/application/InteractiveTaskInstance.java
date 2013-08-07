@@ -16,7 +16,7 @@ public class InteractiveTaskInstance extends TaskInstance {
 	private float responseTime;
 	private float throughput;
 	private float utilization;
-	private DescriptiveStatistics utilizationDeltas = new DescriptiveStatistics(5);
+	private DescriptiveStatistics utilizationDeltas = new DescriptiveStatistics(20);
 	private float visitRatio;
 	
 	public InteractiveTaskInstance(InteractiveTask task) {

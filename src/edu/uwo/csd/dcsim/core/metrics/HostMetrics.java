@@ -6,7 +6,6 @@ import java.util.*;
 import edu.uwo.csd.dcsim.common.Utility;
 import edu.uwo.csd.dcsim.core.Simulation;
 import edu.uwo.csd.dcsim.host.Host;
-import edu.uwo.csd.dcsim.vm.VmAllocation;
 
 public class HostMetrics extends MetricCollection {
 
@@ -16,8 +15,6 @@ public class HostMetrics extends MetricCollection {
 	WeightedMetric activeHosts = new WeightedMetric();
 	WeightedMetric hostUtilization = new WeightedMetric();
 	WeightedMetric totalUtilization = new WeightedMetric();
-	
-	long vmCount = 0;
 	
 	public HostMetrics(Simulation simulation) {
 		super(simulation);
@@ -32,10 +29,6 @@ public class HostMetrics extends MetricCollection {
 		
 		for (Host host : hosts) {
 			currentPowerConsumption += host.getCurrentPowerConsumption();
-			
-			for (VmAllocation vmAlloc : host.getVMAllocations()) {
-				if (vmAlloc.getVm() != null) ++vmCount;
-			}
 			
 			if (host.getState() == Host.HostState.ON) {
 				++currentActiveHosts;
@@ -74,10 +67,6 @@ public class HostMetrics extends MetricCollection {
 	public WeightedMetric getTotalUtilization() {
 		return totalUtilization;
 	}
-	
-	public long getVmCount() {
-		return vmCount;
-	}
 
 	@Override
 	public void completeSimulation() {
@@ -101,9 +90,6 @@ public class HostMetrics extends MetricCollection {
 		out.println("   mean: " + getPowerConsumption().getMean() + "Ws");
 		out.println("   min: " + getPowerConsumption().getMin() + "Ws");
 		out.println("   efficiency: " + getPowerEfficiency().getMean() + "cpu/watt");
-		
-		out.println("VM");
-		out.println("    count: " + getVmCount());
 		
 	}
 }

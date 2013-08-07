@@ -43,6 +43,7 @@ public class ApplicationExample extends SimulationTask {
 	public ApplicationExample(String name, long duration) {
 		super(name, duration);
 		this.setMetricRecordStart(SimTime.minutes(10));
+		this.setRandomSeed(6662890007189740306l);
 	}
 
 	@Override
@@ -122,8 +123,8 @@ public class ApplicationExample extends SimulationTask {
 		VmPlacementEvent vmPlacementEvent = new VmPlacementEvent(dcAM, vmRequests);
 		simulation.sendEvent(vmPlacementEvent, 0);
 		
-//		dcAM.installPolicy(new RelocationPolicy(0.5, 0.9, 0.85), SimTime.hours(1), SimTime.hours(1) + 1);
-//		dcAM.installPolicy(new ConsolidationPolicy(0.5, 0.9, 0.85), SimTime.hours(2), SimTime.hours(2) + 2);
+		dcAM.installPolicy(new RelocationPolicy(0.5, 0.9, 0.85), SimTime.hours(1), SimTime.hours(1) + 1);
+		dcAM.installPolicy(new ConsolidationPolicy(0.5, 0.9, 0.85), SimTime.hours(2), SimTime.hours(2) + 2);
 	}
 	
 }

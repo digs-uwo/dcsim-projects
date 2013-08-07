@@ -257,6 +257,8 @@ public class Simulation implements SimulationEventListener {
 		//main event loop
 		while (!eventQueue.isEmpty() && simulationTime < duration) {
 			
+			System.out.println(simulationTime);
+			
 			//peak at next event
 			e = eventQueue.peek();
 						
@@ -326,7 +328,7 @@ public class Simulation implements SimulationEventListener {
 	}
 
 	private void scheduleResources(ArrayList<Host> hosts) {	
-			
+				
 		//reset host schedulers
 		for (Host host : hosts) {
 			//reset all scheduled resources to zero (subsequently, hosts not 'ON' will not be scheduled and will remain at zero)
@@ -343,6 +345,8 @@ public class Simulation implements SimulationEventListener {
 			application.updateDemand();
 		}
 		
+		System.out.println("1");
+		
 		//while not done
 		boolean done = false;
 		while (!done) {
@@ -354,14 +358,15 @@ public class Simulation implements SimulationEventListener {
 					host.getResourceScheduler().scheduleResources();
 				}
 			}
-
+			
 			for (Application application : applications) {
 				boolean appUpdate = application.updateDemand(); 
 				done = done && !appUpdate; //stop when no calls to updateDemand result in changes  
 			}
+			System.out.println("done=" + done);
 		}
 		
-		
+		System.out.println("2");
 	}
 	
 	private void postScheduling() {

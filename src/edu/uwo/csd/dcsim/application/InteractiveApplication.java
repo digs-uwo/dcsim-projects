@@ -14,6 +14,11 @@ import edu.uwo.csd.dcsim.host.Resources;
  */
 public class InteractiveApplication extends Application {
 	
+	private static boolean approximateMVAPropertyChecked = false;
+	public static boolean approximateMVA = false;
+	
+	private static final float maxQueueError = 0.01f;
+	
 	private Workload workload;
 	private ArrayList<InteractiveTask> tasks = new ArrayList<InteractiveTask>();
 	float thinkTime = 0;
@@ -25,6 +30,14 @@ public class InteractiveApplication extends Application {
 
 	public InteractiveApplication(Simulation simulation) {
 		super(simulation);
+		
+		//if we haven't checked for the 'approximateMVA' property yet, do so now
+		if (!approximateMVAPropertyChecked) {			
+			approximateMVAPropertyChecked = true;
+			if (Simulation.hasProperty("approximateMVA")) {
+				approximateMVA = Boolean.parseBoolean(Simulation.getProperty("approximateMVA"));
+			}
+		}
 	}
 	
 	public InteractiveApplication(Builder builder) {
@@ -36,6 +49,14 @@ public class InteractiveApplication extends Application {
 		for (InteractiveTask task : builder.tasks) {
 			tasks.add(task);
 			task.setApplication(this);
+		}
+		
+		//if we haven't checked for the 'approximateMVA' property yet, do so now
+		if (!approximateMVAPropertyChecked) {			
+			approximateMVAPropertyChecked = true;
+			if (Simulation.hasProperty("approximateMVA")) {
+				approximateMVA = Boolean.parseBoolean(Simulation.getProperty("approximateMVA"));
+			}
 		}
 		
 	}
@@ -77,34 +98,76 @@ public class InteractiveApplication extends Application {
 			}
 		}
 		
-		//execute MVA algorithm
-		for (InteractiveTask task : tasks) {
-			for (InteractiveTaskInstance instance : task.getInteractiveTaskInstances()) {
-				instance.setQueueLength(0);
-			}
-		}
-		
-		for (int i = 1; i <= nClients; ++i) {
-			
-			responseTime = 0;
+		//calculate new values for application model using MVA or Schweitzer's approximate MVA, depending on user setting
+		if (!approximateMVA) {
+			//execute MVA algorithm
 			for (InteractiveTask task : tasks) {
 				for (InteractiveTaskInstance instance : task.getInteractiveTaskInstances()) {
-					instance.setResponseTime(instance.getEffectiveServiceTime() * (instance.getQueueLength() + 1));
-					
-					responseTime += instance.getResponseTime() * instance.getVisitRatio();
+					instance.setQueueLength(0);
 				}
 			}
 			
-			throughput = i / (thinkTime + responseTime);
+			for (int i = 1; i <= nClients; ++i) {
+				
+				responseTime = 0;
+				for (InteractiveTask task : tasks) {
+					for (InteractiveTaskInstance instance : task.getInteractiveTaskInstances()) {
+						instance.setResponseTime(instance.getEffectiveServiceTime() * (instance.getQueueLength() + 1));
+						
+						responseTime += instance.getResponseTime() * instance.getVisitRatio();
+					}
+				}
+				
+				throughput = i / (thinkTime + responseTime);
+				
+				for (InteractiveTask task : tasks) {
+					for (InteractiveTaskInstance instance : task.getInteractiveTaskInstances()) {
+						instance.setQueueLength(throughput * instance.getVisitRatio() * instance.getResponseTime());
+					}
+				}
+	
+			}
+			//end of MVA
+		} else {
+			//execute Schweitzer's approximate MVA algorithm
+			int nInstances = 0;
+			for (InteractiveTask task : tasks) {
+				nInstances += task.getInteractiveTaskInstances().size();
+			}
 			
 			for (InteractiveTask task : tasks) {
 				for (InteractiveTaskInstance instance : task.getInteractiveTaskInstances()) {
-					instance.setQueueLength(throughput * instance.getVisitRatio() * instance.getResponseTime());
+					instance.setQueueLength(nClients / (float)nInstances);
 				}
 			}
-
+			
+			float maxChange = Float.MAX_VALUE;
+			while (maxChange > maxQueueError) {
+				
+				responseTime = 0;
+				for (InteractiveTask task : tasks) {
+					for (InteractiveTaskInstance instance : task.getInteractiveTaskInstances()) {
+						instance.setResponseTime(instance.getEffectiveServiceTime() * (1 + (((nClients - 1) / (float)nClients) * instance.getQueueLength())));
+						
+						responseTime += instance.getResponseTime() * instance.getVisitRatio();
+					}
+				}
+				
+				throughput = nClients / (thinkTime + responseTime);
+				
+				maxChange = 0;
+				for (InteractiveTask task : tasks) {
+					for (InteractiveTaskInstance instance : task.getInteractiveTaskInstances()) {
+						maxChange = Math.max(maxChange, Math.abs(instance.getQueueLength() - (throughput * instance.getVisitRatio() * instance.getResponseTime())));
+						instance.setQueueLength(throughput * instance.getVisitRatio() * instance.getResponseTime());
+					}
+				}
+	
+			}
+			//end of Schweitzer's approximate MVA
 		}
 		
+		//calculate instance throughput, utilization, demand		
 		boolean updated = false;
 		for (InteractiveTask task : tasks) {
 			for (InteractiveTaskInstance instance : task.getInteractiveTaskInstances()) {
@@ -115,8 +178,9 @@ public class InteractiveApplication extends Application {
 				
 				instance.getUtilizationDeltas().addValue(Math.abs(lastUtilization - instance.getUtilization()));
 				
-				if (instance.getUtilizationDeltas().getMean() > 0.02) {
+				if (instance.getUtilizationDeltas().getMean() > 0.02 && Math.abs(lastUtilization - instance.getUtilization()) > 0) {
 					updated = true;
+//					System.out.println(instance.getUtilizationDeltas().getMean());
 				}
 				
 				instance.getResourceDemand().setCpu((int)((instance.getVM().getMaxCpu() * instance.getUtilization()) * (instance.getEffectiveServiceTime() / instance.getServiceTime())));

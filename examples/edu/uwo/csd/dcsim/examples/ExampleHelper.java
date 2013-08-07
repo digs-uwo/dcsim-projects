@@ -142,7 +142,7 @@ public class ExampleHelper {
 		int bandwidth = 12800; //100 Mb/s
 		int storage = 1024; //1GB
 
-		InteractiveApplication application = Applications.singleTaskInteractiveApplication(simulation, workload, cores, coreCapacity, memory, bandwidth, storage, 0.01f);
+		InteractiveApplication application = Applications.singleTaskInteractiveApplication(simulation, workload, cores, coreCapacity, memory, bandwidth, storage, 0.001f);
 		workload.setScaleFactor((int)application.calculateMaxWorkloadUtilizationLimit(0.98f)); 
 		
 		return application;

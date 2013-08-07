@@ -184,6 +184,10 @@ public class ApplicationMetrics extends MetricCollection {
 	public void incrementApplicationPlacementsFailed() {
 		++ applicationPlacementsFailed;
 	}
+	
+	public boolean isMVAApproximate() {
+		return InteractiveApplication.approximateMVA;
+	}
 
 	@Override
 	public void completeSimulation() {
@@ -242,6 +246,12 @@ public class ApplicationMetrics extends MetricCollection {
 		out.println("   spawned: " + getApplicationsSpawned());
 		out.println("   shutdown: " + getApplicationsShutdown());
 		out.println("   failed placement: " + getApplicationPlacementsFailed());
+		out.print("Interactive Application Model Algorithm: ");
+		if (!isMVAApproximate()) {
+			out.println("MVA");
+		} else {
+			out.println("Schweitzer's MVA Approximation");
+		}
 	}
 		
 }
