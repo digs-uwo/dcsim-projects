@@ -30,8 +30,8 @@ import edu.uwo.csd.dcsim.vm.*;
  */
 public class ExampleHelper {
 
-	public static final int N_HOSTS = 20; //200
-	public static final int N_VMS = 80; //400
+	public static final int N_HOSTS = 200; //200
+	public static final int N_VMS = 400; //400
 	
 	public static final int CPU_OVERHEAD = 200;
 	public static final int[] VM_SIZES = {1500, 2500, 3000, 3000};

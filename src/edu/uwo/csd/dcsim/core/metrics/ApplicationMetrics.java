@@ -4,8 +4,6 @@ import java.io.PrintStream;
 import java.util.*;
 
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
-import org.apache.commons.math3.stat.descriptive.moment.Mean;
-import org.apache.commons.math3.stat.descriptive.summary.Sum;
 
 import edu.uwo.csd.dcsim.application.Application;
 import edu.uwo.csd.dcsim.application.InteractiveApplication;
@@ -107,20 +105,15 @@ public class ApplicationMetrics extends MetricCollection {
 		throughputStats = new DescriptiveStatistics();
 		
 		for (Application application : slaPenalty.keySet()) {
-			Sum sum = new Sum();
-			slaPenaltyStats.addValue(sum.evaluate(slaPenalty.get(application).valuesArray()));
+			slaPenaltyStats.addValue(slaPenalty.get(application).getSum());
 		}
 		
 		for (Application application : responseTime.keySet()) {
-			Mean mean = new Mean();
-			responseTimeStats.addValue(mean.evaluate(responseTime.get(application).valuesArray(), 
-					responseTime.get(application).weightsArray()));
+			responseTimeStats.addValue(responseTime.get(application).getMean());
 		}
 		
 		for (Application application : throughput.keySet()) {
-			Mean mean = new Mean();
-			throughputStats.addValue(mean.evaluate(throughput.get(application).valuesArray(), 
-					throughput.get(application).weightsArray()));
+			throughputStats.addValue(throughput.get(application).getMean());
 		}
 		
 	}

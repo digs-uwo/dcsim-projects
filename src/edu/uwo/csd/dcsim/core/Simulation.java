@@ -257,7 +257,7 @@ public class Simulation implements SimulationEventListener {
 		//main event loop
 		while (!eventQueue.isEmpty() && simulationTime < duration) {
 			
-//			System.out.println(simulationTime);
+//			System.out.println(SimTime.toHumanReadable(simulationTime));
 			
 			//peak at next event
 			e = eventQueue.peek();
