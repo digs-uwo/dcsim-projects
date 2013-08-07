@@ -25,7 +25,6 @@ import edu.uwo.csd.dcsim.vm.VmAllocationRequest;
 
 public class ApplicationExample extends SimulationTask {
 
-	@SuppressWarnings("unused")
 	private static Logger logger = Logger.getLogger(ApplicationExample.class);
 	
 	public static void main(String args[]) {
@@ -36,7 +35,7 @@ public class ApplicationExample extends SimulationTask {
 		
 		task.run();
 		
-		task.getMetrics().printDefault(System.out);
+		task.getMetrics().printDefault(logger);
 		
 	}
 	

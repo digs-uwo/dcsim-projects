@@ -1,9 +1,9 @@
 package edu.uwo.csd.dcsim.core.metrics;
 
-import java.io.PrintStream;
 import java.util.*;
 
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
+import org.apache.log4j.Logger;
 
 import edu.uwo.csd.dcsim.application.Application;
 import edu.uwo.csd.dcsim.application.InteractiveApplication;
@@ -211,42 +211,42 @@ public class ApplicationMetrics extends MetricCollection {
 	}
 
 	@Override
-	public void printDefault(PrintStream out) {
-		out.println("-- APPLICATIONS --");
-		out.println("CPU Underprovision");
-		out.println("   percentage: " + Utility.roundDouble(Utility.toPercentage(getAggregateCpuUnderProvision().getSum() / getAggregateCpuDemand().getSum()), Simulation.getMetricPrecision()) + "%");
-		out.println("SLA");
-		out.println("  aggregate penalty");
-		out.println("    total: " + (long)getAggregateSlaPenalty().getSum());
-		out.println("    max: " + Utility.roundDouble(getAggregateSlaPenalty().getMax(), Simulation.getMetricPrecision()));
-		out.println("    mean: " + Utility.roundDouble(getAggregateSlaPenalty().getMean(), Simulation.getMetricPrecision()));
-		out.println("    min: " + Utility.roundDouble(getAggregateSlaPenalty().getMin(), Simulation.getMetricPrecision()));
-		out.println("  per application penalty");
-		out.println("    mean: " + Utility.roundDouble(getSlaPenaltyStats().getMean(), Simulation.getMetricPrecision()));
-		out.println("    stdev: " + Utility.roundDouble(getSlaPenaltyStats().getStandardDeviation(), Simulation.getMetricPrecision()));
-		out.println("    max: " + Utility.roundDouble(getSlaPenaltyStats().getMax(), Simulation.getMetricPrecision()));
-		out.println("    95th: " + Utility.roundDouble(getSlaPenaltyStats().getPercentile(95), Simulation.getMetricPrecision()));
-		out.println("    75th: " + Utility.roundDouble(getSlaPenaltyStats().getPercentile(75), Simulation.getMetricPrecision()));
-		out.println("    50th: " + Utility.roundDouble(getSlaPenaltyStats().getPercentile(50), Simulation.getMetricPrecision()));
-		out.println("    25th: " + Utility.roundDouble(getSlaPenaltyStats().getPercentile(25), Simulation.getMetricPrecision()));
-		out.println("    min: " + Utility.roundDouble(getSlaPenaltyStats().getMin(), Simulation.getMetricPrecision()));
-		out.println("Response Time");
-		out.println("    max: " + Utility.roundDouble(getAggregateResponseTime().getMax(), Simulation.getMetricPrecision()));
-		out.println("    mean: " + Utility.roundDouble(getAggregateResponseTime().getMean(), Simulation.getMetricPrecision()));
-		out.println("    min: " + Utility.roundDouble(getAggregateResponseTime().getMin(), Simulation.getMetricPrecision()));
-		out.println("Throughput");
-		out.println("    max: " + Utility.roundDouble(getAggregateThroughput().getMax(), Simulation.getMetricPrecision()));
-		out.println("    mean: " + Utility.roundDouble(getAggregateThroughput().getMean(), Simulation.getMetricPrecision()));
-		out.println("    min: " + Utility.roundDouble(getAggregateThroughput().getMin(), Simulation.getMetricPrecision()));
-		out.println("Spawning");
-		out.println("   spawned: " + getApplicationsSpawned());
-		out.println("   shutdown: " + getApplicationsShutdown());
-		out.println("   failed placement: " + getApplicationPlacementsFailed());
-		out.print("Interactive Application Model Algorithm: ");
+	public void printDefault(Logger out) {
+		out.info("-- APPLICATIONS --");
+		out.info("CPU Underprovision");
+		out.info("   percentage: " + Utility.roundDouble(Utility.toPercentage(getAggregateCpuUnderProvision().getSum() / getAggregateCpuDemand().getSum()), Simulation.getMetricPrecision()) + "%");
+		out.info("SLA");
+		out.info("  aggregate penalty");
+		out.info("    total: " + (long)getAggregateSlaPenalty().getSum());
+		out.info("    max: " + Utility.roundDouble(getAggregateSlaPenalty().getMax(), Simulation.getMetricPrecision()));
+		out.info("    mean: " + Utility.roundDouble(getAggregateSlaPenalty().getMean(), Simulation.getMetricPrecision()));
+		out.info("    min: " + Utility.roundDouble(getAggregateSlaPenalty().getMin(), Simulation.getMetricPrecision()));
+		out.info("  per application penalty");
+		out.info("    mean: " + Utility.roundDouble(getSlaPenaltyStats().getMean(), Simulation.getMetricPrecision()));
+		out.info("    stdev: " + Utility.roundDouble(getSlaPenaltyStats().getStandardDeviation(), Simulation.getMetricPrecision()));
+		out.info("    max: " + Utility.roundDouble(getSlaPenaltyStats().getMax(), Simulation.getMetricPrecision()));
+		out.info("    95th: " + Utility.roundDouble(getSlaPenaltyStats().getPercentile(95), Simulation.getMetricPrecision()));
+		out.info("    75th: " + Utility.roundDouble(getSlaPenaltyStats().getPercentile(75), Simulation.getMetricPrecision()));
+		out.info("    50th: " + Utility.roundDouble(getSlaPenaltyStats().getPercentile(50), Simulation.getMetricPrecision()));
+		out.info("    25th: " + Utility.roundDouble(getSlaPenaltyStats().getPercentile(25), Simulation.getMetricPrecision()));
+		out.info("    min: " + Utility.roundDouble(getSlaPenaltyStats().getMin(), Simulation.getMetricPrecision()));
+		out.info("Response Time");
+		out.info("    max: " + Utility.roundDouble(getAggregateResponseTime().getMax(), Simulation.getMetricPrecision()));
+		out.info("    mean: " + Utility.roundDouble(getAggregateResponseTime().getMean(), Simulation.getMetricPrecision()));
+		out.info("    min: " + Utility.roundDouble(getAggregateResponseTime().getMin(), Simulation.getMetricPrecision()));
+		out.info("Throughput");
+		out.info("    max: " + Utility.roundDouble(getAggregateThroughput().getMax(), Simulation.getMetricPrecision()));
+		out.info("    mean: " + Utility.roundDouble(getAggregateThroughput().getMean(), Simulation.getMetricPrecision()));
+		out.info("    min: " + Utility.roundDouble(getAggregateThroughput().getMin(), Simulation.getMetricPrecision()));
+		out.info("Spawning");
+		out.info("   spawned: " + getApplicationsSpawned());
+		out.info("   shutdown: " + getApplicationsShutdown());
+		out.info("   failed placement: " + getApplicationPlacementsFailed());
+		out.info("Interactive Application Model Algorithm: ");
 		if (!isMVAApproximate()) {
-			out.println("MVA");
+			out.info("MVA");
 		} else {
-			out.println("Schweitzer's MVA Approximation");
+			out.info("Schweitzer's MVA Approximation");
 		}
 	}
 		

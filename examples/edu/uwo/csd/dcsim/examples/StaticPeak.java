@@ -32,7 +32,7 @@ public class StaticPeak extends SimulationTask {
 		
 		for(SimulationTask task : completedTasks) {
 			logger.info(task.getName());
-			task.getMetrics().printDefault(System.out);
+			task.getMetrics().printDefault(logger);
 		}
 		
 	}

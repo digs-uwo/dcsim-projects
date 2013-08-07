@@ -26,7 +26,6 @@ import edu.uwo.csd.dcsim.management.policies.DefaultVmPlacementPolicy;
 
 public class DynamicServiceSpawning extends SimulationTask {
 
-	@SuppressWarnings("unused")
 	private static Logger logger = Logger.getLogger(DynamicServiceSpawning.class);
 	
 	public static void main(String args[]) {
@@ -36,7 +35,7 @@ public class DynamicServiceSpawning extends SimulationTask {
 		
 		task.run();
 		
-		task.getMetrics().printDefault(System.out);
+		task.getMetrics().printDefault(logger);
 		
 	}
 	

@@ -1,6 +1,6 @@
 package edu.uwo.csd.dcsim.core.metrics;
 
-import java.io.PrintStream;
+import org.apache.log4j.Logger;
 
 import edu.uwo.csd.dcsim.common.SimTime;
 import edu.uwo.csd.dcsim.core.Simulation;
@@ -48,20 +48,20 @@ public class SimulationMetrics {
 		return executionTime;
 	}
 	
-	public void printDefault(PrintStream out) {
+	public void printDefault(Logger out) {
 		
 		hostMetrics.printDefault(out);
-		out.println("");
+		out.info("");
 		applicationMetrics.printDefault(out);
-		out.println("");
+		out.info("");
 		managementMetrics.printDefault(out);
-		out.println("");
+		out.info("");
 
-		out.println("-- SIMULATION --");
-		out.println("   execution time: " + SimTime.toHumanReadable(getExecutionTime()));
-		out.println("   simulated time: " + SimTime.toHumanReadable(simulation.getDuration()));
-		out.println("   metric recording start: " + SimTime.toHumanReadable(simulation.getMetricRecordStart()));
-		out.println("   metric recording duration: " + SimTime.toHumanReadable(simulation.getDuration() - simulation.getMetricRecordStart()));
+		out.info("-- SIMULATION --");
+		out.info("   execution time: " + SimTime.toHumanReadable(getExecutionTime()));
+		out.info("   simulated time: " + SimTime.toHumanReadable(simulation.getDuration()));
+		out.info("   metric recording start: " + SimTime.toHumanReadable(simulation.getMetricRecordStart()));
+		out.info("   metric recording duration: " + SimTime.toHumanReadable(simulation.getDuration() - simulation.getMetricRecordStart()));
 	
 	}
 }

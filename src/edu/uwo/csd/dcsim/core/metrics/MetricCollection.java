@@ -1,6 +1,6 @@
 package edu.uwo.csd.dcsim.core.metrics;
 
-import java.io.PrintStream;
+import org.apache.log4j.Logger;
 
 import edu.uwo.csd.dcsim.core.Simulation;
 
@@ -14,5 +14,5 @@ public abstract class MetricCollection {
 	
 	public abstract void completeSimulation();
 	
-	public abstract void printDefault(PrintStream out);
+	public abstract void printDefault(Logger out);
 }

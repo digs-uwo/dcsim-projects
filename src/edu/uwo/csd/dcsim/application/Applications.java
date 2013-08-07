@@ -32,7 +32,7 @@ public final class Applications {
 	 * @return
 	 */
 	public static InteractiveApplication singleTaskInteractiveApplication(Simulation simulation, Workload workload, 
-			int cores, int coreCapacity, int memory, int bandwidth, int storage, float serviceTime) {
+			int cores, int coreCapacity, int memory, int bandwidth, int storage, double serviceTime) {
 			
 		InteractiveApplication.Builder builder = new InteractiveApplication.Builder(simulation)
 				.workload(workload)

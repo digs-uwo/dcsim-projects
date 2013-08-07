@@ -240,15 +240,15 @@ public class InteractiveApplication extends Application {
 		return totalCpuScheduled;
 	}
 	
-	public int calculateMaxWorkloadUtilizationLimit(float utilizationLimit) {
-		return calculateMaxWorkload(Float.MAX_VALUE, utilizationLimit);
+	public int calculateMaxWorkloadUtilizationLimit(double utilizationLimit) {
+		return calculateMaxWorkload(Double.MAX_VALUE, utilizationLimit);
 	}
 	
-	public int calculateMaxWorkloadResponseTimeLimit(float responseTimeLimit) {
-		return calculateMaxWorkload(responseTimeLimit, Float.MAX_VALUE);
+	public int calculateMaxWorkloadResponseTimeLimit(double responseTimeLimit) {
+		return calculateMaxWorkload(responseTimeLimit, Double.MAX_VALUE);
 	}
 	
-	public int calculateMaxWorkload(float responseTimeLimit, float utilizationLimit) {
+	public int calculateMaxWorkload(double responseTimeLimit, double utilizationLimit) {
 		
 		double responseTime = 0;
 		double throughput = 0;

@@ -24,7 +24,6 @@ import edu.uwo.csd.dcsim.vm.*;
 
 public class AutonomicManagement extends SimulationTask {
 
-	@SuppressWarnings("unused")
 	private static Logger logger = Logger.getLogger(AutonomicManagement.class);
 	
 	private static final int N_HOSTS = 10;
@@ -38,7 +37,7 @@ public class AutonomicManagement extends SimulationTask {
 		
 		task.run();
 		
-		task.getMetrics().printDefault(System.out);
+		task.getMetrics().printDefault(logger);
 	}
 	
 	public AutonomicManagement(String name, long randomSeed) {

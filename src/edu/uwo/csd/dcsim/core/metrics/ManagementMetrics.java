@@ -1,8 +1,9 @@
 package edu.uwo.csd.dcsim.core.metrics;
 
-import java.io.PrintStream;
 import java.util.*;
 import java.util.Map.Entry;
+
+import org.apache.log4j.Logger;
 
 import edu.uwo.csd.dcsim.core.Simulation;
 import edu.uwo.csd.dcsim.management.events.MessageEvent;
@@ -94,19 +95,19 @@ public class ManagementMetrics extends MetricCollection {
 	}
 
 	@Override
-	public void printDefault(PrintStream out) {
-		out.println("-- MANAGEMENT --");
-		out.println("Messages");
+	public void printDefault(Logger out) {
+		out.info("-- MANAGEMENT --");
+		out.info("Messages");
 		for (Entry<Class<? extends MessageEvent>, Long> entry : getMessageCount().entrySet()) {
-			out.println("    " + entry.getKey().getName() + ": " + entry.getValue());
+			out.info("    " + entry.getKey().getName() + ": " + entry.getValue());
 		}
-		out.println("Message BW");
+		out.info("Message BW");
 		for (Entry<Class<? extends MessageEvent>, Double> entry : getMessageBw().entrySet()) {
-			out.println("    " + entry.getKey().getName() + ": " + entry.getValue());
+			out.info("    " + entry.getKey().getName() + ": " + entry.getValue());
 		}
-		out.println("Migrations");
+		out.info("Migrations");
 		for (Entry<Class<?>, Long> entry : getMigrationCount().entrySet()) {
-			out.println("    " + entry.getKey().getName() + ": " + entry.getValue());
+			out.info("    " + entry.getKey().getName() + ": " + entry.getValue());
 		}
 	}
 	
