@@ -59,6 +59,9 @@ public class SimulationMetrics {
 
 		out.println("-- SIMULATION --");
 		out.println("   execution time: " + SimTime.toHumanReadable(getExecutionTime()));
+		out.println("   simulated time: " + SimTime.toHumanReadable(simulation.getDuration()));
+		out.println("   metric recording start: " + SimTime.toHumanReadable(simulation.getMetricRecordStart()));
+		out.println("   metric recording duration: " + SimTime.toHumanReadable(simulation.getDuration() - simulation.getMetricRecordStart()));
 	
 	}
 }

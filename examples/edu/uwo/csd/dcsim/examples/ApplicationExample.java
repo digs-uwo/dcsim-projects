@@ -104,9 +104,9 @@ public class ApplicationExample extends SimulationTask {
 //			StaticWorkload workload = new StaticWorkload(simulation);
 			TraceWorkload workload = new TraceWorkload(simulation, "traces/clarknet", (int)(simulation.getRandom().nextDouble() * 200000000));
 			InteractiveApplication.Builder appBuilder = new InteractiveApplication.Builder(simulation).workload(workload).thinkTime(4)
-					.task(1, 1, new Resources(2500,1,1,1), 0.005f, 1)
-					.task(2, 2, new Resources(2500,1,1,1), 0.02f, 1)
-					.task(1, 1, new Resources(2500,1,1,1), 0.01f, 1);
+					.task(1, 1, new Resources(2500,1,1,1), 0.005, 1)
+					.task(2, 2, new Resources(2500,1,1,1), 0.02, 1)
+					.task(1, 1, new Resources(2500,1,1,1), 0.01, 1);
 			
 			InteractiveApplication app = appBuilder.build();
 //			workload.setScaleFactor(app.calculateMaxWorkloadResponseTimeLimit(1)); //scale to 1s response time

@@ -46,6 +46,7 @@ public class ApplicationMetrics extends MetricCollection {
 		double currentSlaPenalty = 0;
 		double currentResponseTime = 0;
 		double currentThroughput = 0;
+		double interactiveApplications = 0;
 		
 		double val;
 		for (Application application : applications) {
@@ -87,14 +88,41 @@ public class ApplicationMetrics extends MetricCollection {
 				val = (double)interactiveApplication.getThroughput();
 				throughput.get(interactiveApplication).add(val, simulation.getElapsedTime());
 				currentThroughput += val;
+				
+				++interactiveApplications;
 			}
 		}
 
 		aggregateCpuUnderProvision.add(currentCpuUnderProvision, simulation.getElapsedTime());
 		aggregateCpuDemand.add(currentCpuDemand, simulation.getElapsedTime());
 		aggregateSlaPenalty.add(currentSlaPenalty, simulation.getElapsedSeconds());
-		aggregateResponseTime.add(currentResponseTime, simulation.getElapsedTime());
-		aggregateThroughput.add(currentThroughput, simulation.getElapsedTime());
+		aggregateResponseTime.add(currentResponseTime / interactiveApplications, simulation.getElapsedTime());
+		aggregateThroughput.add(currentThroughput / interactiveApplications, simulation.getElapsedTime());
+	}
+	
+	@Override
+	public void completeSimulation() {
+		slaPenaltyStats = new DescriptiveStatistics();
+		responseTimeStats = new DescriptiveStatistics();
+		throughputStats = new DescriptiveStatistics();
+		
+		for (Application application : slaPenalty.keySet()) {
+			Sum sum = new Sum();
+			slaPenaltyStats.addValue(sum.evaluate(slaPenalty.get(application).valuesArray()));
+		}
+		
+		for (Application application : responseTime.keySet()) {
+			Mean mean = new Mean();
+			responseTimeStats.addValue(mean.evaluate(responseTime.get(application).valuesArray(), 
+					responseTime.get(application).weightsArray()));
+		}
+		
+		for (Application application : throughput.keySet()) {
+			Mean mean = new Mean();
+			throughputStats.addValue(mean.evaluate(throughput.get(application).valuesArray(), 
+					throughput.get(application).weightsArray()));
+		}
+		
 	}
 	
 	public Map<Application, WeightedMetric> getCpuUnderProvision() {
@@ -187,31 +215,6 @@ public class ApplicationMetrics extends MetricCollection {
 	
 	public boolean isMVAApproximate() {
 		return InteractiveApplication.approximateMVA;
-	}
-
-	@Override
-	public void completeSimulation() {
-		slaPenaltyStats = new DescriptiveStatistics();
-		responseTimeStats = new DescriptiveStatistics();
-		throughputStats = new DescriptiveStatistics();
-		
-		for (Application application : slaPenalty.keySet()) {
-			Sum sum = new Sum();
-			slaPenaltyStats.addValue(sum.evaluate(slaPenalty.get(application).valuesArray()));
-		}
-		
-		for (Application application : responseTime.keySet()) {
-			Mean mean = new Mean();
-			responseTimeStats.addValue(mean.evaluate(responseTime.get(application).valuesArray(), 
-					responseTime.get(application).weightsArray()));
-		}
-		
-		for (Application application : throughput.keySet()) {
-			Mean mean = new Mean();
-			throughputStats.addValue(mean.evaluate(throughput.get(application).valuesArray(), 
-					throughput.get(application).weightsArray()));
-		}
-		
 	}
 
 	@Override

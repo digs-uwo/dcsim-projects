@@ -17,13 +17,13 @@ public class InteractiveApplication extends Application {
 	private static boolean approximateMVAPropertyChecked = false;
 	public static boolean approximateMVA = false;
 	
-	private static final float maxQueueError = 0.01f;
+	private static final double maxQueueError = 0.01f;
 	
 	private Workload workload;
 	private ArrayList<InteractiveTask> tasks = new ArrayList<InteractiveTask>();
-	float thinkTime = 0;
-	float responseTime = 0;
-	float throughput = 0;
+	double thinkTime = 0;
+	double responseTime = 0;
+	double throughput = 0;
 	
 	int totalCpuDemand;
 	int totalCpuScheduled;
@@ -137,17 +137,21 @@ public class InteractiveApplication extends Application {
 			
 			for (InteractiveTask task : tasks) {
 				for (InteractiveTaskInstance instance : task.getInteractiveTaskInstances()) {
-					instance.setQueueLength(nClients / (float)nInstances);
+					instance.setQueueLength(nClients / (double)nInstances);
 				}
 			}
 			
-			float maxChange = Float.MAX_VALUE;
+			double maxChange = Double.MAX_VALUE;
 			while (maxChange > maxQueueError) {
 				
 				responseTime = 0;
 				for (InteractiveTask task : tasks) {
 					for (InteractiveTaskInstance instance : task.getInteractiveTaskInstances()) {
-						instance.setResponseTime(instance.getEffectiveServiceTime() * (1 + (((nClients - 1) / (float)nClients) * instance.getQueueLength())));
+						if (nClients > 0) {
+							instance.setResponseTime(instance.getEffectiveServiceTime() * (1 + (((nClients - 1) / (double)nClients) * instance.getQueueLength())));
+						} else {
+							instance.setResponseTime(0); //prevent responseTime from becoming NaN if there are no clients
+						}
 						
 						responseTime += instance.getResponseTime() * instance.getVisitRatio();
 					}
@@ -166,21 +170,22 @@ public class InteractiveApplication extends Application {
 			}
 			//end of Schweitzer's approximate MVA
 		}
-		
+
 		//calculate instance throughput, utilization, demand		
 		boolean updated = false;
 		for (InteractiveTask task : tasks) {
 			for (InteractiveTaskInstance instance : task.getInteractiveTaskInstances()) {
 				instance.setThroughput(throughput * instance.getVisitRatio());
 				
-				float lastUtilization = instance.getUtilization();
+				double lastUtilization = instance.getUtilization();
 				instance.setUtilization(throughput * instance.getServiceTime() * instance.getVisitRatio());
 				
 				instance.getUtilizationDeltas().addValue(Math.abs(lastUtilization - instance.getUtilization()));
 				
-				if (instance.getUtilizationDeltas().getMean() > 0.02 && Math.abs(lastUtilization - instance.getUtilization()) > 0) {
+				if (instance.getUtilizationDeltas().getMean() > 0.02						//mean change is greater than 2% utilization 
+						&& instance.getUtilizationDeltas().getStandardDeviation() > 0		//checks to ensure that all utilization changes are not equal (prevents thrashing with > 0.02 difference)
+						&& Math.abs(lastUtilization - instance.getUtilization()) > 0) {		//allows early termination if no change
 					updated = true;
-//					System.out.println(instance.getUtilizationDeltas().getMean());
 				}
 				
 				instance.getResourceDemand().setCpu((int)((instance.getVM().getMaxCpu() * instance.getUtilization()) * (instance.getEffectiveServiceTime() / instance.getServiceTime())));
@@ -245,8 +250,8 @@ public class InteractiveApplication extends Application {
 	
 	public int calculateMaxWorkload(float responseTimeLimit, float utilizationLimit) {
 		
-		float responseTime = 0;
-		float throughput = 0;
+		double responseTime = 0;
+		double throughput = 0;
 		int nClients;
 		ArrayList<DummyTask> dummyTasks = new ArrayList<DummyTask>();
 		
@@ -295,7 +300,7 @@ public class InteractiveApplication extends Application {
 		
 	}
 	
-	public float getThinkTime() {
+	public double getThinkTime() {
 		return thinkTime;
 	}
 	
@@ -303,11 +308,11 @@ public class InteractiveApplication extends Application {
 		this.thinkTime = thinkTime;
 	}
 	
-	public float getResponseTime() {
+	public double getResponseTime() {
 		return responseTime;
 	}
 	
-	public float getThroughput() {
+	public double getThroughput() {
 		return throughput;
 	}
 	
@@ -332,7 +337,7 @@ public class InteractiveApplication extends Application {
 		private boolean used = false; //make sure this builder is only used to construct a single instance of InteractiveApplication
 		private Simulation simulation;
 		private Workload workload;
-		private float thinkTime;
+		private double thinkTime;
 		ArrayList<InteractiveTask> tasks = new ArrayList<InteractiveTask>();
 		
 		public Builder(Simulation simulation) {
@@ -352,8 +357,8 @@ public class InteractiveApplication extends Application {
 		public Builder task(int defaultInstances,
 				int maxInstances,
 				Resources resourceSize,
-				float serviceTime,
-				float visitRatio) {
+				double serviceTime,
+				double visitRatio) {
 			
 			InteractiveTask task = new InteractiveTask(null, defaultInstances, maxInstances, resourceSize, serviceTime, visitRatio);
 			tasks.add(task);
@@ -364,8 +369,8 @@ public class InteractiveApplication extends Application {
 		public Builder task(int defaultInstances,
 				int maxInstances,
 				Resources resourceSize,
-				float serviceTime, 
-				float visitRatio,
+				double serviceTime, 
+				double visitRatio,
 				LoadBalancer loadBalancer) {
 			
 			InteractiveTask task = new InteractiveTask(null, defaultInstances, maxInstances, resourceSize, serviceTime, visitRatio, loadBalancer);
@@ -395,13 +400,13 @@ public class InteractiveApplication extends Application {
 	}
 	
 	private class DummyTask {
-		float serviceTime;
-		float visits;
-		float queueLength;
-		float responseTime;
-		float utilization;
+		double serviceTime;
+		double visits;
+		double queueLength;
+		double responseTime;
+		double utilization;
 		
-		public DummyTask(float serviceTime, float visits) {
+		public DummyTask(double serviceTime, double visits) {
 			this.serviceTime = serviceTime;
 			this.visits = visits;
 		}

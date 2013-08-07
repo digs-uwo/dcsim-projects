@@ -11,13 +11,13 @@ import edu.uwo.csd.dcsim.core.Simulation;
 public class InteractiveTaskInstance extends TaskInstance {
 
 	private InteractiveTask task;
-	private float effectiveServiceTime;
-	private float queueLength;
-	private float responseTime;
-	private float throughput;
-	private float utilization;
-	private DescriptiveStatistics utilizationDeltas = new DescriptiveStatistics(20);
-	private float visitRatio;
+	private double effectiveServiceTime;
+	private double queueLength;
+	private double responseTime;
+	private double throughput;
+	private double utilization;
+	private DescriptiveStatistics utilizationDeltas = new DescriptiveStatistics(5);
+	private double visitRatio;
 	
 	public InteractiveTaskInstance(InteractiveTask task) {
 		this.task = task;
@@ -28,51 +28,51 @@ public class InteractiveTaskInstance extends TaskInstance {
 		//nothing to do
 	}
 	
-	public float getServiceTime() {
-		float serviceTime = task.getNormalServiceTime() * (task.getResourceSize().getCpu() / (float)vm.getMaxCpu());
+	public double getServiceTime() {
+		double serviceTime = task.getNormalServiceTime() * (task.getResourceSize().getCpu() / (float)vm.getMaxCpu());
 		if (vm.isMigrating())
 			serviceTime += serviceTime * Float.parseFloat(Simulation.getProperty("vmMigrationServiceTimePenalty"));
 			
 		return serviceTime;
 	}
 	
-	public float getEffectiveServiceTime() {
+	public double getEffectiveServiceTime() {
 		return effectiveServiceTime;
 	}
 	
-	public void setEffectiveServiceTime(float effectiveServiceTime) {
+	public void setEffectiveServiceTime(double effectiveServiceTime) {
 		this.effectiveServiceTime = effectiveServiceTime;
 	}
 	
-	public float getQueueLength() {
+	public double getQueueLength() {
 		return queueLength;
 	}
 	
-	public void setQueueLength(float queueLength) {
+	public void setQueueLength(double queueLength) {
 		this.queueLength = queueLength;
 	}
 	
-	public float getResponseTime() {
+	public double getResponseTime() {
 		return responseTime;
 	}
 	
-	public void setResponseTime(float responseTime) {
+	public void setResponseTime(double responseTime) {
 		this.responseTime = responseTime;
 	}
 	
-	public float getThroughput() {
+	public double getThroughput() {
 		return throughput;
 	}
 	
-	public void setThroughput(float throughput) {
+	public void setThroughput(double throughput) {
 		this.throughput = throughput;
 	}
 	
-	public float getUtilization() {
+	public double getUtilization() {
 		return utilization;
 	}
 	
-	public void setUtilization(float utilization) {
+	public void setUtilization(double utilization) {
 		this.utilization = utilization;
 	}
 	
@@ -84,7 +84,7 @@ public class InteractiveTaskInstance extends TaskInstance {
 		visitRatio = task.getVisitRatio() * task.getLoadBalancer().getInstanceShare(this);
 	}
 	
-	public float getVisitRatio() {
+	public double getVisitRatio() {
 		return visitRatio;
 	}
 

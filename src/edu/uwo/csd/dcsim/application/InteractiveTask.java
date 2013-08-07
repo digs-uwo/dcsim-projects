@@ -14,8 +14,8 @@ import edu.uwo.csd.dcsim.host.Resources;
 public class InteractiveTask extends Task {
 
 	private LoadBalancer loadBalancer;
-	private float normalServiceTime;
-	private float visitRatio;
+	private double normalServiceTime;
+	private double visitRatio;
 	private InteractiveApplication application;
 	private ArrayList<InteractiveTaskInstance> instances = new ArrayList<InteractiveTaskInstance>();
 	
@@ -23,8 +23,8 @@ public class InteractiveTask extends Task {
 			int defaultInstances,
 			int maxInstances,
 			Resources resourceSize,
-			float normalServiceTime,
-			float visitRatio) {
+			double normalServiceTime,
+			double visitRatio) {
 		super(defaultInstances, maxInstances, resourceSize);
 
 		this.normalServiceTime = normalServiceTime;
@@ -38,8 +38,8 @@ public class InteractiveTask extends Task {
 			int defaultInstances,
 			int maxInstances,
 			Resources resourceSize,
-			float normalServiceTime,
-			float visitRatio,
+			double normalServiceTime,
+			double visitRatio,
 			LoadBalancer loadBalancer) {
 		super(defaultInstances, maxInstances, resourceSize);
 
@@ -95,11 +95,11 @@ public class InteractiveTask extends Task {
 		
 	}
 	
-	public float getNormalServiceTime() {
+	public double getNormalServiceTime() {
 		return normalServiceTime;
 	}
 	
-	public float getVisitRatio() {
+	public double getVisitRatio() {
 		return visitRatio;
 	}
 
