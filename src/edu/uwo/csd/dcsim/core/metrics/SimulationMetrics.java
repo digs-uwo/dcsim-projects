@@ -1,5 +1,7 @@
 package edu.uwo.csd.dcsim.core.metrics;
 
+import java.util.*;
+
 import org.apache.log4j.Logger;
 
 import edu.uwo.csd.dcsim.common.SimTime;
@@ -11,6 +13,7 @@ public class SimulationMetrics {
 	HostMetrics hostMetrics;
 	ApplicationMetrics applicationMetrics;
 	ManagementMetrics managementMetrics;
+	Map<String, MetricCollection> customMetrics = new HashMap<String, MetricCollection>();
 	
 	long executionTime;
 	
@@ -48,6 +51,14 @@ public class SimulationMetrics {
 		return executionTime;
 	}
 	
+	public MetricCollection getCustomMetricCollection(String name) {
+		return customMetrics.get(name);
+	}
+	
+	public void addCustomMetricCollection(String name, MetricCollection metricCollection) {
+		customMetrics.put(name, metricCollection);
+	}
+	
 	public void printDefault(Logger out) {
 		
 		hostMetrics.printDefault(out);
@@ -56,6 +67,11 @@ public class SimulationMetrics {
 		out.info("");
 		managementMetrics.printDefault(out);
 		out.info("");
+		
+		for (MetricCollection metrics : customMetrics.values()) {
+			metrics.printDefault(out);
+			out.info("");
+		}
 
 		out.info("-- SIMULATION --");
 		out.info("   execution time: " + SimTime.toHumanReadable(getExecutionTime()));

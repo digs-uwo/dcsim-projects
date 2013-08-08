@@ -69,10 +69,7 @@ public class HybridStrategyExperiment extends SimulationTask {
 		
 		for(SimulationTask task : completedTasks) {
 			logger.info(task.getName());
-			IM2013TestEnvironment.printMetrics(task.getResults());
-			
-			SimulationTraceWriter traceWriter = new SimulationTraceWriter(task);
-			traceWriter.writeTrace();
+			task.getMetrics().printDefault(logger);
 		}
 	}
 

@@ -1,39 +1,33 @@
 package edu.uwo.csd.dcsim.projects.distributed;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 
 import org.apache.commons.math3.distribution.NormalDistribution;
 import org.apache.commons.math3.distribution.RealDistribution;
 import org.apache.commons.math3.distribution.UniformIntegerDistribution;
-import org.apache.log4j.Logger;
 
 import edu.uwo.csd.dcsim.DataCentre;
 import edu.uwo.csd.dcsim.application.Application;
 import edu.uwo.csd.dcsim.application.ApplicationGenerator;
 import edu.uwo.csd.dcsim.application.Applications;
+import edu.uwo.csd.dcsim.application.InteractiveApplication;
 import edu.uwo.csd.dcsim.application.workload.TraceWorkload;
-import edu.uwo.csd.dcsim.application.workload.Workload;
 import edu.uwo.csd.dcsim.common.SimTime;
 import edu.uwo.csd.dcsim.common.Tuple;
 import edu.uwo.csd.dcsim.core.Simulation;
 import edu.uwo.csd.dcsim.core.SimulationEventBroadcastGroup;
-import edu.uwo.csd.dcsim.core.metrics.AbstractMetric;
+import edu.uwo.csd.dcsim.core.metrics.MetricCollection;
 import edu.uwo.csd.dcsim.host.Host;
 import edu.uwo.csd.dcsim.host.HostModels;
 import edu.uwo.csd.dcsim.host.resourcemanager.DefaultResourceManagerFactory;
 import edu.uwo.csd.dcsim.host.scheduler.DefaultResourceSchedulerFactory;
 import edu.uwo.csd.dcsim.management.AutonomicManager;
 import edu.uwo.csd.dcsim.management.capabilities.HostManager;
-import edu.uwo.csd.dcsim.management.capabilities.HostPoolManager;
-import edu.uwo.csd.dcsim.management.policies.HostMonitoringPolicy;
 import edu.uwo.csd.dcsim.management.policies.HostOperationsPolicy;
-import edu.uwo.csd.dcsim.management.policies.HostStatusPolicy;
 import edu.uwo.csd.dcsim.projects.distributed.capabilities.HostManagerBroadcast;
 import edu.uwo.csd.dcsim.projects.distributed.capabilities.HostPoolManagerBroadcast;
 import edu.uwo.csd.dcsim.projects.distributed.policies.HostMonitoringPolicyBroadcast;
-import edu.uwo.csd.dcsim.projects.im2013.IM2013TestEnvironment;
 
 public class DistributedTestEnvironment {
 
@@ -55,8 +49,6 @@ public class DistributedTestEnvironment {
 		"traces/google_cores_job_type_3"};	
 	public static final long[] OFFSET_MAX = {200000000, 40000000, 40000000, 15000000, 15000000, 15000000, 15000000};
 	public static final double[] TRACE_AVG = {0.32, 0.25, 0.32, 0.72, 0.74, 0.77, 0.83};
-	
-	private static Logger logger = Logger.getLogger(IM2013TestEnvironment.class);
 	
 	/**
 	 * Creates a DataCentre object and its corresponding AutonomicManager 
@@ -128,6 +120,20 @@ public class DistributedTestEnvironment {
 			hostPool.addHost(host, hostAM);
 		}
 	
+	}
+	
+	public static DistributedMetrics getDistributedMetrics(Simulation simulation) {
+		MetricCollection metrics = simulation.getSimulationMetrics().getCustomMetricCollection(DistributedMetrics.class.getName());
+		
+		if (metrics == null) {
+			DistributedMetrics dMetrics = new DistributedMetrics(simulation);
+			simulation.getSimulationMetrics().addCustomMetricCollection(DistributedMetrics.class.getName(), dMetrics);
+			return dMetrics;
+		} else if (metrics instanceof DistributedMetrics) {
+			return (DistributedMetrics)metrics;
+		} else {
+			throw new RuntimeException("Distributed Metrics name already used in Simualtion");
+		}
 	}
 	
 	/**
@@ -287,20 +293,7 @@ Now, let's look at how contention is handled. CPU is given fairly to each VM on 
 		serviceProducer = new IMServiceProducer(simulation, dcAM, new NormalDistribution(SimTime.days(1) / changesPerDay, SimTime.hours(1)), serviceRates);
 		serviceProducer.start();
 	}
-	
-	/**
-	 * Formats a simulation run results for output.
-	 * 
-	 * @param metrics	simulation run results
-	 */
-	public static void printMetrics(Collection<AbstractMetric> metrics) {
-		for (AbstractMetric metric : metrics) {
-			logger.info(metric.getName() +
-					" = " +
-					metric.toString());
-		}
-	}
-	
+		
 	/**
 	 * Creates services for the IM 2013 Test Environment.
 	 * 
@@ -326,13 +319,15 @@ Now, let's look at how contention is handled. CPU is given fairly to each VM on 
 			int coreCapacity = VM_SIZES[counter % N_VM_SIZES];
 			int memory = VM_RAM[counter % N_VM_SIZES];
 			int bandwidth = 12800;	// 100 Mb/s
-			long storage = 1024;	// 1 GB
+			int storage = 1024;	// 1 GB
 			
 			// Create workload (external) for the service.
-			Workload workload = new TraceWorkload(simulation, trace, (coreCapacity * cores) - CPU_OVERHEAD, offset); //scale to n replicas
-			simulation.addWorkload(workload);
+			TraceWorkload workload = new TraceWorkload(simulation, trace, offset); //scale to n replicas
 			
-			return Applications.singleTierInteractiveService(workload, cores, coreCapacity, memory, bandwidth, storage, 1, CPU_OVERHEAD, 1, Integer.MAX_VALUE);
+			InteractiveApplication application = Applications.singleTaskInteractiveApplication(simulation, workload, cores, coreCapacity, memory, bandwidth, storage, 0.01);
+			workload.setScaleFactor(application.calculateMaxWorkloadUtilizationLimit(0.98));
+			
+			return application;
 		}
 		
 	}

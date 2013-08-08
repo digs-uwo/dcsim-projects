@@ -67,10 +67,7 @@ public class StaticPeakStrategyExperiment extends SimulationTask {
 		
 		for(SimulationTask task : completedTasks) {
 			logger.info(task.getName());
-			SVM2013TestEnvironment.printMetrics(task.getResults());
-			
-			SimulationTraceWriter traceWriter = new SimulationTraceWriter(task);
-			traceWriter.writeTrace();
+			task.getMetrics().printDefault(logger);
 		}
 	}
 

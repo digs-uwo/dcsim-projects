@@ -80,7 +80,6 @@ public abstract class Application {
 			}
 		}
 		
-		//TODO: should this wait for VM shutdown? Does that even take any time? (I think it doesn't)
 		simulation.removeApplication(this);
 	}
 	

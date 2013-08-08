@@ -7,6 +7,7 @@ import org.apache.log4j.PatternLayout;
 
 import edu.uwo.csd.dcsim.DataCentre;
 import edu.uwo.csd.dcsim.application.Application;
+import edu.uwo.csd.dcsim.common.SimTime;
 import edu.uwo.csd.dcsim.common.Utility;
 import edu.uwo.csd.dcsim.core.events.*;
 import edu.uwo.csd.dcsim.core.metrics.*;
@@ -254,10 +255,11 @@ public class Simulation implements SimulationEventListener {
 		simLogger.info("Starting DCSim");
 		simLogger.info("Random Seed: " + this.getRandomSeed());
 		
+		int i = 0;
 		//main event loop
 		while (!eventQueue.isEmpty() && simulationTime < duration) {
 			
-//			System.out.println(SimTime.toHumanReadable(simulationTime));
+			System.out.println(SimTime.toHumanReadable(simulationTime));
 			
 			//peak at next event
 			e = eventQueue.peek();
@@ -281,6 +283,10 @@ public class Simulation implements SimulationEventListener {
 				
 				//get the next event, which may have changed during the revise step
 				e = eventQueue.peek();
+				
+				//make sure that the event is in the future
+				if (e.getTime() < simulationTime)
+					throw new IllegalStateException("Encountered post-scheduling event (" + e.getClass() + ") with time < current simulation time");
 				
 				//advance to time e.getTime()
 				lastUpdate = simulationTime;
@@ -563,8 +569,8 @@ public class Simulation implements SimulationEventListener {
 	public static final String getConfigDirectory() {
 		return getHomeDirectory() + CONFIG_DIRECTORY;
 	}
-		
 	public static final boolean hasProperty(String name) {
+		
 		if (System.getProperty(name) != null || getProperties().getProperty(name) != null)
 			return true;
 		return false;

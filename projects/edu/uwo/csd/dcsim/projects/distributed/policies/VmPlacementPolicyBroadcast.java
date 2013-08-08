@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 
 import edu.uwo.csd.dcsim.common.SimTime;
-import edu.uwo.csd.dcsim.core.metrics.CountMetric;
 import edu.uwo.csd.dcsim.host.Host;
 import edu.uwo.csd.dcsim.host.Resources;
 import edu.uwo.csd.dcsim.host.comparator.HostComparator;
@@ -17,6 +16,8 @@ import edu.uwo.csd.dcsim.management.VmStatus;
 import edu.uwo.csd.dcsim.management.events.InstantiateVmEvent;
 import edu.uwo.csd.dcsim.management.events.ShutdownVmEvent;
 import edu.uwo.csd.dcsim.management.events.VmPlacementEvent;
+import edu.uwo.csd.dcsim.projects.distributed.DistributedMetrics;
+import edu.uwo.csd.dcsim.projects.distributed.DistributedTestEnvironment;
 import edu.uwo.csd.dcsim.projects.distributed.Eviction;
 import edu.uwo.csd.dcsim.projects.distributed.capabilities.HostPoolManagerBroadcast;
 import edu.uwo.csd.dcsim.projects.distributed.comparators.ResourceOfferComparator;
@@ -32,13 +33,10 @@ import edu.uwo.csd.dcsim.vm.VmAllocationRequest;
 
 public class VmPlacementPolicyBroadcast extends Policy {
 
-	public static final String HOST_POWER_ON_METRIC = "hostPowerOn";
-	public static final String SERVICES_RECEIVED = "servicesReceived";
-	public static final String SERVICES_PLACED = "servicesPlaced";
-	public static final String SERVICE_PLACEMENT_FAILED = "servicePlacementsFailed";
-	
 	private static final long PLACEMENT_WAIT_TIME = 500; //the number of milliseconds to wait to place a VM
 	private static final long BOOT_WAIT_TIME = SimTime.minutes(1); //the number of milliseconds to wait after booting a host, before booting anothor
+	
+	private static DistributedMetrics distributedMetrics = null;
 	
 	private double lower;
 	private double upper;
@@ -54,6 +52,10 @@ public class VmPlacementPolicyBroadcast extends Policy {
 	
 	public void execute(VmPlacementEvent event) {
 
+		if (distributedMetrics == null) {
+			distributedMetrics = DistributedTestEnvironment.getDistributedMetrics(simulation);
+		}
+		
 		HostPoolManagerBroadcast hostPool = manager.getCapability(HostPoolManagerBroadcast.class);
 				
 		//TODO there is a very good chance this will fail with multiple simultaneous VM requests
@@ -77,12 +79,16 @@ public class VmPlacementPolicyBroadcast extends Policy {
 			simulation.sendEvent(new RequestResourcesEvent(hostPool.getBroadcastingGroup(), resources, eviction, manager, RequestResourcesEvent.AdvertiseReason.PLACEMENT));
 			simulation.sendEvent(new EvictionEvent(manager, eviction), simulation.getSimulationTime() + PLACEMENT_WAIT_TIME);
 			
-			CountMetric.getMetric(simulation, SERVICES_RECEIVED).incrementCount();
+			distributedMetrics.servicesReceived++;
 		}
 	}
 	
 	
 	public void execute(EvictionEvent event) {
+		
+		if (distributedMetrics == null) {
+			distributedMetrics = DistributedTestEnvironment.getDistributedMetrics(simulation);
+		}
 
 		HostPoolManagerBroadcast hostPool = manager.getCapability(HostPoolManagerBroadcast.class);
 		
@@ -129,7 +135,7 @@ public class VmPlacementPolicyBroadcast extends Policy {
 				
 				hostPool.clearEviction(eviction);
 				
-				CountMetric.getMetric(simulation, SERVICES_PLACED).incrementCount();
+				distributedMetrics.servicesPlaced++;
 
 			}
 			
@@ -169,16 +175,16 @@ public class VmPlacementPolicyBroadcast extends Policy {
 					simulation.sendEvent(new UpdatePowerStateListEvent(target.getAutonomicManager(), hostPool.getPoweredOffHosts()));
 					
 					hostPool.clearEviction(eviction);
-					CountMetric.getMetric(simulation, SERVICES_PLACED).incrementCount();
+					distributedMetrics.servicesPlaced++;
 					
-					CountMetric.getMetric(simulation, HOST_POWER_ON_METRIC + "-" + this.getClass().getSimpleName()).incrementCount();
+					distributedMetrics.hostPowerOn++;
 					
 					hostPool.setLastBoot(simulation.getSimulationTime());
 				}
 
 			} else {
 				hostPool.clearEviction(eviction);
-				CountMetric.getMetric(simulation, SERVICE_PLACEMENT_FAILED).incrementCount();
+				distributedMetrics.servicePlacementsFailed++;
 			}
 			
 		}
@@ -187,6 +193,11 @@ public class VmPlacementPolicyBroadcast extends Policy {
 	
 	
 	public void execute(ResourceOfferEvent event) {
+		
+		if (distributedMetrics == null) {
+			distributedMetrics = DistributedTestEnvironment.getDistributedMetrics(simulation);
+		}
+		
 		HostPoolManagerBroadcast hostPool = manager.getCapability(HostPoolManagerBroadcast.class);
 		
 		Eviction eviction = event.getEviction();
@@ -201,6 +212,11 @@ public class VmPlacementPolicyBroadcast extends Policy {
 	}
 	
 	public void execute(ShutdownVmEvent event) {
+		
+		if (distributedMetrics == null) {
+			distributedMetrics = DistributedTestEnvironment.getDistributedMetrics(simulation);
+		}
+		
 		HostPoolManagerBroadcast hostPool = manager.getCapability(HostPoolManagerBroadcast.class);
 		AutonomicManager hostManager = hostPool.getHost(event.getHostId()).getHostManager();
 		

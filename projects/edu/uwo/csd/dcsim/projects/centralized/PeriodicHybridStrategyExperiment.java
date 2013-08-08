@@ -9,7 +9,6 @@ import edu.uwo.csd.dcsim.common.*;
 import edu.uwo.csd.dcsim.core.Simulation;
 import edu.uwo.csd.dcsim.management.AutonomicManager;
 import edu.uwo.csd.dcsim.projects.centralized.policies.*;
-import edu.uwo.csd.dcsim.projects.distributed.DistributedTestEnvironment;
 import edu.uwo.csd.dcsim.management.policies.HostStatusPolicy;
 
 /**
@@ -73,10 +72,7 @@ public class PeriodicHybridStrategyExperiment extends SimulationTask {
 		
 		for(SimulationTask task : completedTasks) {
 			logger.info(task.getName());
-			CentralizedTestEnvironment.printMetrics(task.getResults());
-			
-			SimulationTraceWriter traceWriter = new SimulationTraceWriter(task);
-			traceWriter.writeTrace();
+			task.getMetrics().printDefault(logger);
 		}
 	}
 
