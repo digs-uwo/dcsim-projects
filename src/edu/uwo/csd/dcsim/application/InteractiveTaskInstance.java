@@ -29,7 +29,7 @@ public class InteractiveTaskInstance extends TaskInstance {
 	}
 	
 	public double getServiceTime() {
-		double serviceTime = task.getNormalServiceTime() * (task.getResourceSize().getCpu() / (float)vm.getMaxCpu());
+		double serviceTime = task.getNormalServiceTime() * (task.getResourceSize().getCoreCapacity() / (float)vm.getVMAllocation().getHost().getCoreCapacity());
 		if (vm.isMigrating())
 			serviceTime += serviceTime * Float.parseFloat(Simulation.getProperty("vmMigrationServiceTimePenalty"));
 			
