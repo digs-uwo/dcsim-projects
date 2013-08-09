@@ -4,10 +4,10 @@ import java.util.*;
 
 import edu.uwo.csd.dcsim.host.Cluster;
 import edu.uwo.csd.dcsim.management.AutonomicManager;
-import edu.uwo.csd.dcsim.management.capabilities.HostCapability;
+import edu.uwo.csd.dcsim.management.capabilities.ManagerCapability;
 import edu.uwo.csd.dcsim.projects.hierarchical.ClusterData;
 
-public class ClusterPoolManager extends HostCapability {
+public class ClusterPoolManager extends ManagerCapability {
 	
 	private Map<Integer, ClusterData> clusterMap = new HashMap<Integer, ClusterData>();
 	

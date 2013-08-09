@@ -36,7 +36,7 @@ public class DefaultVmPlacementPolicy extends Policy {
 				hosts.add(host);
 			}
 		}
-				
+		
 		//reset the sandbox host status to the current host status
 		for (HostData host : hosts) {
 			host.resetSandboxStatusToCurrent();

@@ -4,7 +4,7 @@ import edu.uwo.csd.dcsim.core.Event;
 import edu.uwo.csd.dcsim.core.SimulationEventListener;
 import edu.uwo.csd.dcsim.management.AutonomicManager;
 
-public abstract class HostCapability implements SimulationEventListener {
+public abstract class ManagerCapability implements SimulationEventListener {
 	
 	private AutonomicManager manager;
 	

@@ -1,9 +1,9 @@
 package edu.uwo.csd.dcsim.projects.hierarchical.capabilities;
 
 import edu.uwo.csd.dcsim.host.*;
-import edu.uwo.csd.dcsim.management.capabilities.HostCapability;
+import edu.uwo.csd.dcsim.management.capabilities.ManagerCapability;
 
-public class RackManager extends HostCapability {
+public class RackManager extends ManagerCapability {
 
 	private Rack rack;
 	

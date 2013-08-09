@@ -14,6 +14,7 @@ import edu.uwo.csd.dcsim.host.Host;
 import edu.uwo.csd.dcsim.management.AutonomicManager;
 import edu.uwo.csd.dcsim.management.capabilities.*;
 import edu.uwo.csd.dcsim.management.policies.*;
+import edu.uwo.csd.dcsim.projects.applicationManagement.capabilities.ApplicationManager;
 import edu.uwo.csd.dcsim.projects.applicationManagement.events.ApplicationPlacementEvent;
 import edu.uwo.csd.dcsim.projects.applicationManagement.policies.*;
 
@@ -21,7 +22,7 @@ public class AppManagementExperiment extends SimulationTask {
 
 	private static Logger logger = Logger.getLogger(AppManagementExperiment.class);
 	
-	private static final long DURATION = SimTime.minutes(10);
+	private static final long DURATION = SimTime.days(1);
 	private static final long METRIC_RECORD_START = SimTime.days(0);
 	
 	public static void main(String args[]) {
@@ -60,16 +61,16 @@ public class AppManagementExperiment extends SimulationTask {
 	@Override
 	public void setup(Simulation simulation) {
 		
-		Environment environment = new Environment(simulation, 2);
+		Environment environment = new Environment(simulation, 1);
 		environment.createDataCentre(simulation);
 		
 		simulation.sendEvent(new ApplicationPlacementEvent(environment.getDcAM(), environment.createApplication()));
 		
-		simulation.sendEvent(new ApplicationPlacementEvent(environment.getDcAM(), environment.createApplication()), SimTime.minutes(1));
-		
-		simulation.sendEvent(new ApplicationPlacementEvent(environment.getDcAM(), environment.createApplication()), SimTime.minutes(2));
-		
-		simulation.sendEvent(new ApplicationPlacementEvent(environment.getDcAM(), environment.createApplication()), SimTime.minutes(3));
+//		simulation.sendEvent(new ApplicationPlacementEvent(environment.getDcAM(), environment.createApplication()), SimTime.minutes(1));
+//		
+//		simulation.sendEvent(new ApplicationPlacementEvent(environment.getDcAM(), environment.createApplication()), SimTime.minutes(2));
+//		
+//		simulation.sendEvent(new ApplicationPlacementEvent(environment.getDcAM(), environment.createApplication()), SimTime.minutes(3));
 	}
 	
 	public class Environment extends AppManagementTestEnvironment {
@@ -103,8 +104,10 @@ public class AppManagementExperiment extends SimulationTask {
 
 		@Override
 		public void processApplication(InteractiveApplication application) {
-			// TODO Auto-generated method stub
+			AutonomicManager applicationManager = new AutonomicManager(simulation);
+			applicationManager.addCapability(new ApplicationManager(application));
 			
+			applicationManager.installPolicy(new ApplicationScalingPolicy(dcAM), SimTime.minutes(5), 0);
 		}
 		
 	}

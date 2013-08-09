@@ -11,6 +11,7 @@ import edu.uwo.csd.dcsim.host.Resources;
  */
 public abstract class Task {
 
+	int id = -1;
 	int defaultInstances;
 	int maxInstances;
 	Resources resourceSize;
@@ -54,6 +55,14 @@ public abstract class Task {
 
 	public Resources getResourceSize() {
 		return resourceSize;
+	}
+
+	public int getId() {
+		return id;
+	}
+
+	public void setId(int id) {
+		this.id = id;
 	}
 	
 }

@@ -87,8 +87,8 @@ public abstract class AppManagementTestEnvironment {
 		
 		InteractiveApplication app = new InteractiveApplication.Builder(simulation).workload(workload).thinkTime(4)
 				.task(1, 1, new Resources(2500,1024,0,0), 0.005, 1)
-				.task(1, 1, new Resources(2500,1024,0,0), 0.02, 1)
-				.task(1, 1, new Resources(2500,1024,0,0), 0.01, 1)
+				.task(1, 4, new Resources(2500,1024,0,0), 0.02, 1)
+				.task(1, 2, new Resources(2500,1024,0,0), 0.01, 1)
 				.build();
 		
 		workload.setScaleFactor(app.calculateMaxWorkloadResponseTimeLimit(1)); //1s response time

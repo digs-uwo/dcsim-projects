@@ -3,7 +3,8 @@ package edu.uwo.csd.dcsim.projects.applicationManagement.policies;
 import java.util.ArrayList;
 import java.util.Collection;
 
-import edu.uwo.csd.dcsim.application.Application;
+import edu.uwo.csd.dcsim.application.*;
+import edu.uwo.csd.dcsim.core.Event;
 import edu.uwo.csd.dcsim.host.Resources;
 import edu.uwo.csd.dcsim.management.HostData;
 import edu.uwo.csd.dcsim.management.Policy;
@@ -12,6 +13,7 @@ import edu.uwo.csd.dcsim.management.action.InstantiateVmAction;
 import edu.uwo.csd.dcsim.management.capabilities.HostPoolManager;
 import edu.uwo.csd.dcsim.projects.applicationManagement.events.*;
 import edu.uwo.csd.dcsim.vm.VmAllocationRequest;
+import edu.uwo.csd.dcsim.vm.VmDescription;
 
 public class ApplicationPlacementPolicy extends Policy {
 
@@ -25,26 +27,49 @@ public class ApplicationPlacementPolicy extends Policy {
 		
 		Application application = event.getApplication();
 		
+		ArrayList<VmAllocationRequest> allocationRequests = application.createInitialVmRequests();
+		
+		place(allocationRequests, hostPool.getHosts(), event);
+		
+	}
+	
+	public void execute(TaskInstancePlacementEvent event) {
+		HostPoolManager hostPool = manager.getCapability(HostPoolManager.class);
+		
+		Task task = event.getTask();
+		
+		VmAllocationRequest request = new VmAllocationRequest(new VmDescription(task));
+		
+		place(request, hostPool.getHosts(), event);
+		
+	}
+	
+	private boolean place(VmAllocationRequest request, Collection<HostData> hosts, Event placementEvent) {
+		ArrayList<VmAllocationRequest> requests = new ArrayList<VmAllocationRequest>();
+		requests.add(request);
+		return place(requests, hosts, placementEvent);
+	}
+	
+	private boolean place(Collection<VmAllocationRequest> requests, Collection<HostData> hosts, Event placementEvent) {
+		
 		//filter out invalid host status
-		Collection<HostData> hosts = new ArrayList<HostData>(); 
-		for (HostData host : hostPool.getHosts()) {
+		Collection<HostData> targets = new ArrayList<HostData>(); 
+		for (HostData host : hosts) {
 			if (host.isStatusValid()) {
-				hosts.add(host);
+				targets.add(host);
 			}
 		}
 				
 		//reset the sandbox host status to the current host status
-		for (HostData host : hosts) {
-			host.resetSandboxStatusToCurrent();
+		for (HostData target : targets) {
+			target.resetSandboxStatusToCurrent();
 		}
 		
-		ArrayList<VmAllocationRequest> allocationRequests = application.createInitialVmRequests();
-		
-		for (VmAllocationRequest request : allocationRequests) {
+		for (VmAllocationRequest request : requests) {
 			
 			HostData allocatedHost = null;
 			
-			for (HostData target : hosts) {
+			for (HostData target : targets) {
 				Resources reqResources = new Resources();
 				reqResources.setCpu(request.getCpu());
 				reqResources.setMemory(request.getMemory());
@@ -73,12 +98,14 @@ public class ApplicationPlacementPolicy extends Policy {
 			}
 			
 			if (allocatedHost != null) {
-				InstantiateVmAction instantiateVmAction = new InstantiateVmAction(allocatedHost, request, event);
+				InstantiateVmAction instantiateVmAction = new InstantiateVmAction(allocatedHost, request, placementEvent);
 				instantiateVmAction.execute(simulation, this);
+			} else {
+				return false;
 			}
 		}
 		
-		
+		return true;
 	}
 	
 	public void execute(ShutdownApplicationEvent event) {

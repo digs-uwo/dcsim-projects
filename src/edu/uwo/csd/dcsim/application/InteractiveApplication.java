@@ -49,6 +49,7 @@ public class InteractiveApplication extends Application {
 		for (InteractiveTask task : builder.tasks) {
 			tasks.add(task);
 			task.setApplication(this);
+			task.setId(tasks.size());
 		}
 		
 		//if we haven't checked for the 'approximateMVA' property yet, do so now
@@ -391,6 +392,7 @@ public class InteractiveApplication extends Application {
 	public void addTask(InteractiveTask task) {
 		tasks.add(task);
 		task.setApplication(this);
+		task.setId(tasks.size());
 	}
 	
 	@Override

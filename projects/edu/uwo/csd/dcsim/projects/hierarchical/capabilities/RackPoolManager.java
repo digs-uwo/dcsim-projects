@@ -4,10 +4,10 @@ import java.util.*;
 
 import edu.uwo.csd.dcsim.host.Rack;
 import edu.uwo.csd.dcsim.management.AutonomicManager;
-import edu.uwo.csd.dcsim.management.capabilities.HostCapability;
+import edu.uwo.csd.dcsim.management.capabilities.ManagerCapability;
 import edu.uwo.csd.dcsim.projects.hierarchical.RackData;
 
-public class RackPoolManager extends HostCapability {
+public class RackPoolManager extends ManagerCapability {
 	
 	private Map<Integer, RackData> rackMap = new HashMap<Integer, RackData>();
 	
