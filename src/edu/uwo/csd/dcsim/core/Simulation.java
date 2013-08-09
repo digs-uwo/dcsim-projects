@@ -7,7 +7,7 @@ import org.apache.log4j.PatternLayout;
 
 import edu.uwo.csd.dcsim.DataCentre;
 import edu.uwo.csd.dcsim.application.Application;
-import edu.uwo.csd.dcsim.common.SimTime;
+//import edu.uwo.csd.dcsim.common.SimTime;
 import edu.uwo.csd.dcsim.common.Utility;
 import edu.uwo.csd.dcsim.core.events.*;
 import edu.uwo.csd.dcsim.core.metrics.*;
@@ -255,11 +255,10 @@ public class Simulation implements SimulationEventListener {
 		simLogger.info("Starting DCSim");
 		simLogger.info("Random Seed: " + this.getRandomSeed());
 		
-		int i = 0;
 		//main event loop
 		while (!eventQueue.isEmpty() && simulationTime < duration) {
 			
-			System.out.println(SimTime.toHumanReadable(simulationTime));
+//			System.out.println(SimTime.toHumanReadable(simulationTime));
 			
 			//peak at next event
 			e = eventQueue.peek();
@@ -482,7 +481,6 @@ public class Simulation implements SimulationEventListener {
 		if (random == null) {
 			random = new Random();
 			setRandomSeed(random.nextLong());
-			//setRandomSeed()
 		}
 	
 		return random;

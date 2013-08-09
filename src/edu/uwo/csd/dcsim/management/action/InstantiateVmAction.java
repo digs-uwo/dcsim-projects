@@ -8,16 +8,15 @@ import edu.uwo.csd.dcsim.host.events.PowerStateEvent;
 import edu.uwo.csd.dcsim.host.events.PowerStateEvent.PowerState;
 import edu.uwo.csd.dcsim.management.HostData;
 import edu.uwo.csd.dcsim.management.events.InstantiateVmEvent;
-import edu.uwo.csd.dcsim.management.events.VmPlacementEvent;
 import edu.uwo.csd.dcsim.vm.VmAllocationRequest;
 
 public class InstantiateVmAction extends ManagementAction {
 
 	private HostData target;
 	private VmAllocationRequest vmAllocationRequest;
-	private VmPlacementEvent placementEvent;
+	private Event placementEvent;
 	
-	public InstantiateVmAction(HostData target, VmAllocationRequest vmAllocationRequest, VmPlacementEvent placementEvent) {
+	public InstantiateVmAction(HostData target, VmAllocationRequest vmAllocationRequest, Event placementEvent) {
 		this.target = target;
 		this.vmAllocationRequest = vmAllocationRequest;
 		this.placementEvent = placementEvent;
