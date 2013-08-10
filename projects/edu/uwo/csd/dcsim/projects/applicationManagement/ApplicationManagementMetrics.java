@@ -1,0 +1,32 @@
+package edu.uwo.csd.dcsim.projects.applicationManagement;
+
+import org.apache.log4j.Logger;
+
+import edu.uwo.csd.dcsim.core.Simulation;
+import edu.uwo.csd.dcsim.core.metrics.MetricCollection;
+
+public class ApplicationManagementMetrics extends MetricCollection {
+
+	public int instancesAdded = 0;
+	public int instancesRemoved = 0;
+	
+	public ApplicationManagementMetrics(Simulation simulation) {
+		super(simulation);
+		// TODO Auto-generated constructor stub
+	}
+
+	@Override
+	public void completeSimulation() {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void printDefault(Logger out) {
+		out.info("-- APPLICATION MANAGEMENT --");
+		out.info("Instances");
+		out.info("   added: " + instancesAdded);
+		out.info("   removed: " + instancesRemoved);
+	}
+
+}
