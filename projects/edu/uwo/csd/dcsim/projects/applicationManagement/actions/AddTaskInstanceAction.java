@@ -20,6 +20,8 @@ public class AddTaskInstanceAction extends ManagementAction {
 	
 	@Override
 	public void execute(Simulation simulation, Object triggeringEntity) {
+		
+		System.out.println("AddTaskAction " + task.getId());
 		TaskInstancePlacementEvent placementEvent = new TaskInstancePlacementEvent(dcManager, task);
 		
 		//add a callback listener to indicate this action is completed once the placement is finished

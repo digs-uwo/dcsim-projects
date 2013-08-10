@@ -13,7 +13,7 @@ public class SimulationMetrics {
 	HostMetrics hostMetrics;
 	ApplicationMetrics applicationMetrics;
 	ManagementMetrics managementMetrics;
-	Map<String, MetricCollection> customMetrics = new HashMap<String, MetricCollection>();
+	Map<Class<? extends MetricCollection>, MetricCollection> customMetrics = new HashMap<Class<? extends MetricCollection>, MetricCollection>();
 	
 	long executionTime;
 	
@@ -51,12 +51,13 @@ public class SimulationMetrics {
 		return executionTime;
 	}
 	
-	public MetricCollection getCustomMetricCollection(String name) {
-		return customMetrics.get(name);
+	@SuppressWarnings("unchecked")
+	public <T extends MetricCollection> T getCustomMetricCollection(Class<T> type) {
+		return (T)customMetrics.get(type);
 	}
 	
-	public void addCustomMetricCollection(String name, MetricCollection metricCollection) {
-		customMetrics.put(name, metricCollection);
+	public void addCustomMetricCollection(MetricCollection metricCollection) {
+		customMetrics.put(metricCollection.getClass(), metricCollection);
 	}
 	
 	public void printDefault(Logger out) {

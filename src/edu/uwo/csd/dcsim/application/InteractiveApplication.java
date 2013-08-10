@@ -205,16 +205,16 @@ public class InteractiveApplication extends Application {
 		}
 
 		//TODO remove, debugging code
-//		int i = 1;
-//		
-//		for (InteractiveTask task : tasks) {
-//			int j = 1;
-//			for (InteractiveTaskInstance instance : task.getInteractiveTaskInstances()) {
-//				System.out.println("App " + this.getId() + " Task " + i + "-" + j + " U=" + instance.getUtilization());
-//				++j;
-//			}
-//			++i;
-//		}
+		int i = 1;
+		
+		for (InteractiveTask task : tasks) {
+			int j = 1;
+			for (InteractiveTaskInstance instance : task.getInteractiveTaskInstances()) {
+				System.out.println("App " + this.getId() + " Task " + i + "-" + j + " U=" + instance.getUtilization());
+				++j;
+			}
+			++i;
+		}
 				
 		//return true if utilization values changed (there was an update made), false otherwise
 		return updated;

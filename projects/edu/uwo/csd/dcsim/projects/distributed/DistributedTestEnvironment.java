@@ -17,7 +17,6 @@ import edu.uwo.csd.dcsim.common.SimTime;
 import edu.uwo.csd.dcsim.common.Tuple;
 import edu.uwo.csd.dcsim.core.Simulation;
 import edu.uwo.csd.dcsim.core.SimulationEventBroadcastGroup;
-import edu.uwo.csd.dcsim.core.metrics.MetricCollection;
 import edu.uwo.csd.dcsim.host.Host;
 import edu.uwo.csd.dcsim.host.HostModels;
 import edu.uwo.csd.dcsim.host.resourcemanager.DefaultResourceManagerFactory;
@@ -123,16 +122,14 @@ public class DistributedTestEnvironment {
 	}
 	
 	public static DistributedMetrics getDistributedMetrics(Simulation simulation) {
-		MetricCollection metrics = simulation.getSimulationMetrics().getCustomMetricCollection(DistributedMetrics.class.getName());
+		DistributedMetrics metrics = simulation.getSimulationMetrics().getCustomMetricCollection(DistributedMetrics.class);
 		
 		if (metrics == null) {
-			DistributedMetrics dMetrics = new DistributedMetrics(simulation);
-			simulation.getSimulationMetrics().addCustomMetricCollection(DistributedMetrics.class.getName(), dMetrics);
-			return dMetrics;
-		} else if (metrics instanceof DistributedMetrics) {
-			return (DistributedMetrics)metrics;
+			metrics = new DistributedMetrics(simulation);
+			simulation.getSimulationMetrics().addCustomMetricCollection(metrics);
+			return metrics;
 		} else {
-			throw new RuntimeException("Distributed Metrics name already used in Simualtion");
+			return (DistributedMetrics)metrics;
 		}
 	}
 	

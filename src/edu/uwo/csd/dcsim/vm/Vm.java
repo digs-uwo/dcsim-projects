@@ -85,7 +85,8 @@ public class Vm implements SimulationEventListener {
 					"MEM[" + resourcesScheduled.getMemory() + 
 					"/" + vmAllocation.getMemory() + "] " +
 					"STORAGE[" + resourcesScheduled.getStorage() + 
-					"/" + vmAllocation.getStorage() + "]");
+					"/" + vmAllocation.getStorage() + "]" +
+					"Task #" + taskInstance.getTask().getApplication().getId() + "-" + taskInstance.getTask().getId());
 		}
 		
 		//trace output

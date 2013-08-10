@@ -40,7 +40,7 @@ public class ApplicationPlacementPolicy extends Policy {
 		
 		VmAllocationRequest request = new VmAllocationRequest(new VmDescription(task));
 		
-		place(request, hostPool.getHosts(), event);
+		System.out.println("place task" + task.getId() + " " + place(request, hostPool.getHosts(), event));
 		
 	}
 	

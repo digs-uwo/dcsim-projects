@@ -61,6 +61,8 @@ public class AppManagementExperiment extends SimulationTask {
 	@Override
 	public void setup(Simulation simulation) {
 		
+		simulation.getSimulationMetrics().addCustomMetricCollection(new ApplicationManagementMetrics(simulation));
+		
 		Environment environment = new Environment(simulation, 1);
 		environment.createDataCentre(simulation);
 		
