@@ -16,6 +16,7 @@ public class SimulationMetrics {
 	Map<Class<? extends MetricCollection>, MetricCollection> customMetrics = new HashMap<Class<? extends MetricCollection>, MetricCollection>();
 	
 	long executionTime;
+	int applicationSchedulingTimedOut = 0;
 	
 	public SimulationMetrics(Simulation simulation) {
 		this.simulation = simulation;
@@ -51,6 +52,18 @@ public class SimulationMetrics {
 		return executionTime;
 	}
 	
+	public int getApplicationSchedulingTimedOut() {
+		return applicationSchedulingTimedOut;
+	}
+	
+	public void setApplicationSchedulingTimedOut(int applicationSchedulingTimedOut) {
+		this.applicationSchedulingTimedOut = applicationSchedulingTimedOut;
+	}
+	
+	public void incrementApplicationSchedulingTimedOut() {
+		++applicationSchedulingTimedOut;
+	}
+	
 	@SuppressWarnings("unchecked")
 	public <T extends MetricCollection> T getCustomMetricCollection(Class<T> type) {
 		return (T)customMetrics.get(type);
@@ -79,6 +92,7 @@ public class SimulationMetrics {
 		out.info("   simulated time: " + SimTime.toHumanReadable(simulation.getDuration()));
 		out.info("   metric recording start: " + SimTime.toHumanReadable(simulation.getMetricRecordStart()));
 		out.info("   metric recording duration: " + SimTime.toHumanReadable(simulation.getDuration() - simulation.getMetricRecordStart()));
-	
+		out.info("   application scheduling timed out: " + applicationSchedulingTimedOut);
+		
 	}
 }

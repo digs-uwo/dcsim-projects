@@ -92,7 +92,7 @@ public abstract class AppManagementTestEnvironment {
 				.build();
 		
 		workload.setScaleFactor(app.calculateMaxWorkloadResponseTimeLimit(1)); //1s response time
-		
+
 		InteractiveServiceLevelAgreement sla = new InteractiveServiceLevelAgreement(app).responseTime(1, 1); //sla limit at 1s response time, penalty rate of 1 per second in violation
 		app.setSla(sla);
 		

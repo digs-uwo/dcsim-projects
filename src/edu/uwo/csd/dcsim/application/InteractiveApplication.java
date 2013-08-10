@@ -28,6 +28,8 @@ public class InteractiveApplication extends Application {
 	int totalCpuDemand;
 	int totalCpuScheduled;
 
+	int schedulingRounds;
+	
 	public InteractiveApplication(Simulation simulation) {
 		super(simulation);
 		
@@ -64,11 +66,16 @@ public class InteractiveApplication extends Application {
 
 	@Override
 	public void initializeScheduling() {
+		
+		schedulingRounds = 0;
+		
 		//reset scheduled resources and demand
 		for (InteractiveTask task : tasks) {
 			for (InteractiveTaskInstance instance : task.getInteractiveTaskInstances()) {
 				instance.resourceScheduled = new Resources(task.getResourceSize());
 				instance.resourceScheduled.setCpu(instance.getVM().getMaxCpu()); //use the VMs max CPU capacity, as it may be on a different speed core than the Task size specifies 
+
+				instance.resourceDemand = new Resources(instance.resourceScheduled);
 				
 				instance.setFullDemand(null); //will be calculated on first 'updateDemand' call
 				instance.updateVisitRatio(); //gets the current visit ratio from the task load balancer
@@ -85,6 +92,11 @@ public class InteractiveApplication extends Application {
 	
 	@Override
 	public boolean updateDemand() {
+	
+		if (++schedulingRounds > 100) {
+			simulation.getSimulationMetrics().incrementApplicationSchedulingTimedOut();
+			return false;
+		}
 		
 		int nClients = workload.getWorkOutputLevel();
 		
@@ -205,16 +217,23 @@ public class InteractiveApplication extends Application {
 		}
 
 		//TODO remove, debugging code
-		int i = 1;
-		
-		for (InteractiveTask task : tasks) {
-			int j = 1;
-			for (InteractiveTaskInstance instance : task.getInteractiveTaskInstances()) {
-				System.out.println("App " + this.getId() + " Task " + i + "-" + j + " U=" + instance.getUtilization());
-				++j;
-			}
-			++i;
-		}
+//		int i = 1;
+//		
+//		System.out.println("App" + this.getId() + " N=" + nClients + " R=" + responseTime);
+//		for (InteractiveTask task : tasks) {
+//			int j = 1;
+//			for (InteractiveTaskInstance instance : task.getInteractiveTaskInstances()) {
+//				System.out.println("Task " + i + "-" + j +
+//						" V=" + instance.getVisitRatio() + 
+//						" R=" + instance.getResponseTime() +
+//						" Q=" + instance.getQueueLength() +
+//						" U=" + instance.getUtilization() +
+//						" S=" + instance.getServiceTime() +
+//						" CPU=[" + instance.getResourceScheduled().getCpu() + "/" + instance.getResourceDemand().getCpu() + "]");
+//				++j;
+//			}
+//			++i;
+//		}
 				
 		//return true if utilization values changed (there was an update made), false otherwise
 		return updated;

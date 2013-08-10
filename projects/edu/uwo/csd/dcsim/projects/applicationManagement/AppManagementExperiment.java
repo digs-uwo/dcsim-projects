@@ -63,7 +63,7 @@ public class AppManagementExperiment extends SimulationTask {
 		
 		simulation.getSimulationMetrics().addCustomMetricCollection(new ApplicationManagementMetrics(simulation));
 		
-		Environment environment = new Environment(simulation, 1);
+		Environment environment = new Environment(simulation, 3);
 		environment.createDataCentre(simulation);
 		
 		simulation.sendEvent(new ApplicationPlacementEvent(environment.getDcAM(), environment.createApplication()));
