@@ -5,22 +5,22 @@ import edu.uwo.csd.dcsim.management.events.MessageEvent;
 
 public class MigRejectEvent extends MessageEvent {
 
-	private VmStatus vm;
-	private AutonomicManager origin;
+	private VmStatus vm;					// VM to migrate.
+	private AutonomicManager origin;		// Manager of the Rack requesting the migration.
+	private int sender;					// ID of the Rack or Cluster sending the message.
 	
-	public MigRejectEvent(AutonomicManager target, VmStatus vm, AutonomicManager origin) {
+	public MigRejectEvent(AutonomicManager target, VmStatus vm, AutonomicManager origin, int sender) {
 		super(target);
 		
 		this.vm = vm;
 		this.origin = origin;
+		this.sender = sender;
 	}
 	
-	public VmStatus getVm() {
-		return vm;
-	}
+	public VmStatus getVm() { return vm; }
 	
-	public AutonomicManager getOrigin() {
-		return origin;
-	}
+	public AutonomicManager getOrigin() { return origin; }
+	
+	public int getSender() { return sender; }
 
 }

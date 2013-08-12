@@ -9,6 +9,8 @@ import edu.uwo.csd.dcsim.management.*;
 import edu.uwo.csd.dcsim.management.action.MigrationAction;
 import edu.uwo.csd.dcsim.management.capabilities.HostPoolManager;
 import edu.uwo.csd.dcsim.projects.centralized.events.VmRelocationEvent;
+import edu.uwo.csd.dcsim.projects.hierarchical.MigRequestEntry;
+import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.*;
 import edu.uwo.csd.dcsim.projects.hierarchical.events.*;
 
 /**
@@ -46,6 +48,7 @@ public abstract class VmRelocationPolicyLevel0 extends Policy {
 	 */
 	public VmRelocationPolicyLevel0(AutonomicManager target, double lowerThreshold, double upperThreshold, double targetUtilization) {
 		addRequiredCapability(HostPoolManager.class);
+		addRequiredCapability(MigRequestRecord.class);
 		
 		this.target = target;
 		
@@ -92,17 +95,90 @@ public abstract class VmRelocationPolicyLevel0 extends Policy {
 	}
 	
 	/**
-	 * 
+	 * This event comes from the Cluster Manager, trying to migrate the VM to this Rack.
 	 */
-	public void execute(MigAcceptEvent event) {
-		// TODO
+	public void execute(MigRequestEvent event) {
+		// Search for potential target Host.
+		HostData targetHost = this.findTargetHost(event.getVm());
+		
+		// If found, send message to RackManager origin accepting the migration request.
+		if (null != target) {
+			simulation.sendEvent(new MigAcceptEvent(event.getOrigin(), event.getVm(), targetHost.getHost()));
+			
+			// TODO May have to invalidate here the status of the target Host.
+			
+		}
+		// Otherwise, send message to ClusterManager rejecting the migration request.
+		else {
+			int rackId = manager.getCapability(RackManager.class).getRack().getId();
+			simulation.sendEvent(new MigRejectEvent(target, event.getVm(), event.getOrigin(), rackId));
+		}
 	}
 	
 	/**
-	 * 
+	 * This event can only come from another Rack Manager with information about the selected target Host.
+	 */
+	public void execute(MigAcceptEvent event) {
+		// Get entry from migration requests record.
+		MigRequestEntry entry = manager.getCapability(MigRequestRecord.class).getEntry(event.getVm(), manager);
+		
+		// Trigger migration.
+		HostData source = entry.getHost();
+		
+		// TODO Do we need to invalidate the status of the source and target Hosts here ???
+		// Invalidate source and target Hosts' status, as we know them to be incorrect until the next status update arrives.
+//		source.invalidateStatus(simulation.getSimulationTime());
+//		host.invalidateStatus(simulation.getSimulationTime());
+		
+		new MigrationAction(source.getHostManager(), source.getHost(), event.getTargetHost(), event.getVm().getId()).execute(simulation, this);
+		
+		// Delete entry from migration requests record.
+		manager.getCapability(MigRequestRecord.class).removeEntry(entry);
+	}
+	
+	/**
+	 * This event can only come from the DC Manager, signaling that nobody can accept the migration request.
 	 */
 	public void execute(MigRejectEvent event) {
-		// TODO
+		// Delete entry from migration requests record.
+		MigRequestRecord record = manager.getCapability(MigRequestRecord.class);
+		record.removeEntry(record.getEntry(event.getVm(), event.getOrigin()));
+	}
+	
+	/**
+	 * Search for a target Host that could take the given VM.
+	 */
+	protected HostData findTargetHost(VmStatus vm) {
+		HostPoolManager hostPool = manager.getCapability(HostPoolManager.class);
+		Collection<HostData> hosts = hostPool.getHosts();
+		
+		// Reset the sandbox host status to the current host status.
+		for (HostData host : hosts) {
+			host.resetSandboxStatusToCurrent();
+		}
+		
+		// Classify Hosts as Partially-Utilized, Under-Utilized or Empty; ignore Stressed Hosts.
+		ArrayList<HostData> partiallyUtilized = new ArrayList<HostData>();
+		ArrayList<HostData> underUtilized = new ArrayList<HostData>();
+		ArrayList<HostData> empty = new ArrayList<HostData>();
+		this.classifyHosts(hosts, partiallyUtilized, underUtilized, empty);
+		
+		// Create sorted list of target Hosts.
+		ArrayList<HostData> targets = this.orderTargetHosts(partiallyUtilized, underUtilized, empty);
+		
+		for (HostData target : targets) {
+			// Check that target host has at most 1 incoming migration pending, 
+			// that target host is capable and has enough capacity left to host the VM, 
+			// and also that it will not exceed the target utilization.
+			if (target.getSandboxStatus().getIncomingMigrationCount() < 2 && 
+				HostData.canHost(vm, target.getSandboxStatus(), target.getHostDescription()) && 
+				(target.getSandboxStatus().getResourcesInUse().getCpu() + vm.getResourcesInUse().getCpu()) / target.getHostDescription().getResourceCapacity().getCpu() <= targetUtilization) {
+				
+				return target;
+			}
+		}
+		
+		return null;
 	}
 	
 	/**
@@ -122,7 +198,7 @@ public abstract class VmRelocationPolicyLevel0 extends Policy {
 		// Stressed Host becomes the source for the VM migration.
 		HostData source = hostPool.getHost(hostId);
 		
-		// Classify Hosts as Partially-Utilized, Under-Utilized or Emtpy; ignore Stressed Hosts.
+		// Classify Hosts as Partially-Utilized, Under-Utilized or Empty; ignore Stressed Hosts.
 		ArrayList<HostData> partiallyUtilized = new ArrayList<HostData>();
 		ArrayList<HostData> underUtilized = new ArrayList<HostData>();
 		ArrayList<HostData> empty = new ArrayList<HostData>();
@@ -177,20 +253,16 @@ public abstract class VmRelocationPolicyLevel0 extends Policy {
 	 */
 	protected void performExternalVmRelocation(int hostId) {
 		HostData host = manager.getCapability(HostPoolManager.class).getHost(hostId);
+		int rackId = manager.getCapability(RackManager.class).getRack().getId();
 		
 		// Get VM to migrate away -- the first one in the ordered list.
 		VmStatus vm = this.orderSourceVms(host.getCurrentStatus().getVms(), host).get(0);
 		
 		// Request assistance from ClusterManager to find a target Host for migrating the selected VM.
-		simulation.sendEvent(new MigRequestEvent(target, vm, manager));
+		simulation.sendEvent(new MigRequestEvent(target, vm, manager, rackId));
 		
-		
-		
-		// TODO Should I record here that a MigRequest for VM X from Host Y was sent and is awaiting response ???
-		// Should I store the info in a new capability? Probably...
-		
-		
-		
+		// Keep track of the migration request just sent.
+		manager.getCapability(MigRequestRecord.class).addEntry(new MigRequestEntry(vm, manager, host));
 	}
 	
 	/**

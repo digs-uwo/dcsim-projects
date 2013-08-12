@@ -7,8 +7,8 @@ import java.util.Collections;
 import edu.uwo.csd.dcsim.host.Resources;
 import edu.uwo.csd.dcsim.management.*;
 import edu.uwo.csd.dcsim.projects.hierarchical.*;
-import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.ClusterPoolManager;
-import edu.uwo.csd.dcsim.projects.hierarchical.events.MigRequestEvent;
+import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.*;
+import edu.uwo.csd.dcsim.projects.hierarchical.events.*;
 
 /**
  * 
@@ -25,23 +25,47 @@ public abstract class VmRelocationPolicyLevel2 extends Policy {
 	 */
 	public VmRelocationPolicyLevel2(AutonomicManager target) {
 		addRequiredCapability(ClusterPoolManager.class);
+		addRequiredCapability(MigRequestRecord.class);
 		
 		this.target = target;
 	}
 	
 	/**
-	 * 
+	 * This event can only come from a Cluster in the Data Centre.
 	 */
 	public void execute(MigRequestEvent event) {
+		MigRequestEntry entry = new MigRequestEntry(event.getVm(), event.getOrigin(), event.getSender());
+		
+		// Store info about migration request just received.
+		manager.getCapability(MigRequestRecord.class).addEntry(entry);
+		
+		this.searchForVmMigrationTarget(entry);
+	}
+	
+	/**
+	 * This event can only come from Racks in this Cluster in response to migration requests sent by the ClusterManager.
+	 */
+	public void execute(MigRejectEvent event) {
+		// Mark sender's status as invalid (to avoid choosing sender again in the next step).
+		Collection<ClusterData> clusters = manager.getCapability(ClusterPoolManager.class).getClusters();
+		for (ClusterData cluster : clusters) {
+			if (cluster.getId() == event.getSender()) {
+				cluster.invalidateStatus(simulation.getSimulationTime());
+				break;
+			}
+		}
+		
+		// Get entry from record and search again for a migration target.
+		MigRequestEntry entry = manager.getCapability(MigRequestRecord.class).getEntry(event.getVm(), event.getOrigin());
+		this.searchForVmMigrationTarget(entry);
+	}
+	
+	/**
+	 * 
+	 */
+	protected void searchForVmMigrationTarget(MigRequestEntry entry) {
 		ClusterPoolManager clusterPool = manager.getCapability(ClusterPoolManager.class);
 		ArrayList<ClusterData> clusters = new ArrayList<ClusterData>(clusterPool.getClusters());
-		
-		
-		
-		// TODO Check all Clusters EXCEPT the one that sent the migration request.
-		
-		
-		
 		
 		// Sort Clusters in decreasing order by power efficiency.
 		// TODO Since Power Efficiency is a static metric, the ClusterPoolManager could maintain 
@@ -79,12 +103,13 @@ public abstract class VmRelocationPolicyLevel2 extends Policy {
 		
 		for (ClusterData cluster : clusters) {
 			// Filter out Clusters with a currently invalid status.
-			if (!cluster.isStatusValid())
+			// Filter out also the Cluster that sent the request.
+			if (!cluster.isStatusValid() || cluster.getId() == entry.getSender())
 				continue;
 			
 			if (currentPowerEff != cluster.getClusterDescription().getPowerEfficiency()) {
 				// Check if the Cluster with the most spare capacity has enough resources to take the VM.
-				if (null != maxSpareCapacityCluster && this.canHost(event.getVm(), maxSpareCapacityCluster)) {
+				if (null != maxSpareCapacityCluster && this.canHost(entry.getVm(), maxSpareCapacityCluster)) {
 					targetCluster = maxSpareCapacityCluster;
 					break;
 				}
@@ -132,24 +157,16 @@ public abstract class VmRelocationPolicyLevel2 extends Policy {
 		
 		if (null != targetCluster) {
 			// Found target. Send migration request.
-			simulation.sendEvent(new MigRequestEvent(targetCluster.getClusterManager(), event.getVm(), event.getOrigin()));
-			
-			
-			// TODO Should I record here that a MigRequest for VM X from Host Y was sent and is awaiting response ???
-			// Should I store the info in a new capability? Probably...
-			// Should I record as well the Host to which the request is forwarded? Don't think so...
-			
-			
+			simulation.sendEvent(new MigRequestEvent(targetCluster.getClusterManager(), entry.getVm(), entry.getOrigin(), 0));
 		}
-		// else		// Could not find suitable target Cluster in the Data Centre.
-		
-		// TODO Should I contact RackManager origin to reject/deny the migration request ???
-		// MigRejectEvent may sound better...
-		// simulation.sendEvent(new MigDeniedEvent(event.getOrigin()));
-		
-		// TODO Should I record here that a MigRequest for VM X from Host Y was denied ???
-		// Should I store the info in a new capability? Probably...
-		
+		// Could not find suitable target Cluster in the Data Centre.
+		else {
+			// Contact RackManager origin to reject migration request.
+			simulation.sendEvent(new MigRejectEvent(entry.getOrigin(), entry.getVm(), entry.getOrigin(), 0));
+			
+			// Delete entry from migration requests record.
+			manager.getCapability(MigRequestRecord.class).removeEntry(entry);
+		}
 	}
 	
 	/**

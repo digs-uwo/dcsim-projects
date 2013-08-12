@@ -5,8 +5,7 @@ import java.util.Collection;
 import edu.uwo.csd.dcsim.host.Resources;
 import edu.uwo.csd.dcsim.management.*;
 import edu.uwo.csd.dcsim.projects.hierarchical.*;
-import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.RackManager;
-import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.RackPoolManager;
+import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.*;
 import edu.uwo.csd.dcsim.projects.hierarchical.events.*;
 
 /**
@@ -24,24 +23,47 @@ public abstract class VmRelocationPolicyLevel1 extends Policy {
 	 */
 	public VmRelocationPolicyLevel1(AutonomicManager target) {
 		addRequiredCapability(RackPoolManager.class);
+		addRequiredCapability(MigRequestRecord.class);
 		
 		this.target = target;
 	}
 	
 	/**
-	 * 
+	 * This event can come from a Rack in this Cluster or from the DC Manager.
 	 */
 	public void execute(MigRequestEvent event) {
+		MigRequestEntry entry = new MigRequestEntry(event.getVm(), event.getOrigin(), event.getSender());
+		
+		// Store info about migration request just received.
+		manager.getCapability(MigRequestRecord.class).addEntry(entry);
+		
+		this.searchForVmMigrationTarget(entry);
+	}
+	
+	/**
+	 * This event can only come from Racks in this Cluster in response to migration requests sent by the ClusterManager.
+	 */
+	public void execute(MigRejectEvent event) {
+		// Mark sender's status as invalid (to avoid choosing sender again in the next step).
+		Collection<RackData> racks = manager.getCapability(RackPoolManager.class).getRacks();
+		for (RackData rack : racks) {
+			if (rack.getId() == event.getSender()) {
+				rack.invalidateStatus(simulation.getSimulationTime());
+				break;
+			}
+		}
+		
+		// Get entry from record and search again for a migration target.
+		MigRequestEntry entry = manager.getCapability(MigRequestRecord.class).getEntry(event.getVm(), event.getOrigin());
+		this.searchForVmMigrationTarget(entry);
+	}
+	
+	/**
+	 * 
+	 */
+	protected void searchForVmMigrationTarget(MigRequestEntry entry) {
 		RackPoolManager rackPool = manager.getCapability(RackPoolManager.class);
 		Collection<RackData> racks = rackPool.getRacks();
-		
-		
-		
-		
-		// TODO Check all Racks EXCEPT the one that sent the migration request (if said Rack belongs in this Cluster).		
-		
-		
-		
 		
 		double maxSpareCapacity = 0;
 		RackData maxSpareCapacityRack = null;
@@ -50,32 +72,34 @@ public abstract class VmRelocationPolicyLevel1 extends Policy {
 		RackData mostLoadedWithPoweredOff = null;
 		for (RackData rack : racks) {
 			// Filter out Racks with a currently invalid status.
-			if (rack.isStatusValid()) {
-				RackStatus status = rack.getCurrentStatus();
-				
-				// Find the Rack with the most spare capacity.
-				if (status.getMaxSpareCapacity() > maxSpareCapacity) {
-					maxSpareCapacity = status.getMaxSpareCapacity();
-					maxSpareCapacityRack = rack;
-				}
-				
-				// Find the most loaded Racks (i.e., the Racks with the smallest number of inactive 
-				// Hosts) that have at least one suspended or powered off Host.
-				int inactiveHosts = status.getSuspendedHosts() + status.getPoweredOffHosts();
-				if (inactiveHosts > 0 && inactiveHosts < minInactiveHosts) {
-					minInactiveHosts = inactiveHosts;
-					if (status.getSuspendedHosts() > 0)
-						mostLoadedWithSuspended = rack;
-					if (status.getPoweredOffHosts() > 0)
-						mostLoadedWithPoweredOff = rack;
-				}
+			// If the Rack sending the request belongs in this Cluster, skip it, too.
+			if (!rack.isStatusValid() || rack.getId() == entry.getSender())
+				continue;
+			
+			RackStatus status = rack.getCurrentStatus();
+			
+			// Find the Rack with the most spare capacity.
+			if (status.getMaxSpareCapacity() > maxSpareCapacity) {
+				maxSpareCapacity = status.getMaxSpareCapacity();
+				maxSpareCapacityRack = rack;
+			}
+			
+			// Find the most loaded Racks (i.e., the Racks with the smallest number of inactive 
+			// Hosts) that have at least one suspended or powered off Host.
+			int inactiveHosts = status.getSuspendedHosts() + status.getPoweredOffHosts();
+			if (inactiveHosts > 0 && inactiveHosts < minInactiveHosts) {
+				minInactiveHosts = inactiveHosts;
+				if (status.getSuspendedHosts() > 0)
+					mostLoadedWithSuspended = rack;
+				if (status.getPoweredOffHosts() > 0)
+					mostLoadedWithPoweredOff = rack;
 			}
 		}
 		
 		RackData targetRack = null;
 		
 		// Check if Rack with most spare capacity has enough resources to take the VM (i.e., become target).
-		if (null != maxSpareCapacityRack && this.canHost(event.getVm(), maxSpareCapacityRack)) {
+		if (null != maxSpareCapacityRack && this.canHost(entry.getVm(), maxSpareCapacityRack)) {
 			targetRack = maxSpareCapacityRack;
 		}
 		// Otherwise, make the most loaded Rack with a suspended Host the target.
@@ -89,37 +113,27 @@ public abstract class VmRelocationPolicyLevel1 extends Policy {
 		
 		if (null != targetRack) {
 			// Found target. Send migration request.
-			simulation.sendEvent(new MigRequestEvent(targetRack.getRackManager(), event.getVm(), event.getOrigin()));
-			
-			
-			// TODO Should I record here that a MigRequest for VM X from Host Y was sent to Host Z ???
-			// Should I store the info in a new capability? Probably...
-			// Should I record as well the Host to which the request is forwarded? Don't think it's necessary...
-			
-			
+			simulation.sendEvent(new MigRequestEvent(targetRack.getRackManager(), entry.getVm(), entry.getOrigin(), 0));
 		}
 		// Could not find suitable target Rack in the Cluster.
 		else {
-			// If event's origin belongs in this Cluster, request assistance from DC Manager 
+			int clusterId = manager.getCapability(ClusterManager.class).getCluster().getId();
+			
+			// If event's sender belongs in this Cluster, request assistance from DC Manager 
 			// to find a target Host for the VM migration in another Cluster.
-			
-			// TODO I shouldn't be able to access info through the reference to the manager Origin. Said reference 
-			// should be used only as a pointer to send messages. If I need more info, it may have to be sent in 
-			// the message's payload.
-			
-			if (null != rackPool.getRack(event.getOrigin().getCapability(RackManager.class).getRack().getId())) {
-				simulation.sendEvent(new MigRequestEvent(target, event.getVm(), event.getOrigin()));
-				
-				// TODO Should I record here that a MigRequest for VM X from Host Y was forwarded to DC Manager ???
-				// Should I store the info in a new capability? Probably...
-				// Can probably assume this to be the last time to hear about this request... unless unsuccessful.
-				
+			if (null != rackPool.getRack(entry.getSender())) {
+				simulation.sendEvent(new MigRequestEvent(target, entry.getVm(), entry.getOrigin(), clusterId));
 			}
-			// Event's origin does not belong in this Cluster.
+			// Event's sender does not belong in this Cluster.
 			else {
 				// Migration request was sent by DC Manager. Reject migration request.
-				simulation.sendEvent(new MigRejectEvent(target, event.getVm(), event.getOrigin()));
-			}	
+				simulation.sendEvent(new MigRejectEvent(target, entry.getVm(), entry.getOrigin(), clusterId));
+			}
+			
+			// In any case, delete entry from migration requests record.
+			// If requested assistance from DC Manager, I'm not seeing this request again.
+			// If rejected the request, I'm not seeing this request again.
+			manager.getCapability(MigRequestRecord.class).removeEntry(entry);
 		}
 	}
 	
