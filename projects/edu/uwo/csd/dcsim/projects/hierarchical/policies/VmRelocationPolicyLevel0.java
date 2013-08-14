@@ -64,12 +64,6 @@ public abstract class VmRelocationPolicyLevel0 extends Policy {
 	protected abstract ArrayList<VmStatus> orderSourceVms(ArrayList<VmStatus> sourceVms, HostData source);
 	
 	/**
-	 * Sorts the source hosts in the order in which they are to be considered 
-	 * for VM Relocation.
-	 */
-	protected abstract ArrayList<HostData> orderSourceHosts(ArrayList<HostData> stressed);
-	
-	/**
 	 * Sorts the target hosts (Partially-Utilized, Under-Utilized and Empty) in 
 	 * the order in which they are to be considered for VM Relocation.
 	 */
