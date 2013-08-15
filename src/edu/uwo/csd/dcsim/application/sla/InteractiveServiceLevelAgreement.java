@@ -5,8 +5,8 @@ import edu.uwo.csd.dcsim.application.InteractiveApplication;
 public class InteractiveServiceLevelAgreement implements ServiceLevelAgreement {
 
 	InteractiveApplication application;
-	float responseTime;
-	float throughput;
+	double responseTime;
+	double throughput;
 	double responseTimePenalty = 0;
 	double throughputPenalty = 0;
 	
@@ -17,26 +17,34 @@ public class InteractiveServiceLevelAgreement implements ServiceLevelAgreement {
 	}
 	
 	//Usage: InteractiveServiceLevelAgreement i = new InteractiveServiceLevelAgreement(application).responseTime(1f).throughput(2.5f);
-	public InteractiveServiceLevelAgreement responseTime(float responseTime) {
+	public InteractiveServiceLevelAgreement responseTime(double responseTime) {
 		this.responseTime = responseTime;
 		return this;
 	}
 	
-	public InteractiveServiceLevelAgreement responseTime(float responseTime, double penaltyRate) {
+	public InteractiveServiceLevelAgreement responseTime(double responseTime, double penaltyRate) {
 		this.responseTime = responseTime;
 		this.responseTimePenalty = penaltyRate;
 		return this;
 	}
 	
-	public InteractiveServiceLevelAgreement throughput(float throughput) {
+	public InteractiveServiceLevelAgreement throughput(double throughput) {
 		this.throughput = throughput;
 		return this;
 	}
 	
-	public InteractiveServiceLevelAgreement throughput(float throughput, double penaltyRate) {
+	public InteractiveServiceLevelAgreement throughput(double throughput, double penaltyRate) {
 		this.throughput = throughput;
 		this.throughputPenalty = penaltyRate;
 		return this;
+	}
+	
+	public double getResponseTime() {
+		return responseTime;
+	}
+	
+	public double getThroughput() {
+		return throughput;
 	}
 	
 	@Override

@@ -270,6 +270,17 @@ public class InteractiveApplication extends Application {
 	
 	public int calculateMaxWorkload(double responseTimeLimit, double utilizationLimit) {
 		
+		//we need to make the calculation using the algorithm that will be in use for the simulation, as results can vary slightly (minor, but enough to cause unwanted SLA violations)
+		if (approximateMVA) {
+			return calculateMaxWorkloadApproxMVA(responseTimeLimit, utilizationLimit);
+		} else {
+			return calculateMaxWorkloadMVA(responseTimeLimit, utilizationLimit);
+		}
+		
+	}
+	
+	private int calculateMaxWorkloadMVA(double responseTimeLimit, double utilizationLimit) {
+		
 		double responseTime = 0;
 		double throughput = 0;
 		int nClients;
@@ -313,7 +324,72 @@ public class InteractiveApplication extends Application {
 				if (t.utilization >= utilizationLimit) done = true;
 				
 			}
+			
+		}
 
+		return nClients - 1;
+		
+	}
+	
+	private int calculateMaxWorkloadApproxMVA(double responseTimeLimit, double utilizationLimit) {
+		
+		double responseTime = 0;
+		double throughput = 0;
+		int nClients;
+		ArrayList<DummyTask> dummyTasks = new ArrayList<DummyTask>();
+		
+		//build array of tasks, one for each task instances, assuming each task has maxTaskSize instances
+		for (InteractiveTask task : tasks) {
+			
+			for (int i = 0; i < task.getMaxInstances(); ++i) {
+				DummyTask dummy = new DummyTask(task.getNormalServiceTime(), task.getVisitRatio() / task.getMaxInstances());
+				dummyTasks.add(dummy);
+				
+			}
+		}
+		
+		//Use MVA algorithm to find the number of clients, terminating when the response time exceeds the limit OR a task utilization reaches 1
+		for (DummyTask t : dummyTasks) {
+			t.queueLength = 0;
+		}
+		
+		boolean done = false;
+		
+		nClients = 0;
+		while (responseTime <= responseTimeLimit && !done) {
+			++nClients;
+			
+			
+			throughput = 0;
+			for (DummyTask t : dummyTasks) {
+				t.queueLength = nClients / dummyTasks.size();
+			}
+			
+			double maxChange = Double.MAX_VALUE;
+			while (maxChange > maxQueueError) {
+				
+				responseTime = 0;
+				for (DummyTask t : dummyTasks) {
+					t.responseTime = t.serviceTime * (1 + ((nClients - 1)/(double)nClients) * t.queueLength);
+					responseTime += t.responseTime * t.visits;
+				}
+				
+				throughput = nClients / (thinkTime + responseTime);
+				
+				maxChange = 0;
+				for (DummyTask t : dummyTasks) {
+					maxChange = Math.max(maxChange, Math.abs(t.queueLength - throughput * t.visits * t.responseTime));
+					t.queueLength = throughput * t.visits * t.responseTime;
+					
+					t.utilization = throughput * t.serviceTime * t.visits;
+					
+					//terminate if utilization reaches utilization limit on one task instance
+					if (t.utilization >= utilizationLimit) done = true;
+					
+				}
+				
+			}
+			
 		}
 
 		return nClients - 1;

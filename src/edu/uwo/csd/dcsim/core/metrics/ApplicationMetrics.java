@@ -7,6 +7,7 @@ import org.apache.log4j.Logger;
 
 import edu.uwo.csd.dcsim.application.Application;
 import edu.uwo.csd.dcsim.application.InteractiveApplication;
+import edu.uwo.csd.dcsim.common.SimTime;
 import edu.uwo.csd.dcsim.common.Utility;
 import edu.uwo.csd.dcsim.core.Simulation;
 
@@ -68,6 +69,8 @@ public class ApplicationMetrics extends MetricCollection {
 				val = application.getSla().calculatePenalty();
 				slaPenalty.get(application).add(val, simulation.getElapsedSeconds());
 				currentSlaPenalty += val;
+				
+				
 			}
 			
 			if (application instanceof InteractiveApplication) {
@@ -75,9 +78,16 @@ public class ApplicationMetrics extends MetricCollection {
 				if (!responseTime.containsKey(application)) {
 					responseTime.put(application, new WeightedMetric());
 					throughput.put(application, new WeightedMetric());
+					
+					
 				}
 				
 				InteractiveApplication interactiveApplication = (InteractiveApplication)application;
+				
+//				if (currentSlaPenalty > 0) 
+//					System.out.println(SimTime.toHumanReadable(simulation.getSimulationTime()) + " - SLA Penalty " + (currentSlaPenalty * simulation.getElapsedSeconds())
+//							+ " R=" + interactiveApplication.getResponseTime()
+//							+ " W=" + interactiveApplication.getWorkload().getWorkOutputLevel());
 				
 				val = (double)interactiveApplication.getResponseTime();
 				responseTime.get(interactiveApplication).add(val, simulation.getElapsedTime());

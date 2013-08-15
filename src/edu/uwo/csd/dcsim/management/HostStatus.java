@@ -110,6 +110,21 @@ public class HostStatus {
 		return vms;
 	}
 	
+	public int getCpuAllocated() {
+		int cpu = 0;
+		
+		for (VmStatus vmStatus : vms) {
+			cpu += vmStatus.getCores() * vmStatus.getCoreCapacity();
+		}
+		
+		//add resources promised to incoming VMs
+		for (VmStatus vmStatus : migratingInVms) {
+			cpu += vmStatus.getCores() * vmStatus.getCoreCapacity();
+		}
+		
+		return cpu;
+	}
+	
 	public Resources getResourcesInUse() {
 		Resources resourcesInUse = privDomain.getResourcesInUse();
 		

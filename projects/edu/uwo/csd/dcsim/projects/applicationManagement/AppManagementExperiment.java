@@ -23,6 +23,7 @@ public class AppManagementExperiment extends SimulationTask {
 	private static Logger logger = Logger.getLogger(AppManagementExperiment.class);
 	
 	private static final long DURATION = SimTime.days(1);
+//	private static final long DURATION = SimTime.minutes(5);
 	private static final long METRIC_RECORD_START = SimTime.days(0);
 	
 	public static void main(String args[]) {
@@ -63,16 +64,16 @@ public class AppManagementExperiment extends SimulationTask {
 		
 		simulation.getSimulationMetrics().addCustomMetricCollection(new ApplicationManagementMetrics(simulation));
 		
-		Environment environment = new Environment(simulation, 3);
+		Environment environment = new Environment(simulation, 5);
 		environment.createDataCentre(simulation);
 		
 		simulation.sendEvent(new ApplicationPlacementEvent(environment.getDcAM(), environment.createApplication()));
 		
-//		simulation.sendEvent(new ApplicationPlacementEvent(environment.getDcAM(), environment.createApplication()), SimTime.minutes(1));
-//		
-//		simulation.sendEvent(new ApplicationPlacementEvent(environment.getDcAM(), environment.createApplication()), SimTime.minutes(2));
-//		
-//		simulation.sendEvent(new ApplicationPlacementEvent(environment.getDcAM(), environment.createApplication()), SimTime.minutes(3));
+		simulation.sendEvent(new ApplicationPlacementEvent(environment.getDcAM(), environment.createApplication()), SimTime.minutes(1));
+		
+		simulation.sendEvent(new ApplicationPlacementEvent(environment.getDcAM(), environment.createApplication()), SimTime.minutes(2));
+		
+		simulation.sendEvent(new ApplicationPlacementEvent(environment.getDcAM(), environment.createApplication()), SimTime.minutes(3));
 	}
 	
 	public class Environment extends AppManagementTestEnvironment {
@@ -88,7 +89,7 @@ public class AppManagementExperiment extends SimulationTask {
 			hostPool = new HostPoolManager();
 			dcAM.addCapability(hostPool);
 			
-			dcAM.installPolicy(new HostStatusPolicy(5));
+			dcAM.installPolicy(new HostStatusPolicy(10));
 			dcAM.installPolicy(new ApplicationPlacementPolicy());
 			
 		}
@@ -109,7 +110,7 @@ public class AppManagementExperiment extends SimulationTask {
 			AutonomicManager applicationManager = new AutonomicManager(simulation);
 			applicationManager.addCapability(new ApplicationManager(application));
 			
-			applicationManager.installPolicy(new ApplicationScalingPolicy(dcAM), SimTime.minutes(5), 0);
+			applicationManager.installPolicy(new ApplicationScalingPolicy(dcAM), SimTime.minutes(1), 0);
 		}
 		
 	}

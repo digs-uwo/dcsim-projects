@@ -40,7 +40,7 @@ public class ApplicationPlacementPolicy extends Policy {
 		
 		VmAllocationRequest request = new VmAllocationRequest(new VmDescription(task));
 		
-		System.out.println("place task" + task.getId() + " " + place(request, hostPool.getHosts(), event));
+		place(request, hostPool.getHosts(), event);
 		
 	}
 	
@@ -76,11 +76,13 @@ public class ApplicationPlacementPolicy extends Policy {
 				reqResources.setBandwidth(request.getBandwidth());
 				reqResources.setStorage(request.getStorage());
 
-				if (HostData.canHost(request.getVMDescription().getCores(), 
+				if (HostData.canHost(request.getVMDescription().getCores(), 	//target has capability and capacity to host VM 
 						request.getVMDescription().getCoreCapacity(), 
 						reqResources,
 						target.getSandboxStatus(),
-						target.getHostDescription())) {	//target has capability and capacity to host VM
+						target.getHostDescription()) &&
+						(target.getHostDescription().getResourceCapacity().getCpu() - target.getSandboxStatus().getCpuAllocated()) >= request.getCpu()) //effectively disable overcommitting
+						{
 					
 					allocatedHost = target;
 					
