@@ -1,5 +1,6 @@
 package edu.uwo.csd.dcsim.projects.hierarchical.policies;
 
+import java.util.ArrayList;
 import java.util.Collection;
 
 import edu.uwo.csd.dcsim.host.Resources;
@@ -65,55 +66,90 @@ public abstract class VmRelocationPolicyLevel1 extends Policy {
 		RackPoolManager rackPool = manager.getCapability(RackPoolManager.class);
 		Collection<RackData> racks = rackPool.getRacks();
 		
-		double maxSpareCapacity = 0;
-		RackData maxSpareCapacityRack = null;
-		int minInactiveHosts = Integer.MAX_VALUE;
-		RackData mostLoadedWithSuspended = null;
-		RackData mostLoadedWithPoweredOff = null;
-		for (RackData rack : racks) {
-			// Filter out Racks with a currently invalid status.
-			// If the Rack sending the request belongs in this Cluster, skip it, too.
-			if (!rack.isStatusValid() || rack.getId() == entry.getSender())
-				continue;
-			
-			RackStatus status = rack.getCurrentStatus();
-			
-			// Find the Rack with the most spare capacity.
-			if (status.getMaxSpareCapacity() > maxSpareCapacity) {
-				maxSpareCapacity = status.getMaxSpareCapacity();
-				maxSpareCapacityRack = rack;
-			}
-			
-			// Find the most loaded Racks (i.e., the Racks with the smallest number of inactive 
-			// Hosts) that have at least one suspended or powered off Host.
-			int inactiveHosts = status.getSuspendedHosts() + status.getPoweredOffHosts();
-			if (inactiveHosts > 0 && inactiveHosts < minInactiveHosts) {
-				minInactiveHosts = inactiveHosts;
-				if (status.getSuspendedHosts() > 0)
-					mostLoadedWithSuspended = rack;
-				if (status.getPoweredOffHosts() > 0)
-					mostLoadedWithPoweredOff = rack;
-			}
-		}
-		
 		RackData targetRack = null;
 		
-		// Check if Rack with most spare capacity has enough resources to take the VM (i.e., become target).
-		if (null != maxSpareCapacityRack && this.canHost(entry.getVm(), maxSpareCapacityRack)) {
-			targetRack = maxSpareCapacityRack;
+		// Create sublist of active Racks (includes Racks with currently Invalid Status).
+		ArrayList<RackData> active = this.getActiveRacksSublist(racks);
+		
+		if (active.size() == 0) {
+			
+			// Activate new Rack.
+			targetRack = this.getInactiveRack(racks);
+			
 		}
-		// Otherwise, make the most loaded Rack with a suspended Host the target.
-		else if (null != mostLoadedWithSuspended) {
-			targetRack = mostLoadedWithSuspended;
+		else if (active.size() == 1) {
+			
+			if (this.canHost(entry.getVm(), active.get(0))) {
+				targetRack = active.get(0);
+			}
+			else {
+				
+				// Activate new Rack.
+				targetRack = this.getInactiveRack(racks);
+				
+			}
+			
 		}
-		// Last recourse: make the most loaded Rack with a powered off Host the target.
-		else if (null != mostLoadedWithPoweredOff) {
-			targetRack = mostLoadedWithPoweredOff;
+		else {
+			// Search for a target Rack among the subset of active Racks.
+			
+			double maxSpareCapacity = 0;
+			RackData maxSpareCapacityRack = null;
+			int minInactiveHosts = Integer.MAX_VALUE;
+			RackData mostLoadedWithSuspended = null;
+			RackData mostLoadedWithPoweredOff = null;
+			for (RackData rack : racks) {
+				// Filter out Racks with a currently invalid status.
+				// If the Rack sending the request belongs in this Cluster, skip it, too.
+				if (!rack.isStatusValid() || rack.getId() == entry.getSender())
+					continue;
+				
+				RackStatus status = rack.getCurrentStatus();
+				
+				// Find the Rack with the most spare capacity.
+				if (status.getMaxSpareCapacity() > maxSpareCapacity) {
+					maxSpareCapacity = status.getMaxSpareCapacity();
+					maxSpareCapacityRack = rack;
+				}
+				
+				// Find the most loaded Racks (i.e., the Racks with the smallest number of inactive 
+				// Hosts) that have at least one suspended or powered off Host.
+				int inactiveHosts = status.getSuspendedHosts() + status.getPoweredOffHosts();
+				if (inactiveHosts > 0 && inactiveHosts < minInactiveHosts) {
+					minInactiveHosts = inactiveHosts;
+					if (status.getSuspendedHosts() > 0)
+						mostLoadedWithSuspended = rack;
+					if (status.getPoweredOffHosts() > 0)
+						mostLoadedWithPoweredOff = rack;
+				}
+			}
+			
+			// Check if Rack with most spare capacity has enough resources to take the VM (i.e., become target).
+			if (null != maxSpareCapacityRack && this.canHost(entry.getVm(), maxSpareCapacityRack)) {
+				targetRack = maxSpareCapacityRack;
+			}
+			// Otherwise, make the most loaded Rack with a suspended Host the target.
+			else if (null != mostLoadedWithSuspended) {
+				targetRack = mostLoadedWithSuspended;
+			}
+			// Last recourse: make the most loaded Rack with a powered off Host the target.
+			else if (null != mostLoadedWithPoweredOff) {
+				targetRack = mostLoadedWithPoweredOff;
+			}
+			
+			// If we have not found a target Rack among the subset of active Racks, activate a new Rack.
+			if (null == targetRack && active.size() < racks.size()) {
+				targetRack = this.getInactiveRack(racks);
+			}
+			
 		}
 		
 		if (null != targetRack) {
 			// Found target. Send migration request.
 			simulation.sendEvent(new MigRequestEvent(targetRack.getRackManager(), entry.getVm(), entry.getOrigin(), 0));
+			
+			// Invalidate target Rack's status, as we know it to be incorrect until the next status update arrives.
+			targetRack.invalidateStatus(simulation.getSimulationTime());
 		}
 		// Could not find suitable target Rack in the Cluster.
 		else {
