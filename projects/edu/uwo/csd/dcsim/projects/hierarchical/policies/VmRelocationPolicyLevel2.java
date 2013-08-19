@@ -65,6 +65,15 @@ public abstract class VmRelocationPolicyLevel2 extends Policy {
 		
 		ClusterData targetCluster = null;
 		
+		/**
+		 * TODO: Check that the chosen Cluster has the required HW capabilities (cores, core capacity) 
+		 * to host the VM. Two ways of doing it:
+		 * 1. Modify getInactiveCluster() to also check that the Cluster can host the VM, and add a 
+		 *    check in the FOR loop to also skip Clusters that cannot host the VM;
+		 * 2. At the beginning of the method, before even sorting the Clusters by power efficiency, 
+		 *    parse the list of Clusters and make a sublist with the Clusters that could host the VM.
+		 */
+		
 		// Sort Clusters in decreasing order by power efficiency.
 		// TODO Since Power Efficiency is a static metric, the ClusterPoolManager could maintain 
 		// the list of Clusters sorted (at insertion time) and in that way the list would not 

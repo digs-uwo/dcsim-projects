@@ -5,9 +5,11 @@ import java.util.Collection;
 
 import edu.uwo.csd.dcsim.host.Resources;
 import edu.uwo.csd.dcsim.management.*;
+import edu.uwo.csd.dcsim.management.events.VmPlacementEvent;
 import edu.uwo.csd.dcsim.projects.hierarchical.*;
 import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.*;
 import edu.uwo.csd.dcsim.projects.hierarchical.events.*;
+import edu.uwo.csd.dcsim.vm.VMAllocationRequest;
 
 /**
  * 
@@ -15,36 +17,31 @@ import edu.uwo.csd.dcsim.projects.hierarchical.events.*;
  * @author Gaston Keller
  *
  */
-public abstract class VmRelocationPolicyLevel1 extends Policy {
+public abstract class VmPlacementPolicyLevel1 extends Policy {
 
 	protected AutonomicManager target;
 	
 	/**
-	 * Creates an instance of VmRelocationPolicyLevel1.
+	 * Creates an instance of VmPlacementPolicyLevel1.
 	 */
-	public VmRelocationPolicyLevel1(AutonomicManager target) {
+	public VmPlacementPolicyLevel1(AutonomicManager target) {
 		addRequiredCapability(RackPoolManager.class);
-		addRequiredCapability(MigRequestRecord.class);
 		
 		this.target = target;
 	}
 	
 	/**
-	 * This event can come from a Rack in this Cluster or from the DC Manager.
+	 * This event can only come from the DC Manager.
 	 */
-	public void execute(MigRequestEvent event) {
-		MigRequestEntry entry = new MigRequestEntry(event.getVm(), event.getOrigin(), event.getSender());
-		
-		// Store info about migration request just received.
-		manager.getCapability(MigRequestRecord.class).addEntry(entry);
-		
-		this.searchForVmMigrationTarget(entry);
+	public void execute(VmPlacementEvent event) {
+		// The event contains a single placement request.
+		this.searchForVmPlacementTarget(event.getVMAllocationRequests().get(0));
 	}
 	
 	/**
 	 * This event can only come from Racks in this Cluster in response to migration requests sent by the ClusterManager.
 	 */
-	public void execute(MigRejectEvent event) {
+	public void execute(VmPlacementRejectEvent event) {
 		// Mark sender's status as invalid (to avoid choosing sender again in the next step).
 		Collection<RackData> racks = manager.getCapability(RackPoolManager.class).getRacks();
 		for (RackData rack : racks) {
@@ -54,15 +51,14 @@ public abstract class VmRelocationPolicyLevel1 extends Policy {
 			}
 		}
 		
-		// Get entry from record and search again for a migration target.
-		MigRequestEntry entry = manager.getCapability(MigRequestRecord.class).getEntry(event.getVm(), event.getOrigin());
-		this.searchForVmMigrationTarget(entry);
+		// Search again for a placement target.
+		this.searchForVmPlacementTarget(event.getVmAllocationRequest());
 	}
 	
 	/**
 	 * 
 	 */
-	protected void searchForVmMigrationTarget(MigRequestEntry entry) {
+	protected void searchForVmPlacementTarget(VMAllocationRequest request) {
 		RackPoolManager rackPool = manager.getCapability(RackPoolManager.class);
 		ArrayList<RackData> racks = new ArrayList<RackData>(rackPool.getRacks());
 		
@@ -75,10 +71,9 @@ public abstract class VmRelocationPolicyLevel1 extends Policy {
 		if (active.size() == 0) {
 			targetRack = this.getInactiveRack(racks);
 		}
-		// If there is only one active Rack and the Rack is not the sender of the migration request, 
-		// then check if the Rack can host the VM; otherwise, activate a new Rack.
+		// If there is only one active Rack, check if the Rack can host the VM; otherwise, activate a new Rack.
 		else if (active.size() == 1) {
-			if (active.get(0).getId() != entry.getSender() && this.canHost(entry.getVm(), active.get(0))) {
+			if (this.canHost(request, active.get(0))) {
 				targetRack = active.get(0);
 			}
 			else {
@@ -95,8 +90,7 @@ public abstract class VmRelocationPolicyLevel1 extends Policy {
 			RackData mostLoadedWithPoweredOff = null;
 			for (RackData rack : racks) {
 				// Filter out Racks with a currently invalid status.
-				// If the Rack sending the request belongs in this Cluster, skip it, too.
-				if (!rack.isStatusValid() || rack.getId() == entry.getSender())
+				if (!rack.isStatusValid())
 					continue;
 				
 				RackStatus status = rack.getCurrentStatus();
@@ -120,7 +114,7 @@ public abstract class VmRelocationPolicyLevel1 extends Policy {
 			}
 			
 			// Check if Rack with most spare capacity has enough resources to take the VM (i.e., become target).
-			if (null != maxSpareCapacityRack && this.canHost(entry.getVm(), maxSpareCapacityRack)) {
+			if (null != maxSpareCapacityRack && this.canHost(request, maxSpareCapacityRack)) {
 				targetRack = maxSpareCapacityRack;
 			}
 			// Otherwise, make the most loaded Rack with a suspended Host the target.
@@ -139,8 +133,10 @@ public abstract class VmRelocationPolicyLevel1 extends Policy {
 		}
 		
 		if (null != targetRack) {
-			// Found target. Send migration request.
-			simulation.sendEvent(new MigRequestEvent(targetRack.getRackManager(), entry.getVm(), entry.getOrigin(), 0));
+			// Found target. Send placement request.
+			ArrayList<VMAllocationRequest> requests = new ArrayList<VMAllocationRequest>();
+			requests.add(request);
+			simulation.sendEvent(new VmPlacementEvent(targetRack.getRackManager(), requests));
 			
 			// Invalidate target Rack's status, as we know it to be incorrect until the next status update arrives.
 			targetRack.invalidateStatus(simulation.getSimulationTime());
@@ -149,45 +145,31 @@ public abstract class VmRelocationPolicyLevel1 extends Policy {
 		else {
 			int clusterId = manager.getCapability(ClusterManager.class).getCluster().getId();
 			
-			// If event's sender belongs in this Cluster, request assistance from DC Manager 
-			// to find a target Host for the VM migration in another Cluster.
-			if (null != rackPool.getRack(entry.getSender())) {
-				simulation.sendEvent(new MigRequestEvent(target, entry.getVm(), entry.getOrigin(), clusterId));
-			}
-			// Event's sender does not belong in this Cluster.
-			else {
-				// Migration request was sent by DC Manager. Reject migration request.
-				simulation.sendEvent(new MigRejectEvent(target, entry.getVm(), entry.getOrigin(), clusterId));
-			}
-			
-			// In any case, delete entry from migration requests record.
-			// If requested assistance from DC Manager, I'm not seeing this request again.
-			// If rejected the request, I'm not seeing this request again.
-			manager.getCapability(MigRequestRecord.class).removeEntry(entry);
+			// Contact DC Manager. Reject migration request.
+			simulation.sendEvent(new VmPlacementRejectEvent(target, request, clusterId));
 		}
 	}
 	
 	/**
 	 * Verifies whether the given Rack can meet the resource requirements of the VM.
 	 */
-	protected boolean canHost(VmStatus vm, RackData rack) {
+	protected boolean canHost(VMAllocationRequest request, RackData rack) {
 		// Check Host capabilities (e.g. core count, core capacity).
 		HostDescription hostDescription = rack.getRackDescription().getHostDescription();
-		if (hostDescription.getCpuCount() * hostDescription.getCoreCount() < vm.getCores())
+		if (hostDescription.getCpuCount() * hostDescription.getCoreCount() < request.getVMDescription().getCores())
 			return false;
-		if (hostDescription.getCoreCapacity() < vm.getCoreCapacity())
+		if (hostDescription.getCoreCapacity() < request.getVMDescription().getCoreCapacity())
 			return false;
 		
 		// Check available resources.
 		Resources availableResources = AverageVmSizes.convertCapacityToResources(rack.getCurrentStatus().getMaxSpareCapacity());
-		Resources vmResources = vm.getResourcesInUse();
-		if (availableResources.getCpu() < vmResources.getCpu())
+		if (availableResources.getCpu() < request.getCpu())
 			return false;
-		if (availableResources.getMemory() < vmResources.getMemory())
+		if (availableResources.getMemory() < request.getMemory())
 			return false;
-		if (availableResources.getBandwidth() < vmResources.getBandwidth())
+		if (availableResources.getBandwidth() < request.getBandwidth())
 			return false;
-		if (availableResources.getStorage() < vmResources.getStorage())
+		if (availableResources.getStorage() < request.getStorage())
 			return false;
 		
 		return true;
