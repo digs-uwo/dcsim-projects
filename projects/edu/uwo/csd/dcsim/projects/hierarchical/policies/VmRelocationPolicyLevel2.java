@@ -16,7 +16,7 @@ import edu.uwo.csd.dcsim.projects.hierarchical.events.*;
  * @author Gaston Keller
  *
  */
-public abstract class VmRelocationPolicyLevel2 extends Policy {
+public class VmRelocationPolicyLevel2 extends Policy {
 
 	/**
 	 * Creates an instance of VmRelocationPolicyLevel2.

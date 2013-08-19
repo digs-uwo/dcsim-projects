@@ -17,7 +17,7 @@ import edu.uwo.csd.dcsim.vm.VMAllocationRequest;
  * @author Gaston Keller
  *
  */
-public abstract class VmPlacementPolicyLevel1 extends Policy {
+public class VmPlacementPolicyLevel1 extends Policy {
 
 	protected AutonomicManager target;
 	
