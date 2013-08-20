@@ -49,6 +49,7 @@ public class DataCentre implements SimulationEventListener {
 		this.dataNetworkSwitch = switchFactory.newInstance();
 		this.mgmtNetworkSwitch = switchFactory.newInstance();
 		this.clusters = new ArrayList<Cluster>();
+		hosts = new ArrayList<Host>();
 	}
 	
 	/**
@@ -113,8 +114,10 @@ public class DataCentre implements SimulationEventListener {
 	}
 	
 	/**
-	 * Adds a cluster to the data centre, connecting it to both data and 
-	 * management networks.
+	 * Adds a cluster to the data centre, connecting it to both data and management networks.
+	 * 
+	 * It also adds the Hosts in the Cluster to the DataCentre (required for the Simulation class 
+	 * to work properly).
 	 */
 	public void addCluster(Cluster cluster) {
 		// Set Data Network.
@@ -130,6 +133,12 @@ public class DataCentre implements SimulationEventListener {
 		mgmtNetworkSwitch.addPort(link);
 		
 		clusters.add(cluster);
+		
+		// TODO: Need to add the Hosts in the Cluster to DataCentre or the Simulation class will fail.
+		// Error mssg: "NullPointerException at edu.uwo.csd.dcsim.core.Simulation.getHostList(Simulation.java:724)"
+		for (Rack rack : cluster.getRacks()) {
+			hosts.addAll(rack.getHosts());
+		}
 	}
 	
 	public ArrayList<Cluster> getClusters() { return clusters; }
