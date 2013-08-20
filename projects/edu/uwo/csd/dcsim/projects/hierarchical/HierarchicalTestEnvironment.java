@@ -1,26 +1,22 @@
 package edu.uwo.csd.dcsim.projects.hierarchical;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+
+import org.apache.commons.math3.distribution.*;
 import org.apache.log4j.Logger;
 
 import edu.uwo.csd.dcsim.DataCentre;
-import edu.uwo.csd.dcsim.common.SimTime;
-import edu.uwo.csd.dcsim.common.Tuple;
+import edu.uwo.csd.dcsim.application.*;
+import edu.uwo.csd.dcsim.application.workload.*;
+import edu.uwo.csd.dcsim.common.*;
 import edu.uwo.csd.dcsim.core.Simulation;
-import edu.uwo.csd.dcsim.host.Cluster;
-import edu.uwo.csd.dcsim.host.Host;
-import edu.uwo.csd.dcsim.host.HostModels;
-import edu.uwo.csd.dcsim.host.Rack;
-import edu.uwo.csd.dcsim.host.SwitchFactory;
+import edu.uwo.csd.dcsim.core.metrics.Metric;
+import edu.uwo.csd.dcsim.host.*;
 import edu.uwo.csd.dcsim.host.resourcemanager.DefaultResourceManagerFactory;
 import edu.uwo.csd.dcsim.host.scheduler.DefaultResourceSchedulerFactory;
 import edu.uwo.csd.dcsim.management.AutonomicManager;
-import edu.uwo.csd.dcsim.management.capabilities.HostManager;
-import edu.uwo.csd.dcsim.management.capabilities.HostPoolManager;
-import edu.uwo.csd.dcsim.management.policies.HostMonitoringPolicy;
-import edu.uwo.csd.dcsim.management.policies.HostOperationsPolicy;
-import edu.uwo.csd.dcsim.projects.centralized.policies.ReactiveHostStatusPolicy;
-import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.*;
-import edu.uwo.csd.dcsim.projects.hierarchical.policies.*;
 
 /**
  * This class serves to create a common virtualized data centre environment in 
@@ -63,21 +59,9 @@ public class HierarchicalTestEnvironment {
 	}
 	
 	/**
-	 * Creates a DataCentre object and its corresponding AutonomicManager object. The data centre 
-	 * is organized in Clusters, which consist of Racks, which in turn consist of Hosts.
-	 * 
-	 * Each entity is paired with its corresponding autonomic manager and policies.
-	 * 
-	 * This method also instantiates the ServiceProducer.
+	 * Creates a data centre. The data centre is organized in Clusters, which consist of Racks, 
+	 * which in turn consist of Hosts.
 	 */
-	public static Tuple<DataCentre, AutonomicManager> createEnvironment(Simulation simulation) {
-		// Create data centre.
-		DataCentre dc = createInfrastructure(simulation);
-		simulation.addDatacentre(dc);
-		
-		return new Tuple<DataCentre, AutonomicManager>(dc, createMgmtInfrastructure(simulation, dc));
-	}
-	
 	public static DataCentre createInfrastructure(Simulation simulation) {
 		// Define Switch types.
 		SwitchFactory switch10g48p = new SwitchFactory(10000000, 48, 100);
@@ -125,68 +109,190 @@ public class HierarchicalTestEnvironment {
 		return dc;
 	}
 	
-	public static AutonomicManager createMgmtInfrastructure(Simulation simulation, DataCentre dc) {
+	/**
+	 * Creates a Service Producer to spawn new services over time and thus populate the data centre. 
+	 * The services respond to the single-tier interactive service model.
+	 */
+	public static void configureStaticServices(Simulation simulation, AutonomicManager dcAM) {
+		// Create a service rate _trace_ for the ServiceProducer.
+		ArrayList<Tuple<Long, Double>> serviceRates = new ArrayList<Tuple<Long, Double>>();
+		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), 10d));		// Create ~400 VMs.
+//		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), 30d));		// Create ~1200 VMs.
+//		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), 40d));		// Create ~1600 VMs.
+		serviceRates.add(new Tuple<Long, Double>(SimTime.hours(40), 0d));
+		serviceRates.add(new Tuple<Long, Double>(SimTime.days(10), 0d));
 		
-		// Create DC Manager.
-		ClusterPoolManager clusterPool = new ClusterPoolManager();
-		AutonomicManager dcManager = new AutonomicManager(simulation, clusterPool, new MigRequestRecord());
+		ServiceProducer serviceProducer = new NOMSServiceProducer(simulation, dcAM, null, serviceRates);
+		serviceProducer.start();
+	}
+	
+	/**
+	 * Creates Service Producers to spawn services over time in such a manner as to dynamically vary 
+	 * the number of services within the simulation over time, according to a fixed plan.
+	 */
+	public static void configureDynamicServices(Simulation simulation, AutonomicManager dcAM) {
 		
-		dcManager.installPolicy(new ClusterStatusPolicy(5));
-		dcManager.installPolicy(new VmPlacementPolicyLevel2());
-		dcManager.installPolicy(new VmRelocationPolicyLevel2());
+		/*
+		 * 1. Create 600 Services (VMs) over first 40 hours. These Services to not terminate.
+		 * 2. Simulation recording starts after 2 days
+		 * 3. Hold on 600 Services for day 3
+		 * 4. Increase from 600 to 1200 throughout day 4
+		 * 5. Hold on 1200 for day 5
+		 * 6. Decrease from 1200 to 800 throughout day 6
+		 * 7. Hold on 800 for day 7
+		 * 8. Increase from 800 to 1600 throughout day 8
+		 * 9. Hold on 1600 for day 9
+		 * 10. Decrease from 1600 to 600 for day 10
+		 * 11. Complete 8 days of recorded simulation
+		 */
 		
-		for (Cluster cluster : dc.getClusters()) {
-			// Create Cluster's autonomic manager.
-			RackPoolManager rackPool = new RackPoolManager();
-			AutonomicManager clusterManager = new AutonomicManager(simulation, new ClusterManager(cluster), rackPool, new MigRequestRecord());
+		/*
+		 * Configure and start the base 600 services which do not terminate
+		 */
+		ArrayList<Tuple<Long, Double>> serviceRates = new ArrayList<Tuple<Long, Double>>();
+		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), 15d));		// Create ~600 VMs.
+		serviceRates.add(new Tuple<Long, Double>(SimTime.hours(40), 0d));		// over 40 hours
+		serviceRates.add(new Tuple<Long, Double>(SimTime.days(10), 0d));		// 10 days
+		
+		ServiceProducer serviceProducer = new NOMSServiceProducer(simulation, dcAM, null, serviceRates);
+		serviceProducer.start();
+
+		/*
+		 * Create time varying service levels. Each service has a lifespan of ~2 days, normally distributed with a std. dev. of 2 hours
+		 */
+		serviceRates = new ArrayList<Tuple<Long, Double>>();
+		
+		//Day 4: Create 600 new services throughout the day
+		serviceRates.add(new Tuple<Long, Double>(SimTime.days(3), 25d));
+		
+		//Day 5: Hold at 1200
+		serviceRates.add(new Tuple<Long, Double>(SimTime.days(4), 0d));
+
+		//Day 6: Create 200 new services, which combined with the termination of previous will bring us down to 800
+		serviceRates.add(new Tuple<Long, Double>(SimTime.days(5), 8.3d));
+		
+		//Day 7: Hold at 800
+		serviceRates.add(new Tuple<Long, Double>(SimTime.days(6), 0d));
+		
+		//Day 8: Create 1000 new services throughout the day
+		serviceRates.add(new Tuple<Long, Double>(SimTime.days(7), 41.6d));
+		
+		//Day 9: Hold at 1600
+		serviceRates.add(new Tuple<Long, Double>(SimTime.days(8), 0d));
+		
+		//Day 10: Let servers terminate until left with base 600
+		serviceRates.add(new Tuple<Long, Double>(SimTime.days(10), 0d));
+		
+		serviceProducer = new NOMSServiceProducer(simulation, dcAM, new NormalDistribution(SimTime.days(2), SimTime.hours(2)), serviceRates);
+		serviceProducer.start();	
+	}
+	
+	/**
+	 * Configure services to arrival such that the overall utilization of the datacentre changes randomly.
+	 * @param simulation
+	 * @param dc
+	 * @param changesPerDay The number of utilization changes (arrival rate changes) per day
+	 * @param minServices The minimum number of services running in the data centre
+	 * @param maxServices The maximum number of services running in the data centre
+	 */
+	public static void configureRandomServices(Simulation simulation, AutonomicManager dcAM, double changesPerDay, int minServices, int maxServices) {
+
+		/*
+		 * Configure minimum service level. Create the minimum number of services over the first 40 hours,
+		 * and leave them running for the entire simulation.
+		 */
+		ArrayList<Tuple<Long, Double>> serviceRates = new ArrayList<Tuple<Long, Double>>();
+		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), (minServices / 40d)));		
+		serviceRates.add(new Tuple<Long, Double>(SimTime.hours(40), 0d));		
+		serviceRates.add(new Tuple<Long, Double>(SimTime.days(10), 0d));		// 10 days
+		
+		ServiceProducer serviceProducer = new NOMSServiceProducer(simulation, dcAM, null, serviceRates);
+		serviceProducer.start();
+		
+		//Create a uniform random distribution to generate the number of services within the data centre.
+		UniformIntegerDistribution serviceCountDist = new UniformIntegerDistribution(0, (maxServices - minServices));
+		serviceCountDist.reseedRandomGenerator(simulation.getRandom().nextLong());
+		
+		/*
+		 * Generate the service arrival rates for the rest of the simulation
+		 */
+		long time;		//start time of the current arrival rate
+		long nextTime;	//the time of the next arrival rate change
+		double rate;	//the current arrival rate
+		serviceRates = new ArrayList<Tuple<Long, Double>>(); //list of arrival rates
+		
+		time = SimTime.days(2); //start at beginning of 3rd day (end of 2nd)
+		
+		//loop while we still have simulation time to generate arrival rates for
+		while (time < SimTime.days(10)) {
+
+			//calculate the next time the rate will changes
+			nextTime = time + Math.round(SimTime.days(1) / changesPerDay);
 			
-			// Install management policies in the autonomic manager.
-			clusterManager.installPolicy(new ClusterMonitoringPolicy(dcManager), SimTime.minutes(5), SimTime.minutes(simulation.getRandom().nextInt(5)));
-			clusterManager.installPolicy(new RackStatusPolicy(5));
-			clusterManager.installPolicy(new VmPlacementPolicyLevel1(dcManager));
-			clusterManager.installPolicy(new VmRelocationPolicyLevel1(dcManager));
+			//generate a target VM count to reach by the next rate change
+			double target = serviceCountDist.sample();
 			
-			// Autonomic manager is NOT installed anywhere.
+			//caculate the current arrival rate necessary to reach the target VM count
+			rate = target / ((nextTime - time) / 1000d / 60d / 60d);
 			
-			// Add Cluster and its autonomic manager to the capability of the hosting Data Centre.
-			clusterPool.addCluster(cluster, clusterManager);
+			//add the current rate to the list of arrival rates
+			serviceRates.add(new Tuple<Long, Double>(time, rate));
 			
-			for (Rack rack : cluster.getRacks()) {
-				// Create Rack's autonomic manager.
-				HostPoolManager hostPool = new HostPoolManager();
-				AutonomicManager rackManager = new AutonomicManager(simulation, new RackManager(rack), hostPool, new MigRequestRecord());
-				
-				// Install management policies in the autonomic manager.
-				rackManager.installPolicy(new RackMonitoringPolicy(clusterManager), SimTime.minutes(5), SimTime.minutes(simulation.getRandom().nextInt(5)));
-				rackManager.installPolicy(new ReactiveHostStatusPolicy(5));
-				rackManager.installPolicy(new VmPlacementPolicyFFMHybrid(clusterManager, lower, upper, target));
-				rackManager.installPolicy(new VmRelocationPolicyFFIMHybrid(clusterManager, lower, upper, target));
-				rackManager.installPolicy(new VmConsolidationPolicyFFDDIHybrid(clusterManager, lower, upper, target));
-				
-				// Autonomic manager is NOT installed anywhere.
-				
-				// Add Rack and its autonomic manager to the capability of the hosting Cluster.
-				rackPool.addRack(rack, rackManager);
-				
-				for (Host host : rack.getHosts()) {
-					// Create Host's autonomic manager.
-					AutonomicManager hostManager = new AutonomicManager(simulation, new HostManager(host));
-					
-					// Install management policies in the autonomic manager.
-					hostManager.installPolicy(new HostMonitoringPolicy(rackManager), SimTime.minutes(5), SimTime.minutes(simulation.getRandom().nextInt(5)));
-					hostManager.installPolicy(new HostOperationsPolicy());
-					
-					// Install autonomic manager in the Host.
-					host.installAutonomicManager(hostManager);
-					
-					// Add Host and its autonomic manager to the capability of the hosting Rack.
-					hostPool.addHost(host, hostManager);
-				}
-			}
+			//advance to the next time intrerval
+			time = nextTime;
+		}
+		//add a final rate of 0 to run until the end of the simulation
+		serviceRates.add(new Tuple<Long, Double>(SimTime.days(10), 0d));
+
+		
+		serviceProducer = new NOMSServiceProducer(simulation, dcAM, new NormalDistribution(SimTime.days(1) / changesPerDay, SimTime.hours(1)), serviceRates);
+		serviceProducer.start();
+	}
+	
+	/**
+	 * Creates services to submit and deploy in the data centre.
+	 */
+	public static class NOMSServiceProducer extends ServiceProducer {
+
+		private int counter = 0;
+		
+		public NOMSServiceProducer(Simulation simulation, AutonomicManager dcTarget, RealDistribution lifespanDist, List<Tuple<Long, Double>> servicesPerHour) {
+			super(simulation, dcTarget, lifespanDist, servicesPerHour);
+		}
+
+		@Override
+		public Service buildService() {
+			++counter;
 			
+			String trace = TRACES[counter % N_TRACES];
+			long offset = (int)(simulation.getRandom().nextDouble() * OFFSET_MAX[counter % N_TRACES]);
+			
+			int cores = VM_CORES[counter % N_VM_SIZES];
+			int coreCapacity = VM_SIZES[counter % N_VM_SIZES];
+			int memory = VM_RAM[counter % N_VM_SIZES];
+			int bandwidth = 12800;	// 100 Mb/s
+			long storage = 1024;	// 1 GB
+			
+			// Create workload (external) for the service.
+			Workload workload = new TraceWorkload(simulation, trace, (coreCapacity * cores) - CPU_OVERHEAD, offset); //scale to n replicas
+			simulation.addWorkload(workload);
+			
+			return Services.singleTierInteractiveService(workload, cores, coreCapacity, memory, bandwidth, storage, 1, CPU_OVERHEAD, 1, Integer.MAX_VALUE);
 		}
 		
-		return dcManager;
+	}
+	
+	/**
+	 * Formats a simulation run results for output.
+	 * 
+	 * @param metrics	simulation run results
+	 */
+	public static void printMetrics(Collection<Metric> metrics) {
+		for (Metric metric : metrics) {
+			logger.info(metric.getName() +
+					" = " +
+					metric.toString());
+		}
 	}
 
 }
