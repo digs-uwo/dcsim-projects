@@ -66,7 +66,7 @@ public class VmPlacementPolicyLevel2 extends Policy {
 		if (!this.searchForVmPlacementTarget(event.getVmAllocationRequest())) {
 			// Record failure to complete placement request.
 			if (simulation.isRecordingMetrics()) {
-				CountMetric.getMetric(simulation, REJECTED_PLACEMENTS).add(1);
+				CountMetric.getMetric(simulation, REJECTED_PLACEMENTS).incrementCount();
 			}
 		}
 	}

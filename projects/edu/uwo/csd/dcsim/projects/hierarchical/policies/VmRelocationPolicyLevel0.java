@@ -4,7 +4,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 
 import edu.uwo.csd.dcsim.common.Utility;
-import edu.uwo.csd.dcsim.host.Host;
+import edu.uwo.csd.dcsim.core.metrics.CountMetric;
+import edu.uwo.csd.dcsim.host.*;
 import edu.uwo.csd.dcsim.management.*;
 import edu.uwo.csd.dcsim.management.action.MigrationAction;
 import edu.uwo.csd.dcsim.management.capabilities.HostPoolManager;
@@ -37,6 +38,10 @@ import edu.uwo.csd.dcsim.projects.hierarchical.events.*;
  */
 public abstract class VmRelocationPolicyLevel0 extends Policy {
 
+	private static final String INTRARACK_MIGRATION_COUNT_METRIC = "migrationCount-IntraRack";
+	private static final String INTRACLUSTER_MIGRATION_COUNT_METRIC = "migrationCount-IntraCluster";
+	private static final String INTERCLUSTER_MIGRATION_COUNT_METRIC = "migrationCount-InterCluster";
+	
 	protected AutonomicManager target;
 	
 	protected double lowerThreshold;
@@ -128,6 +133,16 @@ public abstract class VmRelocationPolicyLevel0 extends Policy {
 		
 		// Delete entry from migration requests record.
 		manager.getCapability(MigRequestRecord.class).removeEntry(entry);
+		
+		// Update metrics.
+		if (simulation.isRecordingMetrics()) {
+			// Find out whether the target Host belongs in the same Cluster as the source Rack.
+			Cluster cluster = target.getCapability(ClusterManager.class).getCluster();
+			if (this.containsHost(cluster, event.getTargetHost().getId()))
+				CountMetric.getMetric(simulation, INTRACLUSTER_MIGRATION_COUNT_METRIC).incrementCount();
+			else
+				CountMetric.getMetric(simulation, INTERCLUSTER_MIGRATION_COUNT_METRIC).incrementCount();
+		}
 	}
 	
 	/**
@@ -233,6 +248,12 @@ public abstract class VmRelocationPolicyLevel0 extends Policy {
 		
 		if (mig != null) {		// Trigger migration.
 			mig.execute(simulation, this);
+			
+			// Update metrics.
+			if (simulation.isRecordingMetrics()) {
+				CountMetric.getMetric(simulation, INTRARACK_MIGRATION_COUNT_METRIC).incrementCount();
+			}
+			
 			return true;
 		}
 		
@@ -321,6 +342,22 @@ public abstract class VmRelocationPolicyLevel0 extends Policy {
 		}
 		
 		return Utility.roundDouble(avgCpuInUse / host.getHostDescription().getResourceCapacity().getCpu());
+	}
+	
+	/**
+	 * Checks whether the given Host belongs in the given Cluster.
+	 */
+	private boolean containsHost(Cluster cluster, int hostId) {
+		
+		for (Rack rack : cluster.getRacks()) {
+			for (Host host : rack.getHosts()) {
+				if (host.getId() == hostId) {
+					return true;
+				}
+			}
+		}
+		
+		return false;
 	}
 	
 	@Override

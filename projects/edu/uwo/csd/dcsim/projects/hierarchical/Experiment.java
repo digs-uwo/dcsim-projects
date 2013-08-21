@@ -75,7 +75,8 @@ public class Experiment extends SimulationTask {
 		
 		// Create and start the Services Producer.
 		//HierarchicalTestEnvironment.configureStaticServices(simulation, dcManager);
-		HierarchicalTestEnvironment.configureRandomServices(simulation, dcManager, 1, 600, 1600);
+		HierarchicalTestEnvironment.configureRandomServices(simulation, dcManager, 1, 6000, 16000);		// 10x #hosts & load
+		//HierarchicalTestEnvironment.configureRandomServices(simulation, dcManager, 1, 600, 1600);
 	}
 	
 	/**
