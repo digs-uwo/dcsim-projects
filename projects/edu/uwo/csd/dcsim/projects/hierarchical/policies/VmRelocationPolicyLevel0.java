@@ -101,7 +101,7 @@ public abstract class VmRelocationPolicyLevel0 extends Policy {
 		HostData targetHost = this.findTargetHost(event.getVm());
 		
 		// If found, send message to RackManager origin accepting the migration request.
-		if (null != target) {
+		if (null != targetHost) {
 			simulation.sendEvent(new MigAcceptEvent(event.getOrigin(), event.getVm(), targetHost.getHost()));
 			
 			// TODO May have to invalidate here the status of the target Host.
