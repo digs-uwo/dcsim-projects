@@ -9,9 +9,12 @@ import edu.uwo.csd.dcsim.application.InteractiveApplication;
 import edu.uwo.csd.dcsim.application.sla.InteractiveServiceLevelAgreement;
 import edu.uwo.csd.dcsim.application.workload.TraceWorkload;
 import edu.uwo.csd.dcsim.core.Simulation;
+import edu.uwo.csd.dcsim.host.Cluster;
 import edu.uwo.csd.dcsim.host.Host;
 import edu.uwo.csd.dcsim.host.HostModels;
+import edu.uwo.csd.dcsim.host.Rack;
 import edu.uwo.csd.dcsim.host.Resources;
+import edu.uwo.csd.dcsim.host.SwitchFactory;
 import edu.uwo.csd.dcsim.host.resourcemanager.DefaultResourceManagerFactory;
 import edu.uwo.csd.dcsim.host.scheduler.DefaultResourceSchedulerFactory;
 import edu.uwo.csd.dcsim.management.AutonomicManager;
@@ -29,16 +32,18 @@ public abstract class AppManagementTestEnvironment {
 	public static final long[] OFFSET_MAX = {200000000, 40000000, 40000000, 15000000, 15000000, 15000000, 15000000};
 	public static final double[] TRACE_AVG = {0.32, 0.25, 0.32, 0.72, 0.74, 0.77, 0.83};
 	
-	int nHosts;
+	int hostsPerRack;
+	int nRacks;
 	int nApps = 0;
 	Simulation simulation;
 	AutonomicManager dcAM;
 	Random envRandom;
 	Random appGenerationRandom;
 	
-	public AppManagementTestEnvironment(Simulation simulation, int nHosts) {
+	public AppManagementTestEnvironment(Simulation simulation, int hostsPerRack, int nRacks) {
 		this.simulation = simulation;
-		this.nHosts = nHosts;
+		this.hostsPerRack = hostsPerRack;
+		this.nRacks = nRacks;
 		
 		envRandom = new Random(simulation.getRandom().nextLong());
 		appGenerationRandom = new Random(simulation.getRandom().nextLong());
@@ -46,36 +51,53 @@ public abstract class AppManagementTestEnvironment {
 	
 	public DataCentre createDataCentre(Simulation simulation) {
 		// Create data centre.
-		DataCentre dc = new DataCentre(simulation);
+		
+		
+		//Define Hosts
+		Host.Builder proLiantDL160G5E5420 = HostModels.ProLiantDL160G5E5420(simulation).privCpu(500).privBandwidth(131072)
+				.resourceManagerFactory(new DefaultResourceManagerFactory())
+				.resourceSchedulerFactory(new DefaultResourceSchedulerFactory());
+		
+		//Define Racks
+		SwitchFactory switch10g48p = new SwitchFactory(10000000, 48, 100);
+		
+		Rack.Builder seriesA = new Rack.Builder(simulation).nSlots(40).nHosts(hostsPerRack)
+				.hostBuilder(proLiantDL160G5E5420)
+				.switchFactory(switch10g48p);
+		
+		// Define Cluster
+		SwitchFactory switch40g24p = new SwitchFactory(40000000, 24, 100);
+		
+		Cluster.Builder series09 = new Cluster.Builder(simulation).nRacks(nRacks).nSwitches(1)
+				.rackBuilder(seriesA)
+				.switchFactory(switch40g24p);
+		
+		
+		DataCentre dc = new DataCentre(simulation, switch40g24p);
 		simulation.addDatacentre(dc);
 		
 		dcAM = new AutonomicManager(simulation);
 
 		processDcAM(dcAM);
 		
-		//create Hosts
-		Host.Builder proLiantDL160G5E5420 = HostModels.ProLiantDL160G5E5420(simulation).privCpu(500).privBandwidth(131072)
-				.resourceManagerFactory(new DefaultResourceManagerFactory())
-				.resourceSchedulerFactory(new DefaultResourceSchedulerFactory());
+		//add single cluster
+		dc.addCluster(series09.build());
 		
-		Host host;
-		ArrayList<Host> hosts = new ArrayList<Host>();
-		for (int i = 0; i < nHosts; ++i) {
-			host = proLiantDL160G5E5420.build();
-			
-			processHost(host, dc, dcAM);
-			
-			hosts.add(host);
+		for (Cluster cluster : dc.getClusters()) {
+			for (Rack rack : cluster.getRacks()) {
+				for (Host host : rack.getHosts()) {
+					processHost(host, rack, cluster, dc, dcAM);
+					dc.addHost(host);
+				}
+			}
 		}
-		
-		dc.addHosts(hosts);
-		
+	
 		return dc;
 	}
 	
 	public abstract void processDcAM(AutonomicManager dcAM);
 	
-	public abstract void processHost(Host host, DataCentre dc, AutonomicManager dcAM);
+	public abstract void processHost(Host host, Rack rack, Cluster cluster, DataCentre dc, AutonomicManager dcAM);
 	
 	public Application createApplication() {
 		++nApps;

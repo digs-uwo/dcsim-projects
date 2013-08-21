@@ -10,7 +10,9 @@ import edu.uwo.csd.dcsim.SimulationTask;
 import edu.uwo.csd.dcsim.application.InteractiveApplication;
 import edu.uwo.csd.dcsim.common.SimTime;
 import edu.uwo.csd.dcsim.core.Simulation;
+import edu.uwo.csd.dcsim.host.Cluster;
 import edu.uwo.csd.dcsim.host.Host;
+import edu.uwo.csd.dcsim.host.Rack;
 import edu.uwo.csd.dcsim.management.AutonomicManager;
 import edu.uwo.csd.dcsim.management.capabilities.*;
 import edu.uwo.csd.dcsim.management.policies.*;
@@ -64,7 +66,7 @@ public class AppManagementExperiment extends SimulationTask {
 		
 		simulation.getSimulationMetrics().addCustomMetricCollection(new ApplicationManagementMetrics(simulation));
 		
-		Environment environment = new Environment(simulation, 5);
+		Environment environment = new Environment(simulation, 5, 1);
 		environment.createDataCentre(simulation);
 		
 		simulation.sendEvent(new ApplicationPlacementEvent(environment.getDcAM(), environment.createApplication()));
@@ -80,8 +82,8 @@ public class AppManagementExperiment extends SimulationTask {
 
 		HostPoolManager hostPool;
 		
-		public Environment(Simulation simulation, int nHosts) {
-			super(simulation, nHosts);
+		public Environment(Simulation simulation, int hostsPerRack, int nRacks) {
+			super(simulation, hostsPerRack, nRacks);
 		}
 
 		@Override
@@ -95,7 +97,7 @@ public class AppManagementExperiment extends SimulationTask {
 		}
 
 		@Override
-		public void processHost(Host host, DataCentre dc, AutonomicManager dcAM) {
+		public void processHost(Host host, Rack rack, Cluster cluster, DataCentre dc, AutonomicManager dcAM) {
 			AutonomicManager hostAM = new AutonomicManager(simulation, new HostManager(host));
 			hostAM.installPolicy(new HostMonitoringPolicy(dcAM), SimTime.minutes(5), SimTime.minutes(envRandom.nextInt(5)));
 			hostAM.installPolicy(new HostOperationsPolicy());
