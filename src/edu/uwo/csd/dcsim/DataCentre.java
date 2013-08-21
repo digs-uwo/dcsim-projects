@@ -44,6 +44,7 @@ public class DataCentre implements SimulationEventListener {
 		this.dataNetworkSwitch = switchFactory.newInstance();
 		this.mgmtNetworkSwitch = switchFactory.newInstance();
 		this.clusters = new ArrayList<Cluster>();
+		hosts = new ArrayList<Host>();
 	}
 	
 	/**
@@ -109,6 +110,12 @@ public class DataCentre implements SimulationEventListener {
 		mgmtNetworkSwitch.addPort(link);
 		
 		clusters.add(cluster);
+		
+		for (Rack rack : cluster.getRacks()) {
+			for (Host host : rack.getHosts()) {
+				hosts.add(host);
+			}
+		}
 	}
 	
 	public ArrayList<Cluster> getClusters() { return clusters; }

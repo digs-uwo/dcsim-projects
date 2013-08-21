@@ -1,6 +1,5 @@
 package edu.uwo.csd.dcsim.projects.applicationManagement;
 
-import java.util.ArrayList;
 import java.util.Random;
 
 import edu.uwo.csd.dcsim.DataCentre;
@@ -87,7 +86,6 @@ public abstract class AppManagementTestEnvironment {
 			for (Rack rack : cluster.getRacks()) {
 				for (Host host : rack.getHosts()) {
 					processHost(host, rack, cluster, dc, dcAM);
-					dc.addHost(host);
 				}
 			}
 		}
