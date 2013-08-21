@@ -72,7 +72,7 @@ public abstract class Application {
 				Vm vm = instance.getVM();
 				VmAllocation vmAlloc = vm.getVMAllocation();
 				Host host = vmAlloc.getHost();
-				
+			
 				if (vm.isMigrating() || instance.getVM().isPendingMigration())
 					throw new RuntimeException("Tried to shutdown migrating VM #" + vm.getId() + ". Operation not allowed in simulation.");
 				

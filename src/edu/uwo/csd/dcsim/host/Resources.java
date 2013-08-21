@@ -19,7 +19,7 @@ public class Resources {
 	}
 	
 	public Resources(Resources resources) {
-		this(resources.getCores(), resources.getCpu(), resources.getMemory(), resources.getBandwidth(), resources.getStorage());
+		this(resources.getCores(), resources.getCoreCapacity(), resources.getMemory(), resources.getBandwidth(), resources.getStorage());
 	}
 	
 	public Resources(int cpu, int memory, int bandwidth, int storage) {

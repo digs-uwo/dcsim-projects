@@ -85,7 +85,6 @@ public abstract class ApplicationGenerator implements SimulationEventListener {
 	private void spawnApplication() {
 		Application application = buildApplication();
 		
-		
 		ArrayList<VmAllocationRequest> vmAllocationRequests = application.createInitialVmRequests();
 		
 		simulation.getLogger().debug("Created New Application");
@@ -172,6 +171,7 @@ public abstract class ApplicationGenerator implements SimulationEventListener {
 	public class ApplicationSpawnCallbackHandler implements EventCallbackListener {
 
 		private Application application;
+		private boolean triggered = false;
 		
 		public ApplicationSpawnCallbackHandler(Application service) {
 			this.application = service;
@@ -179,6 +179,9 @@ public abstract class ApplicationGenerator implements SimulationEventListener {
 		
 		@Override
 		public void eventCallback(Event e) {
+
+			if (triggered) throw new RuntimeException("What?");
+			triggered = true;
 			VmPlacementEvent placementEvent = (VmPlacementEvent)e;
 			
 			if (placementEvent.getFailedRequests().isEmpty()) {

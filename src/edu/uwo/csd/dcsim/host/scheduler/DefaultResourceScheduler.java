@@ -86,16 +86,18 @@ public class DefaultResourceScheduler extends ResourceScheduler {
 		for (VmAllocation vmAlloc : vmAllocations) {
 			if (vmAlloc.getVm().getResourceDemand().getCpu() == 0) --incompleteVms;
 		}
-		
+
 		while (resourcesRemaining.getCpu() > 0 && incompleteVms > 0) {
+			
 			cpuShare = resourcesRemaining.getCpu() / incompleteVms;
 			
 			//if resourcesRemaining is small enough, it could be rounded to 0. Set '1' as minimum share. 
 			cpuShare = Math.max(cpuShare, 1);
 
-			for (VmAllocation vmAlloc : vmAllocations) {
+			for (VmAllocation vmAlloc : vmAllocations) {			
 				Vm vm = vmAlloc.getVm();
 				Resources scheduled = vm.getResourcesScheduled();
+								
 				int remainingCpuDemand = vm.getResourceDemand().getCpu() - scheduled.getCpu();
 
 				if (remainingCpuDemand > 0) {
@@ -103,11 +105,11 @@ public class DefaultResourceScheduler extends ResourceScheduler {
 						scheduled.setCpu(scheduled.getCpu() + remainingCpuDemand);
 						resourcesRemaining.setCpu(resourcesRemaining.getCoreCapacity() - remainingCpuDemand);
 						--incompleteVms;
-
 					} else {
 						scheduled.setCpu(scheduled.getCpu() + cpuShare);
 						resourcesRemaining.setCpu(resourcesRemaining.getCpu() - cpuShare);
 					}
+					
 					vm.scheduleResources(scheduled);
 				}
 				

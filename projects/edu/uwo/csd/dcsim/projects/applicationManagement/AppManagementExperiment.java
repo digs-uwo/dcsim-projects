@@ -22,8 +22,8 @@ public class AppManagementExperiment extends SimulationTask {
 
 	private static Logger logger = Logger.getLogger(AppManagementExperiment.class);
 	
-	private static final long DURATION = SimTime.days(1);
-//	private static final long DURATION = SimTime.minutes(5);
+//	private static final long DURATION = SimTime.days(1);
+	private static final long DURATION = SimTime.minutes(5);
 	private static final long METRIC_RECORD_START = SimTime.days(0);
 	
 	public static void main(String args[]) {
@@ -69,11 +69,11 @@ public class AppManagementExperiment extends SimulationTask {
 		
 		simulation.sendEvent(new ApplicationPlacementEvent(environment.getDcAM(), environment.createApplication()));
 		
-		simulation.sendEvent(new ApplicationPlacementEvent(environment.getDcAM(), environment.createApplication()), SimTime.minutes(1));
-		
-		simulation.sendEvent(new ApplicationPlacementEvent(environment.getDcAM(), environment.createApplication()), SimTime.minutes(2));
-		
-		simulation.sendEvent(new ApplicationPlacementEvent(environment.getDcAM(), environment.createApplication()), SimTime.minutes(3));
+//		simulation.sendEvent(new ApplicationPlacementEvent(environment.getDcAM(), environment.createApplication()), SimTime.minutes(1));
+//		
+//		simulation.sendEvent(new ApplicationPlacementEvent(environment.getDcAM(), environment.createApplication()), SimTime.minutes(2));
+//		
+//		simulation.sendEvent(new ApplicationPlacementEvent(environment.getDcAM(), environment.createApplication()), SimTime.minutes(3));
 	}
 	
 	public class Environment extends AppManagementTestEnvironment {

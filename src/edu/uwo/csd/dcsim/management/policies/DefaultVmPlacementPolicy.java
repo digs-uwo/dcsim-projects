@@ -61,7 +61,7 @@ public class DefaultVmPlacementPolicy extends Policy {
 						target.getHostDescription())) {	//target has capability and capacity to host VM
 					
 					allocatedHost = target;
-					
+
 					//add a dummy placeholder VM to keep track of placed VM resource requirements
 					target.getSandboxStatus().instantiateVm(
 							new VmStatus(vmAllocationRequest.getVMDescription().getCores(),

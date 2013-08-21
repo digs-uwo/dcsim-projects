@@ -13,7 +13,8 @@ public class HostStatus {
 	private int outgoingMigrations;
 	private ArrayList<VmStatus> migratingInVms = new ArrayList<VmStatus>();
 	private Host.HostState state;
-
+	private ArrayList<Resources> startingVmAllocations = new ArrayList<Resources>();
+	
 	private double powerConsumption;
 	
 	VmStatus privDomain;
@@ -38,6 +39,11 @@ public class HostStatus {
 			}
 		}
 		
+		//keep track of resources promised to starting VMs
+		for (VmAllocation vmAlloc : host.getStartingVms()) {
+			startingVmAllocations.add(new Resources(vmAlloc.getCpu(), vmAlloc.getMemory(), vmAlloc.getBandwidth(), vmAlloc.getStorage()));
+		}
+		
 		//keep track of resources promised to incoming VMs
 		for (VmAllocation vmAlloc : host.getMigratingIn()) {
 			Resources resources = new Resources();
@@ -60,6 +66,8 @@ public class HostStatus {
 		incomingMigrations = host.incomingMigrations;
 		outgoingMigrations = host.outgoingMigrations;
 		state = host.state;
+		
+		startingVmAllocations = host.startingVmAllocations;
 		
 		powerConsumption = host.powerConsumption;
 		
@@ -117,6 +125,11 @@ public class HostStatus {
 			cpu += vmStatus.getCores() * vmStatus.getCoreCapacity();
 		}
 		
+		//add resources promised to starting VMs
+		for (Resources resources : startingVmAllocations) {
+			cpu += resources.getCpu();
+		}
+		
 		//add resources promised to incoming VMs
 		for (VmStatus vmStatus : migratingInVms) {
 			cpu += vmStatus.getCores() * vmStatus.getCoreCapacity();
@@ -130,6 +143,11 @@ public class HostStatus {
 		
 		for (VmStatus vmStatus : vms) {
 			resourcesInUse = resourcesInUse.add(vmStatus.getResourcesInUse());
+		}
+		
+		//add resources promised to starting VMs
+		for (Resources resources : startingVmAllocations) {
+			resourcesInUse = resourcesInUse.add(resources);
 		}
 		
 		//add resources promised to incoming VMs

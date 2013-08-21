@@ -350,6 +350,7 @@ public class Simulation implements SimulationEventListener {
 			application.updateDemand();
 		}
 		
+		
 		//while not done
 		boolean done = false;
 		while (!done) {
@@ -361,12 +362,13 @@ public class Simulation implements SimulationEventListener {
 					host.getResourceScheduler().scheduleResources();
 				}
 			}
-			
 			for (Application application : applications) {
 				boolean appUpdate = application.updateDemand(); 
 				done = done && !appUpdate; //stop when no calls to updateDemand result in changes  
 			}
 		}
+		
+		
 
 	}
 	

@@ -48,6 +48,7 @@ public final class Host implements SimulationEventListener {
 	private ArrayList<VmAllocation> migratingIn = new ArrayList<VmAllocation>();
 	private ArrayList<VmAllocation> migratingOut = new ArrayList<VmAllocation>();
 	private HashSet<VmAllocation> pendingOutgoingMigrations = new HashSet<VmAllocation>();
+	private ArrayList<VmAllocation> startingVm = new ArrayList<VmAllocation>();
 	
 	public enum HostState {ON, SUSPENDED, OFF, POWERING_ON, SUSPENDING, POWERING_OFF, FAILED;}
 	private ArrayList<Event> powerOnEventQueue = new ArrayList<Event>();
@@ -245,6 +246,9 @@ public final class Host implements SimulationEventListener {
 		if (queueEvent) {
 			powerOnEventQueue.add(e);
 			
+			//prevent event from triggering post event and callback methods
+			e.setBlockPostEvent(true);
+			
 			//if the queued event is for migration, inform the source of the pending migration
 			if (e instanceof MigrateVmEvent) {
 				MigrateVmEvent migrateEvent = (MigrateVmEvent)e;			
@@ -288,6 +292,8 @@ public final class Host implements SimulationEventListener {
 			}
 		} else if (e instanceof SubmitVmEvent) {
 			submitVm((SubmitVmEvent)e);
+		} else if (e instanceof VmStartEvent) {
+			completeVmStart((VmStartEvent)e);
 		} else {
 			//unknown event
 			throw new RuntimeException("Host #" + getId() + " received unknown event type "+ e.getClass());
@@ -319,24 +325,39 @@ public final class Host implements SimulationEventListener {
 			newAllocation = allocate(vmAllocationRequest);
 		} catch (AllocationFailedException e) {
 			throw new RuntimeException("Allocation failed on Host #" + this.getId() + 
-					" VM submission", e);
+					" VM submission" , e);
 			
 		}
 		
 		//add the allocation to the Host list of allocations
 		vmAllocations.add(newAllocation);
+		startingVm.add(newAllocation);
+		
+		long vmStartDelay = Long.parseLong(Simulation.getProperty("vmStartTime"));
+		
+		VmStartEvent vmStartEvent = new VmStartEvent(this, newAllocation);
+		event.addEventInSequence(vmStartEvent); //defer completion of the original event until the VmStartEvent is complete
+		simulation.sendEvent(vmStartEvent, simulation.getSimulationTime() + vmStartDelay);
+		
+		simulation.getLogger().debug("Host #" + this.getId() + " created new VM allocation");
+	}
+
+	private void completeVmStart(VmStartEvent event) {
+				
+		VmAllocation newAllocation = event.getVmAllocation();
 		
 		//create a new VM in the allocation
 		Vm newVm = newAllocation.getVMDescription().createVM(simulation);
 		newAllocation.setVm(newVm);
 		newVm.setVMAllocation(newAllocation);
+		startingVm.remove(newAllocation);
 		
-		simulation.getLogger().debug(simulation.getSimulationTime() + " Host #" + this.getId() + " allocated & created VM #" + newAllocation.getVm().getId());
+		simulation.getLogger().debug("Host #" + this.getId() + " created & started VM #" + newAllocation.getVm().getId());
 		simulation.getTraceLogger().info("#vs," + newVm.getId() + "," + newVm.getVMAllocation().getHost().getId());
 	}
 	
 	/**
-	 * Helper function to facilitate testing by allowing VMs to be directly placed onto specific hosts. Should not be called during normal usage.
+	 * Helper function to facilitate testing by allowing VMs to be directly placed onto specific hosts. Should not be called during normal usage. Does not include VM start delay.
 	 * @param vmAllocationRequest
 	 */
 	public void submitVm(VmAllocationRequest vmAllocationRequest) {
@@ -348,7 +369,7 @@ public final class Host implements SimulationEventListener {
 			newAllocation = allocate(vmAllocationRequest);
 		} catch (AllocationFailedException e) {
 			throw new RuntimeException("Allocation failed on Host #" + this.getId() + 
-					" VM submission", e);
+					" VM submission" , e);
 			
 		}
 		
@@ -363,7 +384,6 @@ public final class Host implements SimulationEventListener {
 		simulation.getLogger().debug(simulation.getSimulationTime() + " Host #" + this.getId() + " allocated & created VM #" + newAllocation.getVm().getId());
 		simulation.getTraceLogger().info("#vs," + newVm.getId() + "," + newVm.getVMAllocation().getHost().getId());
 	}
-
 	
 	public boolean isCapable(VmDescription vmDescription) {
 		return resourceManager.isCapable(vmDescription);
@@ -604,7 +624,10 @@ public final class Host implements SimulationEventListener {
 		if (state != HostState.ON) {
 			state = HostState.ON;
 			for (Event e : powerOnEventQueue) {
+				e.setBlockPostEvent(false);
 				handleEvent(e);
+				e.triggerPostExecute();
+				e.triggerCallback();
 			}
 			powerOnEventQueue.clear();
 		}
@@ -755,6 +778,8 @@ public final class Host implements SimulationEventListener {
 	public ArrayList<VmAllocation> getMigratingIn() { return migratingIn;	}
 	
 	public ArrayList<VmAllocation> getMigratingOut() {	return migratingOut; }
+	
+	public ArrayList<VmAllocation> getStartingVms() { return startingVm; }
 	
 	public HostPowerModel getPowerModel() { 	return powerModel;	}
 	
