@@ -1,7 +1,11 @@
 package edu.uwo.csd.dcsim.projects.distributed;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.log4j.Logger;
 
+import edu.uwo.csd.dcsim.common.Tuple;
 import edu.uwo.csd.dcsim.core.Simulation;
 import edu.uwo.csd.dcsim.core.metrics.MetricCollection;
 
@@ -39,7 +43,7 @@ public class DistributedMetrics extends MetricCollection {
 	public void printDefault(Logger out) {
 		out.info("-- DISTRIBUTED --");
 		out.info("Management Actions");
-		out.info("   stressEventionFailed: " + stressEventionFailed);
+		out.info("   stressEvictionFailed: " + stressEventionFailed);
 		out.info("   shutdownFailed: " + shutdownFailed);
 		out.info("   stressEvict: " + stressEvict);
 		out.info("   shutdownEviction: " + shutdownEviction);
@@ -56,6 +60,30 @@ public class DistributedMetrics extends MetricCollection {
 		out.info("   servicesPlaced: " + servicesPlaced);
 		out.info("   servicePlacementsFailed: " + servicePlacementsFailed);
 		
+	}
+
+	@Override
+	public List<Tuple<String, Object>> getMetricValues() {
+		List<Tuple<String, Object>> metrics = new ArrayList<Tuple<String, Object>>();
+		
+		metrics.add(new Tuple<String, Object>("stressEvictionFailed", stressEventionFailed));
+		metrics.add(new Tuple<String, Object>("shutdownFailed", shutdownFailed));
+		metrics.add(new Tuple<String, Object>("stressEvict", stressEvict));
+		metrics.add(new Tuple<String, Object>("shutdownEviction", shutdownEviction));
+		metrics.add(new Tuple<String, Object>("shutdownTriggered", shutdownTriggered));
+		metrics.add(new Tuple<String, Object>("hostPowerOn", hostPowerOn));
+		
+		metrics.add(new Tuple<String, Object>("receivedResourceRequest", receivedResourceRequest));
+		metrics.add(new Tuple<String, Object>("receivedPowerStateMessage", receivedPowerStateMessage));
+		metrics.add(new Tuple<String, Object>("msgResource", msgResource));
+		metrics.add(new Tuple<String, Object>("msgBasic", msgBasic));
+		metrics.add(new Tuple<String, Object>("msgSingle", msgSingle));
+		
+		metrics.add(new Tuple<String, Object>("servicesReceived", servicesReceived));
+		metrics.add(new Tuple<String, Object>("servicesPlaced", servicesPlaced));
+		metrics.add(new Tuple<String, Object>("servicePlacementsFailed", servicePlacementsFailed));
+
+		return metrics;
 	}
 
 }

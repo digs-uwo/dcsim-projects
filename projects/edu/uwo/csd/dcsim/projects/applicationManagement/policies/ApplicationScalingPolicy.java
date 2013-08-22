@@ -2,7 +2,6 @@ package edu.uwo.csd.dcsim.projects.applicationManagement.policies;
 
 import edu.uwo.csd.dcsim.application.*;
 import edu.uwo.csd.dcsim.application.sla.InteractiveServiceLevelAgreement;
-import edu.uwo.csd.dcsim.common.SimTime;
 import edu.uwo.csd.dcsim.management.AutonomicManager;
 import edu.uwo.csd.dcsim.management.Policy;
 import edu.uwo.csd.dcsim.projects.applicationManagement.ApplicationManagementMetrics;
@@ -35,7 +34,6 @@ public class ApplicationScalingPolicy extends Policy {
 			InteractiveServiceLevelAgreement sla = (InteractiveServiceLevelAgreement)app.getSla();
 			if (interactiveApp.getResponseTime() >= (sla.getResponseTime() * SLA_WARNING_THRESHOLD)) {
 				slaWarning = true;
-//				System.out.println(SimTime.toHumanReadable(simulation.getSimulationTime()) + " - " + interactiveApp.getResponseTime());
 			} else if (	interactiveApp.getResponseTime() < (sla.getResponseTime() * SLA_SAFE_THRESHOLD)) {
 				slaSafe = true;
 			}

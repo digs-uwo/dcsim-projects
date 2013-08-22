@@ -1,6 +1,6 @@
 package edu.uwo.csd.dcsim.projects.applicationManagement;
 
-import java.util.Collection;
+import java.util.List;
 
 import org.apache.log4j.Logger;
 
@@ -20,26 +20,32 @@ import edu.uwo.csd.dcsim.projects.applicationManagement.capabilities.Application
 import edu.uwo.csd.dcsim.projects.applicationManagement.events.ApplicationPlacementEvent;
 import edu.uwo.csd.dcsim.projects.applicationManagement.policies.*;
 
-public class AppManagementExperiment extends SimulationTask {
+public class BasicAutoscalingExperiment extends SimulationTask {
 
-	private static Logger logger = Logger.getLogger(AppManagementExperiment.class);
+	private static Logger logger = Logger.getLogger(BasicAutoscalingExperiment.class);
 	
-//	private static final long DURATION = SimTime.days(1);
-	private static final long DURATION = SimTime.minutes(5);
+	private static final long DURATION = SimTime.days(1);
+//	private static final long DURATION = SimTime.minutes(5);
 	private static final long METRIC_RECORD_START = SimTime.days(0);
 	
 	public static void main(String args[]) {
 		Simulation.initializeLogging();
 		
 		//broadcast
-		Collection<SimulationTask> completedTasks;
+		List<SimulationTask> completedTasks;
 		SimulationExecutor executor = new SimulationExecutor();
 		
-		executor.addTask(new AppManagementExperiment("appManagement-1", 6198910678692541341l));
-//		executor.addTask(new AppManagementExperiment("appManagement-2", 5646441053220106016l));
-//		executor.addTask(new AppManagementExperiment("appManagement-3", -5705302823151233610l));
-//		executor.addTask(new AppManagementExperiment("appManagement-4", 8289672009575825404l));
-//		executor.addTask(new AppManagementExperiment("appManagement-5", -4637549055860880177l));
+		executor.addTask(new BasicAutoscalingExperiment("autoscaling-1", 6198910678692541341l));
+//		executor.addTask(new BasicAutoscalingExperiment("autoscaling-2", 5646441053220106016l));
+//		executor.addTask(new BasicAutoscalingExperiment("autoscaling-3", -5705302823151233610l));
+//		executor.addTask(new BasicAutoscalingExperiment("autoscaling-4", 8289672009575825404l));
+//		executor.addTask(new BasicAutoscalingExperiment("autoscaling-5", -4637549055860880177l));
+//		executor.addTask(new BasicAutoscalingExperiment("autoscaling-6", -4280782692131378509l));
+//		executor.addTask(new BasicAutoscalingExperiment("autoscaling-7", -1699811527182374894l));
+//		executor.addTask(new BasicAutoscalingExperiment("autoscaling-8", -6452776964812569334l));
+//		executor.addTask(new BasicAutoscalingExperiment("autoscaling-9", -7148920787255940546l));
+//		executor.addTask(new BasicAutoscalingExperiment("autoscaling-10", 8311271444423629559l));		
+		
 		
 		completedTasks = executor.execute();
 		
@@ -48,14 +54,23 @@ public class AppManagementExperiment extends SimulationTask {
 			task.getMetrics().printDefault(logger);
 		}
 		
+		//output CSV
+//		for(SimulationTask task : completedTasks) {
+//			if (completedTasks.indexOf(task) == 0) {
+//				task.getMetrics().printCSV(System.out);
+//			} else {
+//				task.getMetrics().printCSV(System.out, false);
+//			}
+//		}
+
 	}
 	
-	public AppManagementExperiment(String name) {
+	public BasicAutoscalingExperiment(String name) {
 		super(name, DURATION);
 		this.setMetricRecordStart(METRIC_RECORD_START);
 	}
 	
-	public AppManagementExperiment(String name, long randomSeed) {
+	public BasicAutoscalingExperiment(String name, long randomSeed) {
 		super(name, DURATION);
 		this.setMetricRecordStart(METRIC_RECORD_START);
 		this.setRandomSeed(randomSeed);

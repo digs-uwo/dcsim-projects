@@ -1,7 +1,11 @@
 package edu.uwo.csd.dcsim.projects.applicationManagement;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.log4j.Logger;
 
+import edu.uwo.csd.dcsim.common.Tuple;
 import edu.uwo.csd.dcsim.core.Simulation;
 import edu.uwo.csd.dcsim.core.metrics.MetricCollection;
 
@@ -24,9 +28,19 @@ public class ApplicationManagementMetrics extends MetricCollection {
 	@Override
 	public void printDefault(Logger out) {
 		out.info("-- APPLICATION MANAGEMENT --");
-		out.info("Instances");
+		out.info("Autoscaling");
 		out.info("   added: " + instancesAdded);
 		out.info("   removed: " + instancesRemoved);
+	}
+
+	@Override
+	public List<Tuple<String, Object>> getMetricValues() {
+		List<Tuple<String, Object>> metrics = new ArrayList<Tuple<String, Object>>();
+	
+		metrics.add(new Tuple<String, Object>("instancesAdded", instancesAdded));
+		metrics.add(new Tuple<String, Object>("instancesRemoved", instancesRemoved));
+		
+		return metrics;
 	}
 
 }

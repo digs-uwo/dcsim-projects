@@ -7,6 +7,7 @@ import org.apache.log4j.Logger;
 
 import edu.uwo.csd.dcsim.application.Application;
 import edu.uwo.csd.dcsim.application.InteractiveApplication;
+import edu.uwo.csd.dcsim.common.Tuple;
 import edu.uwo.csd.dcsim.common.Utility;
 import edu.uwo.csd.dcsim.core.Simulation;
 
@@ -257,6 +258,42 @@ public class ApplicationMetrics extends MetricCollection {
 		} else {
 			out.info("Schweitzer's MVA Approximation");
 		}
+	}
+
+	@Override
+	public List<Tuple<String, Object>> getMetricValues() {
+
+		List<Tuple<String, Object>> metrics = new ArrayList<Tuple<String, Object>>();
+		
+		metrics.add(new Tuple<String, Object>("cpuUnderprovision", Utility.roundDouble(Utility.toPercentage(getAggregateCpuUnderProvision().getSum() / getAggregateCpuDemand().getSum()), Simulation.getMetricPrecision())));
+
+		metrics.add(new Tuple<String, Object>("slaAggregateTotal",(long)getAggregateSlaPenalty().getSum()));
+		metrics.add(new Tuple<String, Object>("slaAggregateMax", Utility.roundDouble(getAggregateSlaPenalty().getMax(), Simulation.getMetricPrecision())));
+		metrics.add(new Tuple<String, Object>("slaAggregateMean", Utility.roundDouble(getAggregateSlaPenalty().getMean(), Simulation.getMetricPrecision())));
+		metrics.add(new Tuple<String, Object>("slaAggregateMin", Utility.roundDouble(getAggregateSlaPenalty().getMin(), Simulation.getMetricPrecision())));
+		
+		metrics.add(new Tuple<String, Object>("slaApplicationMean", Utility.roundDouble(getSlaPenaltyStats().getMean(), Simulation.getMetricPrecision())));
+		metrics.add(new Tuple<String, Object>("slaApplicationStdev", Utility.roundDouble(getSlaPenaltyStats().getStandardDeviation(), Simulation.getMetricPrecision())));
+		metrics.add(new Tuple<String, Object>("slaApplicationMax", Utility.roundDouble(getSlaPenaltyStats().getMax(), Simulation.getMetricPrecision())));
+		metrics.add(new Tuple<String, Object>("slaApplication95", Utility.roundDouble(getSlaPenaltyStats().getPercentile(95), Simulation.getMetricPrecision())));
+		metrics.add(new Tuple<String, Object>("slaApplication75", Utility.roundDouble(getSlaPenaltyStats().getPercentile(75), Simulation.getMetricPrecision())));
+		metrics.add(new Tuple<String, Object>("slaApplication50", Utility.roundDouble(getSlaPenaltyStats().getPercentile(50), Simulation.getMetricPrecision())));
+		metrics.add(new Tuple<String, Object>("slaApplication25", Utility.roundDouble(getSlaPenaltyStats().getPercentile(25), Simulation.getMetricPrecision())));
+		metrics.add(new Tuple<String, Object>("slaApplicationMin", Utility.roundDouble(getSlaPenaltyStats().getMin(), Simulation.getMetricPrecision())));
+		
+		metrics.add(new Tuple<String, Object>("responseTimeMax", Utility.roundDouble(getAggregateResponseTime().getMax(), Simulation.getMetricPrecision())));
+		metrics.add(new Tuple<String, Object>("responseTimeMean", Utility.roundDouble(getAggregateResponseTime().getMean(), Simulation.getMetricPrecision())));
+		metrics.add(new Tuple<String, Object>("responseTimeMin", Utility.roundDouble(getAggregateResponseTime().getMin(), Simulation.getMetricPrecision())));
+		
+		metrics.add(new Tuple<String, Object>("throughputMax", Utility.roundDouble(getAggregateThroughput().getMax(), Simulation.getMetricPrecision())));
+		metrics.add(new Tuple<String, Object>("throughputMean", Utility.roundDouble(getAggregateThroughput().getMean(), Simulation.getMetricPrecision())));
+		metrics.add(new Tuple<String, Object>("throughputMin", Utility.roundDouble(getAggregateThroughput().getMin(), Simulation.getMetricPrecision())));
+		
+		metrics.add(new Tuple<String, Object>("applicationsSpawned", getApplicationsSpawned()));
+		metrics.add(new Tuple<String, Object>("applicationsShutdown", getApplicationsShutdown()));
+		metrics.add(new Tuple<String, Object>("applicationPlacementsFailed", getApplicationPlacementsFailed()));
+		
+		return metrics;
 	}
 		
 }

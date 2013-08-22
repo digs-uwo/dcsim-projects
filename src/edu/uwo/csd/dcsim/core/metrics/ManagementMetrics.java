@@ -5,6 +5,7 @@ import java.util.Map.Entry;
 
 import org.apache.log4j.Logger;
 
+import edu.uwo.csd.dcsim.common.Tuple;
 import edu.uwo.csd.dcsim.core.Simulation;
 import edu.uwo.csd.dcsim.management.events.MessageEvent;
 
@@ -109,6 +110,23 @@ public class ManagementMetrics extends MetricCollection {
 		for (Entry<Class<?>, Long> entry : getMigrationCount().entrySet()) {
 			out.info("    " + entry.getKey().getName() + ": " + entry.getValue());
 		}
+	}
+
+	@Override
+	public List<Tuple<String, Object>> getMetricValues() {
+		List<Tuple<String, Object>> metrics = new ArrayList<Tuple<String, Object>>();
+		
+		for (Entry<Class<? extends MessageEvent>, Long> entry : getMessageCount().entrySet()) {
+			metrics.add(new Tuple<String, Object>("messages-" + entry.getKey().getName(),  entry.getValue()));
+		}
+		for (Entry<Class<? extends MessageEvent>, Double> entry : getMessageBw().entrySet()) {
+			metrics.add(new Tuple<String, Object>("messageBW-" + entry.getKey().getName(),  entry.getValue()));
+		}
+		for (Entry<Class<?>, Long> entry : getMigrationCount().entrySet()) {
+			metrics.add(new Tuple<String, Object>("migrations-" + entry.getKey().getName(),  entry.getValue()));
+		}
+		
+		return metrics;
 	}
 	
 }

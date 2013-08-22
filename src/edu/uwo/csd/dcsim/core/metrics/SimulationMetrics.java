@@ -1,10 +1,12 @@
 package edu.uwo.csd.dcsim.core.metrics;
 
+import java.io.PrintStream;
 import java.util.*;
 
 import org.apache.log4j.Logger;
 
 import edu.uwo.csd.dcsim.common.SimTime;
+import edu.uwo.csd.dcsim.common.Tuple;
 import edu.uwo.csd.dcsim.core.Simulation;
 
 public class SimulationMetrics {
@@ -94,5 +96,47 @@ public class SimulationMetrics {
 		out.info("   metric recording duration: " + SimTime.toHumanReadable(simulation.getDuration() - simulation.getMetricRecordStart()));
 		out.info("   application scheduling timed out: " + applicationSchedulingTimedOut);
 		
+	}
+	
+	public List<Tuple<String, Object>> getMetricValues() {
+		List<Tuple<String, Object>> metrics = new ArrayList<Tuple<String, Object>>();
+		
+		metrics.add(new Tuple<String, Object>("executionTime", getExecutionTime()));
+		metrics.add(new Tuple<String, Object>("simulatedTime", simulation.getDuration()));
+		metrics.add(new Tuple<String, Object>("metricRecordStart", simulation.getMetricRecordStart()));
+		metrics.add(new Tuple<String, Object>("metricRecordDuration", simulation.getDuration() - simulation.getMetricRecordStart()));
+		metrics.add(new Tuple<String, Object>("appSchedulingTimeout", applicationSchedulingTimedOut));
+
+		metrics.addAll(hostMetrics.getMetricValues());
+		metrics.addAll(applicationMetrics.getMetricValues());
+		metrics.addAll(managementMetrics.getMetricValues());
+		
+		for (MetricCollection custom : customMetrics.values()) {
+			metrics.addAll(custom.getMetricValues());
+		}
+		
+		return metrics;
+	}
+	
+	public void printCSV(PrintStream out) {
+		printCSV(out, true);
+	}
+	
+	public void printCSV(PrintStream out, boolean headings) {
+		List<Tuple<String, Object>> metrics = getMetricValues();
+
+		if (headings) {
+			out.print("name");
+			for (Tuple<String, Object> metric : metrics) {
+				out.print("," + metric.a);
+			}
+			out.println("");
+		}
+
+		out.print(simulation.getName());
+		for (Tuple<String, Object> metric : metrics) {
+			out.print("," + metric.b);
+		}
+		out.println("");
 	}
 }
