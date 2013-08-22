@@ -7,6 +7,7 @@ import org.apache.log4j.Logger;
 
 import edu.uwo.csd.dcsim.application.Application;
 import edu.uwo.csd.dcsim.application.InteractiveApplication;
+import edu.uwo.csd.dcsim.application.VmmApplication;
 import edu.uwo.csd.dcsim.common.Tuple;
 import edu.uwo.csd.dcsim.common.Utility;
 import edu.uwo.csd.dcsim.core.Simulation;
@@ -17,6 +18,8 @@ public class ApplicationMetrics extends MetricCollection {
 	Map<Application, WeightedMetric> cpuDemand = new HashMap<Application, WeightedMetric>();
 	
 	Map<Application, WeightedMetric> slaPenalty = new HashMap<Application, WeightedMetric>();
+	Map<Application, Long> slaAchieved = new HashMap<Application, Long>();
+	Map<Application, Long> totalTime = new HashMap<Application, Long>();
 	Map<Application, WeightedMetric> responseTime = new HashMap<Application, WeightedMetric>();
 	Map<Application, WeightedMetric> throughput = new HashMap<Application, WeightedMetric>();
 	
@@ -27,6 +30,7 @@ public class ApplicationMetrics extends MetricCollection {
 	WeightedMetric aggregateThroughput = new WeightedMetric();
 	
 	DescriptiveStatistics slaPenaltyStats;
+	DescriptiveStatistics slaAchievementStats;
 	DescriptiveStatistics responseTimeStats;
 	DescriptiveStatistics throughputStats;
 	
@@ -50,10 +54,15 @@ public class ApplicationMetrics extends MetricCollection {
 		double val;
 		for (Application application : applications) {
 			
+			//we don't want to record stats for Vmm applications
+			if (application instanceof VmmApplication) continue;
+			
 			if (!cpuUnderProvision.containsKey(application)) {
 				cpuUnderProvision.put(application, new WeightedMetric());
 				cpuDemand.put(application, new WeightedMetric());
 				slaPenalty.put(application, new WeightedMetric());
+				slaAchieved.put(application, 0l);
+				totalTime.put(application, 0l);
 			}
 			
 			if (application.getTotalCpuDemand() > application.getTotalCpuScheduled()) {
@@ -70,24 +79,21 @@ public class ApplicationMetrics extends MetricCollection {
 				slaPenalty.get(application).add(val, simulation.getElapsedSeconds());
 				currentSlaPenalty += val;
 				
+				if (application.getSla().evaluate()) {
+					slaAchieved.put(application, slaAchieved.get(application) + simulation.getElapsedTime());
+				}
 				
 			}
+			totalTime.put(application, totalTime.get(application) + simulation.getElapsedTime());
 			
 			if (application instanceof InteractiveApplication) {
 				
 				if (!responseTime.containsKey(application)) {
 					responseTime.put(application, new WeightedMetric());
 					throughput.put(application, new WeightedMetric());
-					
-					
 				}
 				
 				InteractiveApplication interactiveApplication = (InteractiveApplication)application;
-				
-//				if (currentSlaPenalty > 0) 
-//					System.out.println(SimTime.toHumanReadable(simulation.getSimulationTime()) + " - SLA Penalty " + (currentSlaPenalty * simulation.getElapsedSeconds())
-//							+ " R=" + interactiveApplication.getResponseTime()
-//							+ " W=" + interactiveApplication.getWorkload().getWorkOutputLevel());
 				
 				val = (double)interactiveApplication.getResponseTime();
 				responseTime.get(interactiveApplication).add(val, simulation.getElapsedTime());
@@ -111,11 +117,16 @@ public class ApplicationMetrics extends MetricCollection {
 	@Override
 	public void completeSimulation() {
 		slaPenaltyStats = new DescriptiveStatistics();
+		slaAchievementStats = new DescriptiveStatistics();
 		responseTimeStats = new DescriptiveStatistics();
 		throughputStats = new DescriptiveStatistics();
 		
 		for (Application application : slaPenalty.keySet()) {
 			slaPenaltyStats.addValue(slaPenalty.get(application).getSum());
+		}
+		
+		for (Application application : slaAchieved.keySet()) {
+			slaAchievementStats.addValue(slaAchieved.get(application) / (double)totalTime.get(application));
 		}
 		
 		for (Application application : responseTime.keySet()) {
@@ -139,7 +150,7 @@ public class ApplicationMetrics extends MetricCollection {
 	public Map<Application, WeightedMetric> getSlaPenalty() {
 		return slaPenalty;
 	}
-	
+
 	public Map<Application, WeightedMetric> getResponseTime() {
 		return responseTime;
 	}
@@ -172,6 +183,28 @@ public class ApplicationMetrics extends MetricCollection {
 		return slaPenaltyStats;
 	}
 	
+	public DescriptiveStatistics getSlaAchievementStats() {
+		return slaAchievementStats;
+	}
+	
+	public long getSlaAchievementCountGTEValue(double slaValue) {
+		long count = 0;
+		
+		for (double v : slaAchievementStats.getValues())
+			if (v >= slaValue) ++count;
+		
+		return count;
+	}
+	
+	public long getSlaAchievementCountLTValue(double slaValue) {
+		long count = 0;
+		
+		for (double v : slaAchievementStats.getValues())
+			if (v < slaValue) ++count;
+		
+		return count;
+	}
+	
 	public DescriptiveStatistics getResponseTimeStats() {
 		return responseTimeStats;
 	}
@@ -182,6 +215,10 @@ public class ApplicationMetrics extends MetricCollection {
 	
 	public long getApplicationsSpawned() {
 		return applicationsSpawned;
+	}
+	
+	public long getTotalApplicationCount() {
+		return cpuUnderProvision.keySet().size();
 	}
 
 	public void setApplicationsSpawned(long applicationsSpawned) {
@@ -223,9 +260,26 @@ public class ApplicationMetrics extends MetricCollection {
 	@Override
 	public void printDefault(Logger out) {
 		out.info("-- APPLICATIONS --");
+		out.info("   total: " + getTotalApplicationCount());
+		out.info("   spawned: " + getApplicationsSpawned());
+		out.info("   shutdown: " + getApplicationsShutdown());
+		out.info("   failed placement: " + getApplicationPlacementsFailed());
 		out.info("CPU Underprovision");
 		out.info("   percentage: " + Utility.roundDouble(Utility.toPercentage(getAggregateCpuUnderProvision().getSum() / getAggregateCpuDemand().getSum()), Simulation.getMetricPrecision()) + "%");
 		out.info("SLA");
+		out.info("  achievement");
+		out.info("    >= 99%: " + Utility.roundDouble(getSlaAchievementCountGTEValue(0.99), Simulation.getMetricPrecision()));
+		out.info("    >= 95%: " + Utility.roundDouble(getSlaAchievementCountGTEValue(0.95), Simulation.getMetricPrecision()));
+		out.info("    >= 90%: " + Utility.roundDouble(getSlaAchievementCountGTEValue(0.9), Simulation.getMetricPrecision()));
+		out.info("    < 90%: " + Utility.roundDouble(getSlaAchievementCountLTValue(0.9), Simulation.getMetricPrecision()));
+		out.info("    mean: " + Utility.roundDouble(Utility.toPercentage(getSlaAchievementStats().getMean()), Simulation.getMetricPrecision())  + "%");
+		out.info("    stdev: " + Utility.roundDouble(Utility.toPercentage(getSlaAchievementStats().getStandardDeviation()), Simulation.getMetricPrecision())  + "%");
+		out.info("    max: " + Utility.roundDouble(Utility.toPercentage(getSlaAchievementStats().getMax()), Simulation.getMetricPrecision())  + "%");
+		out.info("    95th: " + Utility.roundDouble(Utility.toPercentage(getSlaAchievementStats().getPercentile(95)), Simulation.getMetricPrecision())  + "%");
+		out.info("    75th: " + Utility.roundDouble(Utility.toPercentage(getSlaAchievementStats().getPercentile(75)), Simulation.getMetricPrecision())  + "%");
+		out.info("    50th: " + Utility.roundDouble(Utility.toPercentage(getSlaAchievementStats().getPercentile(50)), Simulation.getMetricPrecision())  + "%");
+		out.info("    25th: " + Utility.roundDouble(Utility.toPercentage(getSlaAchievementStats().getPercentile(25)), Simulation.getMetricPrecision())  + "%");
+		out.info("    min: " + Utility.roundDouble(Utility.toPercentage(getSlaAchievementStats().getMin()), Simulation.getMetricPrecision())  + "%");
 		out.info("  aggregate penalty");
 		out.info("    total: " + (long)getAggregateSlaPenalty().getSum());
 		out.info("    max: " + Utility.roundDouble(getAggregateSlaPenalty().getMax(), Simulation.getMetricPrecision()));
@@ -248,10 +302,6 @@ public class ApplicationMetrics extends MetricCollection {
 		out.info("    max: " + Utility.roundDouble(getAggregateThroughput().getMax(), Simulation.getMetricPrecision()));
 		out.info("    mean: " + Utility.roundDouble(getAggregateThroughput().getMean(), Simulation.getMetricPrecision()));
 		out.info("    min: " + Utility.roundDouble(getAggregateThroughput().getMin(), Simulation.getMetricPrecision()));
-		out.info("Spawning");
-		out.info("   spawned: " + getApplicationsSpawned());
-		out.info("   shutdown: " + getApplicationsShutdown());
-		out.info("   failed placement: " + getApplicationPlacementsFailed());
 		out.info("Interactive Application Model Algorithm: ");
 		if (!isMVAApproximate()) {
 			out.info("MVA");
@@ -267,6 +317,19 @@ public class ApplicationMetrics extends MetricCollection {
 		
 		metrics.add(new Tuple<String, Object>("cpuUnderprovision", Utility.roundDouble(Utility.toPercentage(getAggregateCpuUnderProvision().getSum() / getAggregateCpuDemand().getSum()), Simulation.getMetricPrecision())));
 
+		metrics.add(new Tuple<String, Object>("slaAchieveGTE99", Utility.roundDouble(getSlaAchievementCountGTEValue(0.99), Simulation.getMetricPrecision())));
+		metrics.add(new Tuple<String, Object>("slaAchieveGTE95", Utility.roundDouble(getSlaAchievementCountGTEValue(0.95), Simulation.getMetricPrecision())));
+		metrics.add(new Tuple<String, Object>("slaAchieveGTE90", Utility.roundDouble(getSlaAchievementCountGTEValue(0.9), Simulation.getMetricPrecision())));
+		metrics.add(new Tuple<String, Object>("slaAchieveLT90", Utility.roundDouble(getSlaAchievementCountLTValue(0.9), Simulation.getMetricPrecision())));
+		metrics.add(new Tuple<String, Object>("slaAchieveMean", Utility.roundDouble(Utility.toPercentage(getSlaAchievementStats().getMean()), Simulation.getMetricPrecision())));
+		metrics.add(new Tuple<String, Object>("slaAchieveStdev", Utility.roundDouble(Utility.toPercentage(getSlaAchievementStats().getStandardDeviation()), Simulation.getMetricPrecision())));
+		metrics.add(new Tuple<String, Object>("slaAchieveMax", Utility.roundDouble(Utility.toPercentage(getSlaAchievementStats().getMax()), Simulation.getMetricPrecision())));
+		metrics.add(new Tuple<String, Object>("slaAchieve95", Utility.roundDouble(Utility.toPercentage(getSlaAchievementStats().getPercentile(95)), Simulation.getMetricPrecision())));
+		metrics.add(new Tuple<String, Object>("slaAchieve75", Utility.roundDouble(Utility.toPercentage(getSlaAchievementStats().getPercentile(75)), Simulation.getMetricPrecision())));
+		metrics.add(new Tuple<String, Object>("slaAchieve50", Utility.roundDouble(Utility.toPercentage(getSlaAchievementStats().getPercentile(50)), Simulation.getMetricPrecision())));
+		metrics.add(new Tuple<String, Object>("slaAchieve25", Utility.roundDouble(Utility.toPercentage(getSlaAchievementStats().getPercentile(25)), Simulation.getMetricPrecision())));
+		metrics.add(new Tuple<String, Object>("slaAchieveMin", Utility.roundDouble(Utility.toPercentage(getSlaAchievementStats().getMin()), Simulation.getMetricPrecision())));
+		
 		metrics.add(new Tuple<String, Object>("slaAggregateTotal",(long)getAggregateSlaPenalty().getSum()));
 		metrics.add(new Tuple<String, Object>("slaAggregateMax", Utility.roundDouble(getAggregateSlaPenalty().getMax(), Simulation.getMetricPrecision())));
 		metrics.add(new Tuple<String, Object>("slaAggregateMean", Utility.roundDouble(getAggregateSlaPenalty().getMean(), Simulation.getMetricPrecision())));
