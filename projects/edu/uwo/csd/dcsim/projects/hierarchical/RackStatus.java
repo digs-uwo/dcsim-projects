@@ -33,24 +33,25 @@ public class RackStatus {
 		id = rack.getId();
 		
 		for (HostData host : capability.getHosts()) {
-			// Check Host status. If invalid, we cannot make any assertions.
-			if (host.isStatusValid()) {
-				// Calculate number of active, suspended and powered-off hosts.
-				Host.HostState state = host.getCurrentStatus().getState();
-				if (state == Host.HostState.ON || state == Host.HostState.POWERING_ON) {
-					activeHosts++;
-					
-					// Calculate spare capacity for each active Host.
-					//double capacity = this.calculateSpareCapacity(host);
+			
+			// Calculate number of active, suspended and powered-off Hosts.
+			Host.HostState state = host.getCurrentStatus().getState();
+			if (state == Host.HostState.ON || state == Host.HostState.POWERING_ON) {
+				activeHosts++;
+				
+				// Calculate spare capacity for each active Host.
+				// Check Host status. If invalid, we cannot make any assertions.
+				if (host.isStatusValid()) {
 					double capacity = AverageVmSizes.calculateSpareCapacity(host);
 					if (capacity > maxSpareCapacity)
 						maxSpareCapacity = capacity;
 				}
-				else if (state == Host.HostState.SUSPENDED || state == Host.HostState.SUSPENDING)
-					suspendedHosts++;
-				else if (state == Host.HostState.OFF || state == Host.HostState.POWERING_OFF)
-					poweredOffHosts++;
+				
 			}
+			else if (state == Host.HostState.SUSPENDED || state == Host.HostState.SUSPENDING)
+				suspendedHosts++;
+			else if (state == Host.HostState.OFF || state == Host.HostState.POWERING_OFF)
+				poweredOffHosts++;
 			
 			// Calculate Rack's total power consumption.
 			// Note: Even Hosts with an invalid status are accounted for here, given that

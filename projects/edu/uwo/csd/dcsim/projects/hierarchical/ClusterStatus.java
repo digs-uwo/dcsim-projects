@@ -29,14 +29,16 @@ public class ClusterStatus {
 		
 		minInactiveHosts = Integer.MAX_VALUE;
 		for (RackData rack : capability.getRacks()) {
-			// Check Rack status. If invalid, we cannot make any assertions.
-			if (rack.isStatusValid()) {
-				// Calculate number of active Racks.
-				// TODO If in the future we add *state* to Rack, we could simply check said attribute in each Rack.
-				// In the meantime, we consider a Rack to be active if it has any active Hosts; otherwise, it's consider inactive.
-				RackStatus status = rack.getCurrentStatus();
-				if (status.getActiveHosts() > 0) {
-					activeRacks++;
+			
+			// Calculate number of active Racks.
+			// TODO If in the future we add *state* to Rack, we could simply check said attribute in each Rack.
+			// In the meantime, we consider a Rack to be active if it has any active Hosts; otherwise, it's consider inactive.
+			RackStatus status = rack.getCurrentStatus();
+			if (status.getActiveHosts() > 0) {
+				activeRacks++;
+				
+				// Check Rack status. If invalid, we cannot make any assertions.
+				if (rack.isStatusValid()) {
 					
 					// Find minimum number of inactive Hosts among active Racks.
 					int inactiveHosts = status.getSuspendedHosts() + status.getPoweredOffHosts();
@@ -46,6 +48,7 @@ public class ClusterStatus {
 					// Find max spare capacity value among active Racks.
 					if (status.getMaxSpareCapacity() > maxSpareCapacity)
 						maxSpareCapacity = status.getMaxSpareCapacity();
+					
 				}
 			}
 			

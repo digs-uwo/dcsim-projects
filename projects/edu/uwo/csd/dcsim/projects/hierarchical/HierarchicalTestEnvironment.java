@@ -28,8 +28,8 @@ import edu.uwo.csd.dcsim.management.AutonomicManager;
 public class HierarchicalTestEnvironment {
 
 	public static final int N_CLUSTERS = 5;
-	public static final int N_RACKS = 10;
-	public static final int N_HOSTS = 40;
+	public static final int N_RACKS = 4;
+	public static final int N_HOSTS = 10;
 	
 	public static final int CPU_OVERHEAD = 200;
 	public static final int[] VM_SIZES = {1500, 2500, 2500};
@@ -116,11 +116,16 @@ public class HierarchicalTestEnvironment {
 	public static void configureStaticServices(Simulation simulation, AutonomicManager dcAM) {
 		// Create a service rate _trace_ for the ServiceProducer.
 		ArrayList<Tuple<Long, Double>> serviceRates = new ArrayList<Tuple<Long, Double>>();
-		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), 10d));		// Create ~400 VMs.
-//		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), 30d));		// Create ~1200 VMs.
+//		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), 10d));		// Create ~400 VMs.
+		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), 30d));		// Create ~1200 VMs.
 //		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), 40d));		// Create ~1600 VMs.
 		serviceRates.add(new Tuple<Long, Double>(SimTime.hours(40), 0d));
 		serviceRates.add(new Tuple<Long, Double>(SimTime.days(10), 0d));
+		
+//		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), 6d));		// Create ~240 VMs.
+//		serviceRates.add(new Tuple<Long, Double>(SimTime.hours(40), 0d));
+//		serviceRates.add(new Tuple<Long, Double>(SimTime.days(10), 0d));
+		
 		
 		ServiceProducer serviceProducer = new NOMSServiceProducer(simulation, dcAM, null, serviceRates);
 		serviceProducer.start();

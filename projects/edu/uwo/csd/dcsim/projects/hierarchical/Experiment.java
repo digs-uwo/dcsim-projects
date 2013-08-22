@@ -50,7 +50,8 @@ public class Experiment extends SimulationTask {
 	 * @param randomSeed	seed for random number generation
 	 */
 	public Experiment(String name, long randomSeed) {
-		super(name, SimTime.days(10));					// 10-day simulation
+		//super(name, SimTime.days(10));					// 10-day simulation
+		super(name, SimTime.days(4));
 		this.setMetricRecordStart(SimTime.days(2));		// start on 3rd day (i.e., after 2 days)
 		this.setRandomSeed(randomSeed);
 	}
@@ -74,8 +75,8 @@ public class Experiment extends SimulationTask {
 		AutonomicManager dcManager = this.createMgmtInfrastructure(simulation, dc);
 		
 		// Create and start the Services Producer.
-		//HierarchicalTestEnvironment.configureStaticServices(simulation, dcManager);
-		HierarchicalTestEnvironment.configureRandomServices(simulation, dcManager, 1, 6000, 16000);		// 10x #hosts & load
+		HierarchicalTestEnvironment.configureStaticServices(simulation, dcManager);
+		//HierarchicalTestEnvironment.configureRandomServices(simulation, dcManager, 1, 6000, 16000);		// 10x #hosts & load
 		//HierarchicalTestEnvironment.configureRandomServices(simulation, dcManager, 1, 600, 1600);
 	}
 	
@@ -137,7 +138,7 @@ public class Experiment extends SimulationTask {
 					AutonomicManager hostManager = new AutonomicManager(simulation, new HostManager(host));
 					
 					// Install management policies in the autonomic manager.
-					hostManager.installPolicy(new HostMonitoringPolicy(rackManager), SimTime.minutes(5), SimTime.minutes(simulation.getRandom().nextInt(5)));
+					hostManager.installPolicy(new HostMonitoringPolicy(rackManager), SimTime.minutes(2), SimTime.minutes(simulation.getRandom().nextInt(5)));
 					hostManager.installPolicy(new HostOperationsPolicy());
 					
 					// Install autonomic manager in the Host.
@@ -161,10 +162,10 @@ public class Experiment extends SimulationTask {
 		SimulationExecutor executor = new SimulationExecutor();
 		
 		executor.addTask(new Experiment("hierarchical-1", 6198910678692541341l));
-//		executor.addTask(new HybridStrategyExperiment("hierarchical-2", 5646441053220106016l));
-//		executor.addTask(new HybridStrategyExperiment("hierarchical-3", -5705302823151233610l));
-//		executor.addTask(new HybridStrategyExperiment("hierarchical-4", 8289672009575825404l));
-//		executor.addTask(new HybridStrategyExperiment("hierarchical-5", -4637549055860880177l));
+//		executor.addTask(new Experiment("hierarchical-2", 5646441053220106016l));
+//		executor.addTask(new Experiment("hierarchical-3", -5705302823151233610l));
+//		executor.addTask(new Experiment("hierarchical-4", 8289672009575825404l));
+//		executor.addTask(new Experiment("hierarchical-5", -4637549055860880177l));
 		
 		completedTasks = executor.execute();
 		
