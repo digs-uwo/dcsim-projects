@@ -9,7 +9,7 @@ import org.apache.commons.math3.distribution.UniformIntegerDistribution;
 
 import edu.uwo.csd.dcsim.DataCentre;
 import edu.uwo.csd.dcsim.application.Application;
-import edu.uwo.csd.dcsim.application.ApplicationGenerator;
+import edu.uwo.csd.dcsim.application.ApplicationGeneratorLegacy;
 import edu.uwo.csd.dcsim.application.Applications;
 import edu.uwo.csd.dcsim.application.InteractiveApplication;
 import edu.uwo.csd.dcsim.application.workload.TraceWorkload;
@@ -148,7 +148,7 @@ public class DistributedTestEnvironment {
 		serviceRates.add(new Tuple<Long, Double>(144000000l, 0d));	// 40 hours
 		serviceRates.add(new Tuple<Long, Double>(864000000l, 0d));	// 10 days
 		
-		ApplicationGenerator serviceProducer = new IMServiceProducer(simulation, dcAM, null, serviceRates);
+		ApplicationGeneratorLegacy serviceProducer = new IMServiceProducer(simulation, dcAM, null, serviceRates);
 		serviceProducer.start();
 	}
 	
@@ -182,7 +182,7 @@ public class DistributedTestEnvironment {
 		serviceRates.add(new Tuple<Long, Double>(SimTime.hours(40), 0d));		// over 40 hours
 		serviceRates.add(new Tuple<Long, Double>(SimTime.days(10), 0d));		// 10 days
 		
-		ApplicationGenerator serviceProducer = new IMServiceProducer(simulation, dcAM, null, serviceRates);
+		ApplicationGeneratorLegacy serviceProducer = new IMServiceProducer(simulation, dcAM, null, serviceRates);
 		serviceProducer.start();
 
 		/*
@@ -248,7 +248,7 @@ Now, let's look at how contention is handled. CPU is given fairly to each VM on 
 		serviceRates.add(new Tuple<Long, Double>(SimTime.hours(40), 0d));		
 		serviceRates.add(new Tuple<Long, Double>(SimTime.days(10), 0d));		// 10 days
 		
-		ApplicationGenerator serviceProducer = new IMServiceProducer(simulation, dcAM, null, serviceRates);
+		ApplicationGeneratorLegacy serviceProducer = new IMServiceProducer(simulation, dcAM, null, serviceRates);
 		serviceProducer.start();
 		
 		//Create a uniform random distribution to generate the number of services within the data centre.
@@ -297,7 +297,7 @@ Now, let's look at how contention is handled. CPU is given fairly to each VM on 
 	 * @author Michael Tighe
 	 *
 	 */
-	public static class IMServiceProducer extends ApplicationGenerator {
+	public static class IMServiceProducer extends ApplicationGeneratorLegacy {
 
 		private int counter = 0;
 		

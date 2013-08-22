@@ -7,6 +7,7 @@ import edu.uwo.csd.dcsim.management.AutonomicManager;
 public class TaskInstancePlacementEvent extends Event {
 
 	private Task task;
+	private boolean failed = false;
 	
 	public TaskInstancePlacementEvent(AutonomicManager target, Task task) {
 		super(target);
@@ -19,6 +20,14 @@ public class TaskInstancePlacementEvent extends Event {
 
 	public void setTask(Task task) {
 		this.task = task;
+	}
+	
+	public void setFailed(boolean failed) {
+		this.failed = failed;
+	}
+	
+	public boolean isFailed() {
+		return failed;
 	}
 
 }

@@ -18,6 +18,8 @@ public class HostMetrics extends MetricCollection {
 	WeightedMetric hostUtilization = new WeightedMetric();
 	WeightedMetric totalUtilization = new WeightedMetric();
 	
+	long nHosts;
+	
 	public HostMetrics(Simulation simulation) {
 		super(simulation);
 	}
@@ -28,6 +30,8 @@ public class HostMetrics extends MetricCollection {
 		double currentTotalInUse = 0;
 		double currentTotalCapacity = 0;
 		double currentTotalUtilization;
+		
+		nHosts = hosts.size();
 		
 		for (Host host : hosts) {
 			currentPowerConsumption += host.getCurrentPowerConsumption();
@@ -79,6 +83,7 @@ public class HostMetrics extends MetricCollection {
 	@Override
 	public void printDefault(Logger out) {
 		out.info("-- HOSTS --");
+		out.info("   nHosts: " + nHosts);
 		out.info("Active Hosts");
 		out.info("   max: " + Utility.roundDouble(getActiveHosts().getMax(), Simulation.getMetricPrecision()));
 		out.info("   mean: " + Utility.roundDouble(getActiveHosts().getMean(), Simulation.getMetricPrecision()));
@@ -98,6 +103,8 @@ public class HostMetrics extends MetricCollection {
 	@Override
 	public List<Tuple<String, Object>> getMetricValues() {
 		List<Tuple<String, Object>> metrics = new ArrayList<Tuple<String, Object>>();
+		
+		metrics.add(new Tuple<String, Object>("nHosts", nHosts));
 		
 		metrics.add(new Tuple<String, Object>("activeHostsMax", Utility.roundDouble(getActiveHosts().getMax(), Simulation.getMetricPrecision())));
 		metrics.add(new Tuple<String, Object>("activeHostsMean", Utility.roundDouble(getActiveHosts().getMean(), Simulation.getMetricPrecision())));

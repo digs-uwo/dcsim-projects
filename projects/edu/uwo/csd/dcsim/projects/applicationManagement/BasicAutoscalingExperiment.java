@@ -15,9 +15,9 @@ import edu.uwo.csd.dcsim.host.Host;
 import edu.uwo.csd.dcsim.host.Rack;
 import edu.uwo.csd.dcsim.management.AutonomicManager;
 import edu.uwo.csd.dcsim.management.capabilities.*;
+import edu.uwo.csd.dcsim.management.events.ApplicationPlacementEvent;
 import edu.uwo.csd.dcsim.management.policies.*;
 import edu.uwo.csd.dcsim.projects.applicationManagement.capabilities.ApplicationManager;
-import edu.uwo.csd.dcsim.projects.applicationManagement.events.ApplicationPlacementEvent;
 import edu.uwo.csd.dcsim.projects.applicationManagement.policies.*;
 
 public class BasicAutoscalingExperiment extends SimulationTask {
@@ -47,7 +47,8 @@ public class BasicAutoscalingExperiment extends SimulationTask {
 //		executor.addTask(new BasicAutoscalingExperiment("autoscaling-10", 8311271444423629559l));		
 		
 		
-		completedTasks = executor.execute();
+		completedTasks = executor.execute(); //execute all simulations simultaneously
+//		completedTasks = executor.execute(4); //execute 4 simulations (i.e. 4 threads) at a time
 		
 		for(SimulationTask task : completedTasks) {
 			logger.info(task.getName());
@@ -81,7 +82,7 @@ public class BasicAutoscalingExperiment extends SimulationTask {
 		
 		simulation.getSimulationMetrics().addCustomMetricCollection(new ApplicationManagementMetrics(simulation));
 		
-		Environment environment = new Environment(simulation, 5, 1);
+		Environment environment = new Environment(simulation, 10, 2);
 		environment.createDataCentre(simulation);
 		
 		simulation.sendEvent(new ApplicationPlacementEvent(environment.getDcAM(), environment.createApplication()));
@@ -127,7 +128,7 @@ public class BasicAutoscalingExperiment extends SimulationTask {
 			AutonomicManager applicationManager = new AutonomicManager(simulation);
 			applicationManager.addCapability(new ApplicationManager(application));
 			
-			applicationManager.installPolicy(new ApplicationScalingPolicy(dcAM), SimTime.minutes(1), 0);
+			applicationManager.installPolicy(new ApplicationScalingPolicy(dcAM), SimTime.minutes(5), 0);
 		}
 		
 	}

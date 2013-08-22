@@ -11,6 +11,8 @@ import edu.uwo.csd.dcsim.management.Policy;
 import edu.uwo.csd.dcsim.management.VmStatus;
 import edu.uwo.csd.dcsim.management.action.InstantiateVmAction;
 import edu.uwo.csd.dcsim.management.capabilities.HostPoolManager;
+import edu.uwo.csd.dcsim.management.events.ApplicationPlacementEvent;
+import edu.uwo.csd.dcsim.projects.applicationManagement.ApplicationManagementMetrics;
 import edu.uwo.csd.dcsim.projects.applicationManagement.events.*;
 import edu.uwo.csd.dcsim.vm.VmAllocationRequest;
 import edu.uwo.csd.dcsim.vm.VmDescription;
@@ -29,7 +31,10 @@ public class ApplicationPlacementPolicy extends Policy {
 		
 		ArrayList<VmAllocationRequest> allocationRequests = application.createInitialVmRequests();
 		
-		place(allocationRequests, hostPool.getHosts(), event);
+		if (!place(allocationRequests, hostPool.getHosts(), event)) {
+			simulation.getSimulationMetrics().getApplicationMetrics().incrementApplicationPlacementsFailed();
+			event.setFailed(true);
+		}
 		
 	}
 	
@@ -40,7 +45,9 @@ public class ApplicationPlacementPolicy extends Policy {
 		
 		VmAllocationRequest request = new VmAllocationRequest(new VmDescription(task));
 		
-		place(request, hostPool.getHosts(), event);
+		if (!place(request, hostPool.getHosts(), event)) {
+			simulation.getSimulationMetrics().getCustomMetricCollection(ApplicationManagementMetrics.class).instancePlacementsFailed++;
+		}
 		
 	}
 	
@@ -51,6 +58,8 @@ public class ApplicationPlacementPolicy extends Policy {
 	}
 	
 	private boolean place(Collection<VmAllocationRequest> requests, Collection<HostData> hosts, Event placementEvent) {
+		
+		ArrayList<InstantiateVmAction> actions = new ArrayList<InstantiateVmAction>();
 		
 		//filter out invalid host status
 		Collection<HostData> targets = new ArrayList<HostData>(); 
@@ -100,11 +109,15 @@ public class ApplicationPlacementPolicy extends Policy {
 			}
 			
 			if (allocatedHost != null) {
-				InstantiateVmAction instantiateVmAction = new InstantiateVmAction(allocatedHost, request, placementEvent);
-				instantiateVmAction.execute(simulation, this);
+				//delay actions until placements have been found for all VMs
+				actions.add(new InstantiateVmAction(allocatedHost, request, placementEvent));
 			} else {
 				return false;
 			}
+		}
+		
+		for (InstantiateVmAction action : actions) {
+			action.execute(simulation, this);
 		}
 		
 		return true;

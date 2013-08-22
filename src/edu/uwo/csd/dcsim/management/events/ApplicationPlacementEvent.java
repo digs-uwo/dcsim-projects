@@ -1,4 +1,4 @@
-package edu.uwo.csd.dcsim.projects.applicationManagement.events;
+package edu.uwo.csd.dcsim.management.events;
 
 import edu.uwo.csd.dcsim.application.Application;
 import edu.uwo.csd.dcsim.core.Event;
@@ -7,6 +7,7 @@ import edu.uwo.csd.dcsim.management.AutonomicManager;
 public class ApplicationPlacementEvent extends Event {
 
 	private Application application;
+	private boolean failed = false;
 	
 	public ApplicationPlacementEvent(AutonomicManager target, Application application) {
 		super(target);
@@ -21,6 +22,14 @@ public class ApplicationPlacementEvent extends Event {
 
 	public void setApplication(Application application) {
 		this.application = application;
+	}
+	
+	public void setFailed(boolean failed) {
+		this.failed = failed;
+	}
+	
+	public boolean isFailed() {
+		return failed;
 	}
 
 }

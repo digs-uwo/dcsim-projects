@@ -12,15 +12,17 @@ import edu.uwo.csd.dcsim.core.Simulation;
 import edu.uwo.csd.dcsim.core.SimulationEventListener;
 import edu.uwo.csd.dcsim.core.events.DaemonRunEvent;
 import edu.uwo.csd.dcsim.management.AutonomicManager;
-import edu.uwo.csd.dcsim.management.events.ApplicationPlacementEvent;
+import edu.uwo.csd.dcsim.management.events.VmPlacementEvent;
+import edu.uwo.csd.dcsim.vm.VmAllocationRequest;
 
 /**
- * The ApplicationGenerator class generates new Applications and submits them to a data centre based on given parameters. 
+ * The ApplicationGeneratorLegacy class generates new Applications and submits them to a data centre based on given parameters, using VmPlacementEvent messages containing a list of
+ * VM requests rather than using ApplicationPlacementEvent messages. This is presently required by 'legacy' placement policies that do not accept ApplicationPlacementEvent. 
  * 
  * @author Michael Tighe
  *
  */
-public abstract class ApplicationGenerator implements SimulationEventListener {
+public abstract class ApplicationGeneratorLegacy implements SimulationEventListener {
 
 	AutonomicManager dcTarget;
 	RealDistribution lifespanDist; //if null, create services that do not stop
@@ -31,21 +33,21 @@ public abstract class ApplicationGenerator implements SimulationEventListener {
 	
 	protected Simulation simulation;
 	
-	public ApplicationGenerator(Simulation simulation, AutonomicManager dcTarget, List<Tuple<Long, Double>> applicationsPerHour) {
+	public ApplicationGeneratorLegacy(Simulation simulation, AutonomicManager dcTarget, List<Tuple<Long, Double>> applicationsPerHour) {
 		this(simulation, dcTarget, null, applicationsPerHour);
 	}
 	
-	public ApplicationGenerator(Simulation simulation, AutonomicManager dcTarget, double applicationsPerHour) {
+	public ApplicationGeneratorLegacy(Simulation simulation, AutonomicManager dcTarget, double applicationsPerHour) {
 		this(simulation, dcTarget, null, applicationsPerHour);
 	}
 	
-	public ApplicationGenerator(Simulation simulation, AutonomicManager dcTarget, RealDistribution lifespanDist, List<Tuple<Long, Double>> applicationsPerHour) {
+	public ApplicationGeneratorLegacy(Simulation simulation, AutonomicManager dcTarget, RealDistribution lifespanDist, List<Tuple<Long, Double>> applicationsPerHour) {
 		this(simulation, dcTarget, lifespanDist, 0);
 		
 		this.applicationsPerHour = applicationsPerHour;
 	}
 	
-	public ApplicationGenerator(Simulation simulation, AutonomicManager dcTarget, RealDistribution lifespanDist, double applicationsPerHour) {
+	public ApplicationGeneratorLegacy(Simulation simulation, AutonomicManager dcTarget, RealDistribution lifespanDist, double applicationsPerHour) {
 		this.dcTarget = dcTarget;
 		this.lifespanDist = lifespanDist;
 		this.simulation = simulation;
@@ -83,12 +85,14 @@ public abstract class ApplicationGenerator implements SimulationEventListener {
 	
 	private void spawnApplication() {
 		Application application = buildApplication();
-			
+		
+		ArrayList<VmAllocationRequest> vmAllocationRequests = application.createInitialVmRequests();
+		
 		simulation.getLogger().debug("Created New Application");
 		
 		simulation.getSimulationMetrics().getApplicationMetrics().incrementApplicationsSpawned();
-
-		ApplicationPlacementEvent placementEvent = new ApplicationPlacementEvent(dcTarget, application);
+		
+		VmPlacementEvent placementEvent = new VmPlacementEvent(dcTarget, vmAllocationRequests);
 		
 		//add a callback handler to record placement success/failure
 		placementEvent.addCallbackListener(new ApplicationSpawnCallbackHandler(application));
@@ -179,15 +183,18 @@ public abstract class ApplicationGenerator implements SimulationEventListener {
 
 			if (triggered) throw new RuntimeException("What?");
 			triggered = true;
-			ApplicationPlacementEvent placementEvent = (ApplicationPlacementEvent)e;
+			VmPlacementEvent placementEvent = (VmPlacementEvent)e;
 			
-			if (!placementEvent.isFailed()) {
+			if (placementEvent.getFailedRequests().isEmpty()) {
 				//send event to trigger application shutdown on lifespan + currentTime
 				if (lifespanDist != null) {
 					long lifeSpan = (long)Math.round(lifespanDist.sample());
 					
-					simulation.sendEvent(new ShutdownApplicationEvent(ApplicationGenerator.this, application), simulation.getSimulationTime() + lifeSpan);
+					simulation.sendEvent(new ShutdownApplicationEvent(ApplicationGeneratorLegacy.this, application), simulation.getSimulationTime() + lifeSpan);
 				}
+			} else {
+				simulation.getLogger().debug("Application Placement Failed");
+				simulation.getSimulationMetrics().getApplicationMetrics().incrementApplicationPlacementsFailed();
 			}
 		}
 		

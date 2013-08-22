@@ -97,7 +97,7 @@ public class DynamicServiceSpawning extends SimulationTask {
 		 * Simulation superclass), the datacentre to submit Services to, a distribution describing the lifespan of services, and either
 		 * a static rate to create services given in services-per-hour, or a list of (time, rate) tuples.
 		 */
-		ApplicationGenerator serviceProducer = new ApplicationGenerator(simulation, dcAM, new NormalDistribution(SimTime.days(3), SimTime.hours(4)), serviceRates) {
+		ApplicationGeneratorLegacy serviceProducer = new ApplicationGeneratorLegacy(simulation, dcAM, new NormalDistribution(SimTime.days(3), SimTime.hours(4)), serviceRates) {
 
 			@Override
 			public Application buildApplication() {

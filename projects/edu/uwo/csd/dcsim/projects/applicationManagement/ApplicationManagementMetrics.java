@@ -13,6 +13,7 @@ public class ApplicationManagementMetrics extends MetricCollection {
 
 	public int instancesAdded = 0;
 	public int instancesRemoved = 0;
+	public int instancePlacementsFailed = 0;
 	
 	public ApplicationManagementMetrics(Simulation simulation) {
 		super(simulation);
@@ -31,6 +32,7 @@ public class ApplicationManagementMetrics extends MetricCollection {
 		out.info("Autoscaling");
 		out.info("   added: " + instancesAdded);
 		out.info("   removed: " + instancesRemoved);
+		out.info("   failed: " + instancePlacementsFailed);
 	}
 
 	@Override
@@ -39,6 +41,7 @@ public class ApplicationManagementMetrics extends MetricCollection {
 	
 		metrics.add(new Tuple<String, Object>("instancesAdded", instancesAdded));
 		metrics.add(new Tuple<String, Object>("instancesRemoved", instancesRemoved));
+		metrics.add(new Tuple<String, Object>("instancePlacementsFailed", instancePlacementsFailed));
 		
 		return metrics;
 	}

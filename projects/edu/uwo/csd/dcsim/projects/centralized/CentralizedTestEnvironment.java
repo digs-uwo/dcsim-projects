@@ -132,7 +132,7 @@ public class CentralizedTestEnvironment {
 		serviceRates.add(new Tuple<Long, Double>(144000000l, 0d));	// 40 hours
 		serviceRates.add(new Tuple<Long, Double>(864000000l, 0d));	// 10 days
 		
-		ApplicationGenerator serviceProducer = new IMServiceProducer(simulation, dcAM, null, serviceRates);
+		ApplicationGeneratorLegacy serviceProducer = new IMServiceProducer(simulation, dcAM, null, serviceRates);
 		serviceProducer.start();
 	}
 	
@@ -166,7 +166,7 @@ public class CentralizedTestEnvironment {
 		serviceRates.add(new Tuple<Long, Double>(SimTime.hours(40), 0d));		// over 40 hours
 		serviceRates.add(new Tuple<Long, Double>(SimTime.days(10), 0d));		// 10 days
 		
-		ApplicationGenerator serviceProducer = new IMServiceProducer(simulation, dcAM, null, serviceRates);
+		ApplicationGeneratorLegacy serviceProducer = new IMServiceProducer(simulation, dcAM, null, serviceRates);
 		serviceProducer.start();
 
 		/*
@@ -218,7 +218,7 @@ public class CentralizedTestEnvironment {
 		serviceRates.add(new Tuple<Long, Double>(SimTime.hours(40), 0d));		
 		serviceRates.add(new Tuple<Long, Double>(SimTime.days(10), 0d));		// 10 days
 		
-		ApplicationGenerator serviceProducer = new IMServiceProducer(simulation, dcAM, null, serviceRates);
+		ApplicationGeneratorLegacy serviceProducer = new IMServiceProducer(simulation, dcAM, null, serviceRates);
 		serviceProducer.start();
 		
 		//Create a uniform random distribution to generate the number of services within the data centre.
@@ -267,7 +267,7 @@ public class CentralizedTestEnvironment {
 	 * @author Michael Tighe
 	 *
 	 */
-	public static class IMServiceProducer extends ApplicationGenerator {
+	public static class IMServiceProducer extends ApplicationGeneratorLegacy {
 
 		private int counter = 0;
 		
