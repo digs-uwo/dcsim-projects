@@ -20,6 +20,7 @@ import edu.uwo.csd.dcsim.management.AutonomicManager;
 
 public abstract class AppManagementTestEnvironment {
 
+	public static final int MAX_APP_SCALE = 5;
 	public static final int N_TRACES = 5; 
 	public static final String[] TRACES = {"traces/clarknet", 
 		"traces/epa",
@@ -38,7 +39,7 @@ public abstract class AppManagementTestEnvironment {
 	AutonomicManager dcAM;
 	Random envRandom;
 	Random appGenerationRandom;
-	
+		
 	public AppManagementTestEnvironment(Simulation simulation, int hostsPerRack, int nRacks) {
 		this.simulation = simulation;
 		this.hostsPerRack = hostsPerRack;
@@ -46,11 +47,11 @@ public abstract class AppManagementTestEnvironment {
 		
 		envRandom = new Random(simulation.getRandom().nextLong());
 		appGenerationRandom = new Random(simulation.getRandom().nextLong());
+
 	}
 	
 	public DataCentre createDataCentre(Simulation simulation) {
 		// Create data centre.
-		
 		
 		//Define Hosts
 		Host.Builder proLiantDL160G5E5420 = HostModels.ProLiantDL160G5E5420(simulation).privCpu(500).privBandwidth(131072)
@@ -98,20 +99,52 @@ public abstract class AppManagementTestEnvironment {
 	public abstract void processHost(Host host, Rack rack, Cluster cluster, DataCentre dc, AutonomicManager dcAM);
 	
 	public Application createApplication() {
+		return createApplication(appGenerationRandom.nextInt(5), appGenerationRandom.nextInt(MAX_APP_SCALE) + 1);
+	}
+	
+	public Application createApplication(int appTemplate, int appScale) {
 		++nApps;
 		
-		String trace = TRACES[nApps % N_TRACES];
-		long offset = (int)(simulation.getRandom().nextDouble() * OFFSET_MAX[nApps % N_TRACES]);
+		int trace = appGenerationRandom.nextInt(N_TRACES);		
+		TraceWorkload workload = new TraceWorkload(simulation, 
+				TRACES[trace], 
+				(long)(appGenerationRandom.nextDouble() * OFFSET_MAX[trace]));
 		
-		TraceWorkload workload = new TraceWorkload(simulation, trace, offset);
+		InteractiveApplication.Builder appBuilder;
 		
-		InteractiveApplication app = new InteractiveApplication.Builder(simulation).workload(workload).thinkTime(4)
-				.task(1, 2, new Resources(2500,1024,0,0), 0.005, 1)
-				.task(4, 8, new Resources(2500,1024,0,0), 0.02, 1)
-				.task(2, 4, new Resources(2500,1024,0,0), 0.01, 1)
-				.build();
+		switch(appTemplate) {
+		case 0:
+			appBuilder = new InteractiveApplication.Builder(simulation).thinkTime(4)
+			.task(1, appScale, new Resources(2500,1024,0,0), 0.005, 1)
+			.task(4, 4 * appScale, new Resources(2500,1024,0,0), 0.02, 1)
+			.task(2, 2 * appScale, new Resources(2500,1024,0,0), 0.01, 1);
+			break;
+		case 1:
+			appBuilder = new InteractiveApplication.Builder(simulation).thinkTime(4)
+			.task(1, appScale, new Resources(2500,1024,0,0), 0.005, 1)
+			.task(4, 4 * appScale, new Resources(2500,1024,0,0), 0.02, 1);
+			break;
+		case 2:
+			appBuilder = new InteractiveApplication.Builder(simulation).thinkTime(4)
+			.task(1, appScale, new Resources(2500,1024,0,0), 0.005, 1)
+			.task(4, 4 * appScale, new Resources(2500,1024,0,0), 0.02, 1)
+			.task(2, 2 * appScale, new Resources(2500,1024,0,0), 0.01, 1)
+			.task(1, 1 * appScale, new Resources(2500,1024,0,0), 0.01, 0.5)
+			.task(2, 2 * appScale, new Resources(2500,1024,0,0), 0.02, 0.5);
+			break;
+		case 3:
+			appBuilder = new InteractiveApplication.Builder(simulation).thinkTime(4)
+			.task(1, appScale, new Resources(2500,1024,0,0), 0.01, 1);
+			break;
+		default: //case 4
+			appBuilder = new InteractiveApplication.Builder(simulation).thinkTime(4)
+			.task(1, 1, new Resources(2500,1024,0,0), 0.01, 1);
+		}
 		
-		workload.setScaleFactor(app.calculateMaxWorkloadResponseTimeLimit(1)); //1s response time
+		InteractiveApplication app = appBuilder.build();
+		app.setWorkload(workload);
+		
+		workload.setScaleFactor(app.calculateMaxWorkloadResponseTimeLimit(1)); //1s response time SLA
 
 		InteractiveServiceLevelAgreement sla = new InteractiveServiceLevelAgreement(app).responseTime(1, 1); //sla limit at 1s response time, penalty rate of 1 per second in violation
 		app.setSla(sla);

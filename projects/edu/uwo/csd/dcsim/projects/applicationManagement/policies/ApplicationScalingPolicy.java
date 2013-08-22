@@ -92,7 +92,7 @@ public class ApplicationScalingPolicy extends Policy {
 					}
 					utilization = utilization / task.getInstances().size();
 
-					if (((utilization / (task.getInstances().size() - 1)) + utilization) < 0.7) {
+					if (((utilization / (task.getInstances().size() - 1)) + utilization) < 0.5) {
 						if (utilization < targetUtil) {
 							targetUtil = utilization;
 							targetTask = task;

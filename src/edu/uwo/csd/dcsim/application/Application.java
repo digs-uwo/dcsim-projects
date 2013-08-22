@@ -22,6 +22,7 @@ public abstract class Application {
 	int id;
 	protected Simulation simulation;
 	ServiceLevelAgreement sla = null;
+	private ArrayList<ApplicationListener> applicationListeners = new ArrayList<ApplicationListener>();
 	
 	public Application(Simulation simulation) {
 		this.simulation = simulation;
@@ -92,6 +93,17 @@ public abstract class Application {
 	 */
 	public abstract ArrayList<Task> getTasks();
 
+	public ArrayList<ApplicationListener> getApplicationListeners() {
+		return applicationListeners;
+	}
+	
+	public void addApplicationListener(ApplicationListener listener) {
+		applicationListeners.add(listener);
+	}
+	
+	public void removeApplicationListener(ApplicationListener listener) {
+		applicationListeners.remove(listener);
+	}
 	
 	public Simulation getSimulation() {
 		return simulation;

@@ -48,10 +48,9 @@ public class InteractiveApplication extends Application {
 		workload = builder.workload;
 		thinkTime = builder.thinkTime;
 		
-		for (InteractiveTask task : builder.tasks) {
-			tasks.add(task);
-			task.setApplication(this);
-			task.setId(tasks.size());
+		for (InteractiveTask.Builder taskBuilder : builder.tasks) {
+			InteractiveTask task = taskBuilder.build();
+			addTask(task);
 		}
 		
 		//if we haven't checked for the 'approximateMVA' property yet, do so now
@@ -430,11 +429,10 @@ public class InteractiveApplication extends Application {
 	
 	public static class Builder implements ObjectBuilder<Application> {
 
-		private boolean used = false; //make sure this builder is only used to construct a single instance of InteractiveApplication
 		private Simulation simulation;
 		private Workload workload;
 		private double thinkTime;
-		ArrayList<InteractiveTask> tasks = new ArrayList<InteractiveTask>();
+		ArrayList<InteractiveTask.Builder> tasks = new ArrayList<InteractiveTask.Builder>();
 		
 		public Builder(Simulation simulation) {
 			this.simulation = simulation;
@@ -456,7 +454,7 @@ public class InteractiveApplication extends Application {
 				double serviceTime,
 				double visitRatio) {
 			
-			InteractiveTask task = new InteractiveTask(null, defaultInstances, maxInstances, resourceSize, serviceTime, visitRatio);
+			InteractiveTask.Builder task = new InteractiveTask.Builder(defaultInstances, maxInstances, resourceSize, serviceTime, visitRatio);
 			tasks.add(task);
 			
 			return this;
@@ -469,7 +467,7 @@ public class InteractiveApplication extends Application {
 				double visitRatio,
 				LoadBalancer loadBalancer) {
 			
-			InteractiveTask task = new InteractiveTask(null, defaultInstances, maxInstances, resourceSize, serviceTime, visitRatio, loadBalancer);
+			InteractiveTask.Builder task = new InteractiveTask.Builder(defaultInstances, maxInstances, resourceSize, serviceTime, visitRatio).loadBalancer(loadBalancer);
 			tasks.add(task);
 			
 			return this;
@@ -477,8 +475,6 @@ public class InteractiveApplication extends Application {
 		
 		@Override
 		public InteractiveApplication build() {
-			if (used) throw new RuntimeException("Cannot use a single InteractiveApplication.Builder to build more than one instance of InteractiveApplication");
-			used = true;
 			return new InteractiveApplication(this);
 		}
 		

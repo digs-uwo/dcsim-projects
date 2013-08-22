@@ -24,9 +24,9 @@ public class BasicAutoscalingExperiment extends SimulationTask {
 
 	private static Logger logger = Logger.getLogger(BasicAutoscalingExperiment.class);
 	
-	private static final long DURATION = SimTime.days(1);
+	private static final long DURATION = SimTime.days(6);
 //	private static final long DURATION = SimTime.minutes(5);
-	private static final long METRIC_RECORD_START = SimTime.days(0);
+	private static final long METRIC_RECORD_START = SimTime.days(1);
 	
 	public static void main(String args[]) {
 		Simulation.initializeLogging();
@@ -35,8 +35,8 @@ public class BasicAutoscalingExperiment extends SimulationTask {
 		List<SimulationTask> completedTasks;
 		SimulationExecutor executor = new SimulationExecutor();
 		
-		executor.addTask(new BasicAutoscalingExperiment("autoscaling-1", 6198910678692541341l));
-//		executor.addTask(new BasicAutoscalingExperiment("autoscaling-2", 5646441053220106016l));
+//		executor.addTask(new BasicAutoscalingExperiment("autoscaling-1", 6198910678692541341l));
+		executor.addTask(new BasicAutoscalingExperiment("autoscaling-2", 5646441053220106016l));
 //		executor.addTask(new BasicAutoscalingExperiment("autoscaling-3", -5705302823151233610l));
 //		executor.addTask(new BasicAutoscalingExperiment("autoscaling-4", 8289672009575825404l));
 //		executor.addTask(new BasicAutoscalingExperiment("autoscaling-5", -4637549055860880177l));
@@ -85,13 +85,13 @@ public class BasicAutoscalingExperiment extends SimulationTask {
 		Environment environment = new Environment(simulation, 10, 2);
 		environment.createDataCentre(simulation);
 		
-		simulation.sendEvent(new ApplicationPlacementEvent(environment.getDcAM(), environment.createApplication()));
+		simulation.sendEvent(new ApplicationPlacementEvent(environment.getDcAM(), environment.createApplication(0, 2)));
 		
-		simulation.sendEvent(new ApplicationPlacementEvent(environment.getDcAM(), environment.createApplication()), SimTime.minutes(1));
+		simulation.sendEvent(new ApplicationPlacementEvent(environment.getDcAM(), environment.createApplication(1, 2)), SimTime.minutes(1));
 		
-		simulation.sendEvent(new ApplicationPlacementEvent(environment.getDcAM(), environment.createApplication()), SimTime.minutes(2));
+		simulation.sendEvent(new ApplicationPlacementEvent(environment.getDcAM(), environment.createApplication(2, 2)), SimTime.minutes(2));
 		
-		simulation.sendEvent(new ApplicationPlacementEvent(environment.getDcAM(), environment.createApplication()), SimTime.minutes(3));
+		simulation.sendEvent(new ApplicationPlacementEvent(environment.getDcAM(), environment.createApplication(3, 2)), SimTime.minutes(3));
 	}
 	
 	public class Environment extends AppManagementTestEnvironment {
@@ -128,7 +128,7 @@ public class BasicAutoscalingExperiment extends SimulationTask {
 			AutonomicManager applicationManager = new AutonomicManager(simulation);
 			applicationManager.addCapability(new ApplicationManager(application));
 			
-			applicationManager.installPolicy(new ApplicationScalingPolicy(dcAM), SimTime.minutes(5), 0);
+			applicationManager.installPolicy(new ApplicationScalingPolicy(dcAM), SimTime.minutes(1), 0);
 		}
 		
 	}

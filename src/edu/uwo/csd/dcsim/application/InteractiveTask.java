@@ -3,6 +3,7 @@ package edu.uwo.csd.dcsim.application;
 import java.util.ArrayList;
 
 import edu.uwo.csd.dcsim.application.loadbalancer.*;
+import edu.uwo.csd.dcsim.common.ObjectBuilder;
 import edu.uwo.csd.dcsim.host.Resources;
 
 /**
@@ -27,6 +28,7 @@ public class InteractiveTask extends Task {
 			double visitRatio) {
 		super(defaultInstances, maxInstances, resourceSize);
 
+		this.application = application;
 		this.normalServiceTime = normalServiceTime;
 		this.visitRatio = visitRatio;
 		
@@ -43,9 +45,25 @@ public class InteractiveTask extends Task {
 			LoadBalancer loadBalancer) {
 		super(defaultInstances, maxInstances, resourceSize);
 
+		this.application = application;
 		this.normalServiceTime = normalServiceTime;
 		this.visitRatio = visitRatio;
 		setLoadBalancer(loadBalancer);
+	}
+	
+	public InteractiveTask(Builder builder) {
+		super(builder.defaultInstances, builder.maxInstances, builder.resourceSize);
+		
+		this.application = builder.application;
+		this.normalServiceTime = builder.serviceTime;
+		this.visitRatio = builder.visitRatio;
+		
+		if (builder.loadBalancer == null) {
+			//set default load balancer
+			setLoadBalancer(new EqualShareLoadBalancer());
+		} else {
+			setLoadBalancer(loadBalancer);
+		}
 	}
 	
 	/**
@@ -70,6 +88,11 @@ public class InteractiveTask extends Task {
 		InteractiveTaskInstance instance = new InteractiveTaskInstance(this);
 		instances.add(instance);
 		startInstance(instance);
+		
+		for (ApplicationListener listener : application.getApplicationListeners()) {
+			listener.onCreateTaskInstance(instance);
+		}
+		
 		return instance;
 	}
 
@@ -78,6 +101,11 @@ public class InteractiveTask extends Task {
 		if (instances.contains(instance)) {
 			instances.remove(instance);
 			stopInstance(instance);
+			
+			for (ApplicationListener listener : application.getApplicationListeners()) {
+				listener.onRemoveTaskInstance(instance);
+			}
+			
 		} else {
 			throw new RuntimeException("Attempted to remove instance from task that does not contain it");
 		}
@@ -120,6 +148,46 @@ public class InteractiveTask extends Task {
 	public ArrayList<TaskInstance> getInstances() {
 		ArrayList<TaskInstance> simpleInstances = new ArrayList<TaskInstance>(instances);
 		return simpleInstances;
+	}
+	
+	public static class Builder implements ObjectBuilder<InteractiveTask> {
+
+		int defaultInstances;
+		int maxInstances;
+		Resources resourceSize;
+		double serviceTime; 
+		double visitRatio;
+		LoadBalancer loadBalancer = null;
+		InteractiveApplication application = null;
+		
+		public Builder(int defaultInstances,
+				int maxInstances,
+				Resources resourceSize,
+				double serviceTime, 
+				double visitRatio) {
+		
+			this.defaultInstances = defaultInstances;
+			this.maxInstances = maxInstances;
+			this.resourceSize = resourceSize;
+			this.serviceTime = serviceTime;
+			this.visitRatio = visitRatio;			
+		}
+		
+		public Builder loadBalancer(LoadBalancer loadBalancer) {
+			this.loadBalancer = loadBalancer;
+			return this;
+		}
+		
+		public Builder application(InteractiveApplication application) {
+			this.application = application;
+			return this;
+		}
+		
+		@Override
+		public InteractiveTask build() {
+			return new InteractiveTask(this);
+		}
+		
 	}
 	
 }
