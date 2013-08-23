@@ -20,7 +20,7 @@ public class TaskInstanceMonitoringPolicy extends Policy {
 		TaskInstanceManager taskManager = manager.getCapability(TaskInstanceManager.class);
 		
 		TaskInstance taskInstance = taskManager.getTaskInstance();
-		double cpuUtil = taskInstance.getResourceScheduled().getCpu() / taskInstance.getTask().getResourceSize().getCpu();
+		double cpuUtil = taskInstance.getResourceScheduled().getCpu() / (double)taskInstance.getTask().getResourceSize().getCpu();
 		double responseTime = 0;
 		
 		if (taskInstance instanceof InteractiveTaskInstance) {

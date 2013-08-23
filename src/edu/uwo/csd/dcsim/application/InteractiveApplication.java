@@ -99,6 +99,28 @@ public class InteractiveApplication extends Application {
 		
 		int nClients = workload.getWorkOutputLevel();
 		
+		//check for "dead" application (any Task has no TaskInstance)
+		boolean dead = false;
+		for (InteractiveTask task : tasks) {
+			if (task.getInstances().size() == 0) {
+				dead = true;
+			}
+		}
+		if (dead) {
+			for (InteractiveTask task : tasks) {
+				for (InteractiveTaskInstance instance : task.getInteractiveTaskInstances()) {
+					instance.getResourceDemand().setCpu(0);
+					instance.setFullDemand(new Resources(instance.getResourceDemand()));
+					instance.setUtilization(0);
+					instance.setResponseTime(0);
+					instance.setThroughput(0);
+				}
+			}
+			throughput = 0;
+			responseTime = Double.MAX_VALUE;
+			return false;
+		}
+		
 		//calculate effective service time
 		for (InteractiveTask task : tasks) {
 			for (InteractiveTaskInstance instance : task.getInteractiveTaskInstances()) {
@@ -185,7 +207,7 @@ public class InteractiveApplication extends Application {
 
 		//calculate instance throughput, utilization, demand		
 		boolean updated = false;
-		for (InteractiveTask task : tasks) {
+		for (InteractiveTask task : tasks) {			
 			for (InteractiveTaskInstance instance : task.getInteractiveTaskInstances()) {
 				instance.setThroughput(throughput * instance.getVisitRatio());
 				

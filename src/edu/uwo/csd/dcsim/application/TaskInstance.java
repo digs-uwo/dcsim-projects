@@ -10,6 +10,7 @@ import edu.uwo.csd.dcsim.vm.*;
  */
 public abstract class TaskInstance  {
 
+	protected long id = -1;
 	protected Vm vm; //the VM on which this task is running
 	protected Resources fullDemand;
 	protected Resources resourceDemand;
@@ -24,6 +25,14 @@ public abstract class TaskInstance  {
 		this.fullDemand = new Resources();
 		this.resourceDemand = new Resources();
 		this.resourceScheduled = new Resources();
+	}
+	
+	public void setId(long id) {
+		this.id = id;
+	}
+	
+	public long getId() {
+		return id;
 	}
 	
 	/**

@@ -7,7 +7,10 @@ import org.apache.log4j.Logger;
 import edu.uwo.csd.dcsim.DataCentre;
 import edu.uwo.csd.dcsim.SimulationExecutor;
 import edu.uwo.csd.dcsim.SimulationTask;
+import edu.uwo.csd.dcsim.application.Application;
+import edu.uwo.csd.dcsim.application.ApplicationListener;
 import edu.uwo.csd.dcsim.application.InteractiveApplication;
+import edu.uwo.csd.dcsim.application.TaskInstance;
 import edu.uwo.csd.dcsim.common.SimTime;
 import edu.uwo.csd.dcsim.core.Simulation;
 import edu.uwo.csd.dcsim.host.Cluster;
@@ -18,6 +21,7 @@ import edu.uwo.csd.dcsim.management.capabilities.*;
 import edu.uwo.csd.dcsim.management.events.ApplicationPlacementEvent;
 import edu.uwo.csd.dcsim.management.policies.*;
 import edu.uwo.csd.dcsim.projects.applicationManagement.capabilities.ApplicationManager;
+import edu.uwo.csd.dcsim.projects.applicationManagement.capabilities.TaskInstanceManager;
 import edu.uwo.csd.dcsim.projects.applicationManagement.policies.*;
 
 public class BasicAutoscalingExperiment extends SimulationTask {
@@ -82,16 +86,25 @@ public class BasicAutoscalingExperiment extends SimulationTask {
 		
 		simulation.getSimulationMetrics().addCustomMetricCollection(new ApplicationManagementMetrics(simulation));
 		
-		Environment environment = new Environment(simulation, 10, 2);
+		Environment environment = new Environment(simulation, 40, 2);
 		environment.createDataCentre(simulation);
 		
-		simulation.sendEvent(new ApplicationPlacementEvent(environment.getDcAM(), environment.createApplication(0, 2)));
+//		Application app1 = environment.createApplication(0, 2);
+//		Application app2 =  environment.createApplication(1, 2);
+//		Application app3 = environment.createApplication(2, 2);
+//		Application app4 = environment.createApplication(3, 2);
 		
-		simulation.sendEvent(new ApplicationPlacementEvent(environment.getDcAM(), environment.createApplication(1, 2)), SimTime.minutes(1));
+//		simulation.sendEvent(new ApplicationPlacementEvent(environment.getDcAM(), app1));
+//		
+//		simulation.sendEvent(new ApplicationPlacementEvent(environment.getDcAM(), app2), SimTime.minutes(1));
+//		
+//		simulation.sendEvent(new ApplicationPlacementEvent(environment.getDcAM(), app3), SimTime.minutes(2));
+//		
+//		simulation.sendEvent(new ApplicationPlacementEvent(environment.getDcAM(), app4), SimTime.minutes(3));
 		
-		simulation.sendEvent(new ApplicationPlacementEvent(environment.getDcAM(), environment.createApplication(2, 2)), SimTime.minutes(2));
-		
-		simulation.sendEvent(new ApplicationPlacementEvent(environment.getDcAM(), environment.createApplication(3, 2)), SimTime.minutes(3));
+		for (int i = 0; i < 20; ++i) {
+			simulation.sendEvent(new ApplicationPlacementEvent(environment.getDcAM(), environment.createApplication()));
+		}
 	}
 	
 	public class Environment extends AppManagementTestEnvironment {
@@ -125,10 +138,43 @@ public class BasicAutoscalingExperiment extends SimulationTask {
 
 		@Override
 		public void processApplication(InteractiveApplication application) {
-			AutonomicManager applicationManager = new AutonomicManager(simulation);
-			applicationManager.addCapability(new ApplicationManager(application));
+			AutonomicManager manager = new AutonomicManager(simulation);
+			ApplicationManager applicationManager = new ApplicationManager(application, 5, 30);
+			manager.addCapability(applicationManager);
+			applicationManager.setAutonomicManager(manager);
 			
-			applicationManager.installPolicy(new ApplicationScalingPolicy(dcAM), SimTime.minutes(1), 0);
+			manager.installPolicy(new ApplicationScalingPolicy(dcAM, true), SimTime.minutes(5), 0);
+			
+			application.addApplicationListener(new ManagedApplicationListener(simulation, applicationManager));
+		}
+		
+	}
+	
+	public class ManagedApplicationListener implements ApplicationListener {
+
+		ApplicationManager applicationManager;
+		Simulation simulation;
+		
+		public ManagedApplicationListener(Simulation simulation, ApplicationManager applicationManager) {
+			this.simulation = simulation;
+			this.applicationManager = applicationManager;
+		}
+		
+		@Override
+		public void onCreateTaskInstance(TaskInstance taskInstance) {
+			AutonomicManager instanceManager = new AutonomicManager(simulation, new TaskInstanceManager(taskInstance));
+			instanceManager.installPolicy(new TaskInstanceMonitoringPolicy(applicationManager), SimTime.minutes(1), simulation.getSimulationTime());
+			
+			applicationManager.addInstanceManager(taskInstance, instanceManager);
+		}
+
+		@Override
+		public void onRemoveTaskInstance(TaskInstance taskInstance) {
+			//shutdown the instance manager
+			applicationManager.getInstanceManagers().get(taskInstance).shutdown();
+			
+			//remove the instance manager from the list
+			applicationManager.removeInstanceManager(taskInstance);	
 		}
 		
 	}

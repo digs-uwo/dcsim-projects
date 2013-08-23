@@ -12,6 +12,7 @@ import edu.uwo.csd.dcsim.management.events.RepeatingPolicyExecutionEvent;
 
 public class AutonomicManager implements SimulationEventListener {
 
+	private boolean running = true;
 	private Simulation simulation;
 	private ArrayList<Policy> policies = new ArrayList<Policy>();
 	private Map<Class<? extends ManagerCapability>, Object> capabilities = new HashMap<Class<? extends ManagerCapability>, Object>();
@@ -100,8 +101,22 @@ public class AutonomicManager implements SimulationEventListener {
 		return policyToExectionEvent.get(policy);
 	}
 	
+	public void shutdown() {
+		//uninstall all policies (stops repeating events)
+		ArrayList<Policy> policiesCopy = new ArrayList<Policy>();
+		policiesCopy.addAll(policies);
+		for (Policy policy : policiesCopy) {
+			uninstallPolicy(policy);
+		}
+		
+		//set running flag to false to prevent event handling
+		running = false;
+	}
+	
 	@Override
 	public void handleEvent(Event e) {
+
+		if (!running) return;
 		
 		//first, check if the Host container this manager is running in (if any) is ON
 		if (container != null && !(container.getState() == Host.HostState.ON || container.getState() == Host.HostState.POWERING_ON)) {

@@ -19,6 +19,7 @@ public class InteractiveTask extends Task {
 	private double visitRatio;
 	private InteractiveApplication application;
 	private ArrayList<InteractiveTaskInstance> instances = new ArrayList<InteractiveTaskInstance>();
+	private long nextInstanceId = 1;
 	
 	public InteractiveTask(InteractiveApplication application,
 			int defaultInstances,
@@ -87,6 +88,7 @@ public class InteractiveTask extends Task {
 	public TaskInstance createInstance() {
 		InteractiveTaskInstance instance = new InteractiveTaskInstance(this);
 		instances.add(instance);
+		instance.setId(nextInstanceId++);
 		startInstance(instance);
 		
 		for (ApplicationListener listener : application.getApplicationListeners()) {
