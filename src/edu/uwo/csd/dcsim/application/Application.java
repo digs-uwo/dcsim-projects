@@ -82,6 +82,10 @@ public abstract class Application {
 		}
 		
 		simulation.removeApplication(this);
+		
+		for (ApplicationListener listener : applicationListeners) {
+			listener.onShutdownApplication(this);
+		}
 	}
 	
 	public abstract int getTotalCpuDemand();

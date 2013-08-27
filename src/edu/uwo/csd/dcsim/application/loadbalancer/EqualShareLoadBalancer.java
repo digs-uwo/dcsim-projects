@@ -1,6 +1,7 @@
 package edu.uwo.csd.dcsim.application.loadbalancer;
 
 import edu.uwo.csd.dcsim.application.TaskInstance;
+import edu.uwo.csd.dcsim.common.ObjectBuilder;
 
 /**
  * 
@@ -19,6 +20,14 @@ public class EqualShareLoadBalancer extends LoadBalancer {
 		return 1 / (float)task.getInstances().size();
 	}
 
+	public static class Builder implements ObjectBuilder<LoadBalancer> {
+
+		@Override
+		public LoadBalancer build() {
+			return new EqualShareLoadBalancer();
+		}
+		
+	}
 
 
 }

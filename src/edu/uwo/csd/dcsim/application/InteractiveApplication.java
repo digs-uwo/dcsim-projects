@@ -487,9 +487,9 @@ public class InteractiveApplication extends Application {
 				Resources resourceSize,
 				double serviceTime, 
 				double visitRatio,
-				LoadBalancer loadBalancer) {
+				ObjectBuilder<LoadBalancer> loadBalancerBuilder) {
 			
-			InteractiveTask.Builder task = new InteractiveTask.Builder(defaultInstances, maxInstances, resourceSize, serviceTime, visitRatio).loadBalancer(loadBalancer);
+			InteractiveTask.Builder task = new InteractiveTask.Builder(defaultInstances, maxInstances, resourceSize, serviceTime, visitRatio).loadBalancer(loadBalancerBuilder);
 			tasks.add(task);
 			
 			return this;

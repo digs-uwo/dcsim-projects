@@ -90,7 +90,7 @@ public class ApplicationPlacementPolicy extends Policy {
 						reqResources,
 						target.getSandboxStatus(),
 						target.getHostDescription()) &&
-						(target.getHostDescription().getResourceCapacity().getCpu() - target.getSandboxStatus().getCpuAllocated()) >= request.getCpu()) //effectively disable overcommitting
+						(target.getHostDescription().getResourceCapacity().getCpu() - target.getSandboxStatus().getCpuAllocated()) >= request.getCpu()) //effectively disable overcommitting for initial placement
 						{
 					
 					allocatedHost = target;

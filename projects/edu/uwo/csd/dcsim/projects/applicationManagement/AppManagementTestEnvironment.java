@@ -5,8 +5,11 @@ import java.util.Random;
 import edu.uwo.csd.dcsim.DataCentre;
 import edu.uwo.csd.dcsim.application.Application;
 import edu.uwo.csd.dcsim.application.InteractiveApplication;
+import edu.uwo.csd.dcsim.application.loadbalancer.LoadBalancer;
+import edu.uwo.csd.dcsim.application.loadbalancer.ShareLoadBalancer;
 import edu.uwo.csd.dcsim.application.sla.InteractiveServiceLevelAgreement;
 import edu.uwo.csd.dcsim.application.workload.TraceWorkload;
+import edu.uwo.csd.dcsim.common.ObjectBuilder;
 import edu.uwo.csd.dcsim.core.Simulation;
 import edu.uwo.csd.dcsim.host.Cluster;
 import edu.uwo.csd.dcsim.host.Host;
@@ -37,16 +40,18 @@ public abstract class AppManagementTestEnvironment {
 	int nApps = 0;
 	Simulation simulation;
 	AutonomicManager dcAM;
+	ObjectBuilder<LoadBalancer> loadBalancerBuilder;
 	Random envRandom;
 	Random appGenerationRandom;
 		
-	public AppManagementTestEnvironment(Simulation simulation, int hostsPerRack, int nRacks) {
+	public AppManagementTestEnvironment(Simulation simulation, int hostsPerRack, int nRacks, ObjectBuilder<LoadBalancer> loadBalancerBuilder) {
 		this.simulation = simulation;
 		this.hostsPerRack = hostsPerRack;
 		this.nRacks = nRacks;
 		
 		envRandom = new Random(simulation.getRandom().nextLong());
 		appGenerationRandom = new Random(simulation.getRandom().nextLong());
+		this.loadBalancerBuilder = loadBalancerBuilder;
 
 	}
 	
@@ -115,30 +120,30 @@ public abstract class AppManagementTestEnvironment {
 		switch(appTemplate) {
 		case 0:
 			appBuilder = new InteractiveApplication.Builder(simulation).thinkTime(4)
-			.task(1, appScale, new Resources(2500,1024,0,0), 0.005, 1)
-			.task(4, 4 * appScale, new Resources(2500,1024,0,0), 0.02, 1)
-			.task(2, 2 * appScale, new Resources(2500,1024,0,0), 0.01, 1);
+			.task(1, appScale, new Resources(2500,1024,0,0), 0.005, 1, loadBalancerBuilder)
+			.task(4, 4 * appScale, new Resources(2500,1024,0,0), 0.02, 1, loadBalancerBuilder)
+			.task(2, 2 * appScale, new Resources(2500,1024,0,0), 0.01, 1, loadBalancerBuilder);
 			break;
 		case 1:
 			appBuilder = new InteractiveApplication.Builder(simulation).thinkTime(4)
-			.task(1, appScale, new Resources(2500,1024,0,0), 0.005, 1)
-			.task(4, 4 * appScale, new Resources(2500,1024,0,0), 0.02, 1);
+			.task(1, appScale, new Resources(2500,1024,0,0), 0.005, 1, loadBalancerBuilder)
+			.task(4, 4 * appScale, new Resources(2500,1024,0,0), 0.02, 1, loadBalancerBuilder);
 			break;
 		case 2:
 			appBuilder = new InteractiveApplication.Builder(simulation).thinkTime(4)
-			.task(1, appScale, new Resources(2500,1024,0,0), 0.005, 1)
-			.task(4, 4 * appScale, new Resources(2500,1024,0,0), 0.02, 1)
-			.task(2, 2 * appScale, new Resources(2500,1024,0,0), 0.01, 1)
-			.task(1, 1 * appScale, new Resources(2500,1024,0,0), 0.01, 0.5)
-			.task(2, 2 * appScale, new Resources(2500,1024,0,0), 0.02, 0.5);
+			.task(1, appScale, new Resources(2500,1024,0,0), 0.005, 1, loadBalancerBuilder)
+			.task(4, 4 * appScale, new Resources(2500,1024,0,0), 0.02, 1, loadBalancerBuilder)
+			.task(2, 2 * appScale, new Resources(2500,1024,0,0), 0.01, 1, loadBalancerBuilder)
+			.task(1, 1 * appScale, new Resources(2500,1024,0,0), 0.01, 0.5, loadBalancerBuilder)
+			.task(2, 2 * appScale, new Resources(2500,1024,0,0), 0.02, 0.5, loadBalancerBuilder);
 			break;
 		case 3:
 			appBuilder = new InteractiveApplication.Builder(simulation).thinkTime(4)
-			.task(1, appScale, new Resources(2500,1024,0,0), 0.01, 1);
+			.task(1, appScale, new Resources(2500,1024,0,0), 0.01, 1, loadBalancerBuilder);
 			break;
 		default: //case 4
 			appBuilder = new InteractiveApplication.Builder(simulation).thinkTime(4)
-			.task(1, 1, new Resources(2500,1024,0,0), 0.01, 1);
+			.task(1, 1, new Resources(2500,1024,0,0), 0.01, 1, loadBalancerBuilder);
 		}
 		
 		InteractiveApplication app = appBuilder.build();

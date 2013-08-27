@@ -11,7 +11,7 @@ import edu.uwo.csd.dcsim.application.Application;
 import edu.uwo.csd.dcsim.application.ApplicationListener;
 import edu.uwo.csd.dcsim.application.InteractiveApplication;
 import edu.uwo.csd.dcsim.application.TaskInstance;
-import edu.uwo.csd.dcsim.application.loadbalancer.EqualShareLoadBalancer;
+import edu.uwo.csd.dcsim.application.loadbalancer.ShareLoadBalancer;
 import edu.uwo.csd.dcsim.common.SimTime;
 import edu.uwo.csd.dcsim.core.Simulation;
 import edu.uwo.csd.dcsim.host.Cluster;
@@ -22,15 +22,13 @@ import edu.uwo.csd.dcsim.management.capabilities.*;
 import edu.uwo.csd.dcsim.management.events.ApplicationPlacementEvent;
 import edu.uwo.csd.dcsim.management.policies.*;
 import edu.uwo.csd.dcsim.projects.applicationManagement.capabilities.ApplicationManager;
+import edu.uwo.csd.dcsim.projects.applicationManagement.capabilities.ApplicationPoolManager;
 import edu.uwo.csd.dcsim.projects.applicationManagement.capabilities.TaskInstanceManager;
 import edu.uwo.csd.dcsim.projects.applicationManagement.policies.*;
-import edu.uwo.csd.dcsim.projects.centralized.policies.VmConsolidationPolicyFFDDIHybrid;
-import edu.uwo.csd.dcsim.projects.centralized.policies.VmPlacementPolicyFFMHybrid;
-import edu.uwo.csd.dcsim.projects.centralized.policies.VmRelocationPolicyFFIMDHybrid;
 
-public class BasicAutoscalingExperiment extends SimulationTask {
+public class AutoscaleReallocationIntegratedExperiment extends SimulationTask {
 
-	private static Logger logger = Logger.getLogger(BasicAutoscalingExperiment.class);
+	private static Logger logger = Logger.getLogger(AutoscaleReallocationIntegratedExperiment.class);
 	
 	private static final long DURATION = SimTime.days(6);
 //	private static final long DURATION = SimTime.minutes(5);
@@ -43,16 +41,16 @@ public class BasicAutoscalingExperiment extends SimulationTask {
 		List<SimulationTask> completedTasks;
 		SimulationExecutor executor = new SimulationExecutor();
 		
-		executor.addTask(new BasicAutoscalingExperiment("autoscaling-1", 6198910678692541341l));
-//		executor.addTask(new BasicAutoscalingExperiment("autoscaling-2", 5646441053220106016l));
-//		executor.addTask(new BasicAutoscalingExperiment("autoscaling-3", -5705302823151233610l));
-//		executor.addTask(new BasicAutoscalingExperiment("autoscaling-4", 8289672009575825404l));
-//		executor.addTask(new BasicAutoscalingExperiment("autoscaling-5", -4637549055860880177l));
-//		executor.addTask(new BasicAutoscalingExperiment("autoscaling-6", -4280782692131378509l));
-//		executor.addTask(new BasicAutoscalingExperiment("autoscaling-7", -1699811527182374894l));
-//		executor.addTask(new BasicAutoscalingExperiment("autoscaling-8", -6452776964812569334l));
-//		executor.addTask(new BasicAutoscalingExperiment("autoscaling-9", -7148920787255940546l));
-//		executor.addTask(new BasicAutoscalingExperiment("autoscaling-10", 8311271444423629559l));		
+		executor.addTask(new AutoscaleReallocationIntegratedExperiment("autoscaling-1", 6198910678692541341l));
+//		executor.addTask(new AutoscaleReallocationIntegratedExperiment("autoscaling-2", 5646441053220106016l));
+//		executor.addTask(new AutoscaleReallocationIntegratedExperiment("autoscaling-3", -5705302823151233610l));
+//		executor.addTask(new AutoscaleReallocationIntegratedExperiment("autoscaling-4", 8289672009575825404l));
+//		executor.addTask(new AutoscaleReallocationIntegratedExperiment("autoscaling-5", -4637549055860880177l));
+//		executor.addTask(new AutoscaleReallocationIntegratedExperiment("autoscaling-6", -4280782692131378509l));
+//		executor.addTask(new AutoscaleReallocationIntegratedExperiment("autoscaling-7", -1699811527182374894l));
+//		executor.addTask(new AutoscaleReallocationIntegratedExperiment("autoscaling-8", -6452776964812569334l));
+//		executor.addTask(new AutoscaleReallocationIntegratedExperiment("autoscaling-9", -7148920787255940546l));
+//		executor.addTask(new AutoscaleReallocationIntegratedExperiment("autoscaling-10", 8311271444423629559l));		
 		
 		
 //		completedTasks = executor.execute(); //execute all simulations simultaneously
@@ -74,12 +72,12 @@ public class BasicAutoscalingExperiment extends SimulationTask {
 
 	}
 	
-	public BasicAutoscalingExperiment(String name) {
+	public AutoscaleReallocationIntegratedExperiment(String name) {
 		super(name, DURATION);
 		this.setMetricRecordStart(METRIC_RECORD_START);
 	}
 	
-	public BasicAutoscalingExperiment(String name, long randomSeed) {
+	public AutoscaleReallocationIntegratedExperiment(String name, long randomSeed) {
 		super(name, DURATION);
 		this.setMetricRecordStart(METRIC_RECORD_START);
 		this.setRandomSeed(randomSeed);
@@ -93,19 +91,6 @@ public class BasicAutoscalingExperiment extends SimulationTask {
 		Environment environment = new Environment(simulation, 40, 2);
 		environment.createDataCentre(simulation);
 		
-//		Application app1 = environment.createApplication(0, 2);
-//		Application app2 =  environment.createApplication(1, 2);
-//		Application app3 = environment.createApplication(2, 2);
-//		Application app4 = environment.createApplication(3, 2);
-		
-//		simulation.sendEvent(new ApplicationPlacementEvent(environment.getDcAM(), app1));
-//		
-//		simulation.sendEvent(new ApplicationPlacementEvent(environment.getDcAM(), app2), SimTime.minutes(1));
-//		
-//		simulation.sendEvent(new ApplicationPlacementEvent(environment.getDcAM(), app3), SimTime.minutes(2));
-//		
-//		simulation.sendEvent(new ApplicationPlacementEvent(environment.getDcAM(), app4), SimTime.minutes(3));
-		
 		for (int i = 0; i < 20; ++i) {
 			simulation.sendEvent(new ApplicationPlacementEvent(environment.getDcAM(), environment.createApplication()));
 		}
@@ -114,19 +99,28 @@ public class BasicAutoscalingExperiment extends SimulationTask {
 	public class Environment extends AppManagementTestEnvironment {
 
 		HostPoolManager hostPool;
+		ApplicationPoolManager applicationPool;
 		
 		public Environment(Simulation simulation, int hostsPerRack, int nRacks) {
-			super(simulation, hostsPerRack, nRacks, new EqualShareLoadBalancer.Builder());
+			super(simulation, hostsPerRack, nRacks, new ShareLoadBalancer.Builder());
 		}
 
 		@Override
 		public void processDcAM(AutonomicManager dcAM) {
+			
+			// Set utilization thresholds.
+			double lower = 0.60;
+			double upper = 0.90;
+			double target = 0.85;
+			
 			hostPool = new HostPoolManager();
 			dcAM.addCapability(hostPool);
+			applicationPool = new ApplicationPoolManager(5, 30);
+			dcAM.addCapability(applicationPool);
 			
 			dcAM.installPolicy(new HostStatusPolicy(10));
 			dcAM.installPolicy(new ApplicationPlacementPolicy());
-			
+			dcAM.installPolicy(new ApplicationManagementPolicy(lower, upper, target), SimTime.minutes(5), 0);
 		}
 
 		@Override
@@ -142,49 +136,44 @@ public class BasicAutoscalingExperiment extends SimulationTask {
 
 		@Override
 		public void processApplication(InteractiveApplication application) {
-			AutonomicManager manager = new AutonomicManager(simulation);
-			ApplicationManager applicationManager = new ApplicationManager(application, 5, 30);
-			manager.addCapability(applicationManager);
-			applicationManager.setAutonomicManager(manager);
+			applicationPool.addApplication(application);
 			
-			manager.installPolicy(new ApplicationScalingPolicy(dcAM, true), SimTime.minutes(5), 0);
-			
-			application.addApplicationListener(new ManagedApplicationListener(simulation, applicationManager));
+			application.addApplicationListener(new ManagedApplicationListener(simulation, applicationPool));
 		}
 		
 	}
 	
 	public class ManagedApplicationListener implements ApplicationListener {
 
-		ApplicationManager applicationManager;
+		ApplicationPoolManager applicationPoolManager;
 		Simulation simulation;
 		
-		public ManagedApplicationListener(Simulation simulation, ApplicationManager applicationManager) {
+		public ManagedApplicationListener(Simulation simulation, ApplicationPoolManager applicationPoolManager) {
 			this.simulation = simulation;
-			this.applicationManager = applicationManager;
+			this.applicationPoolManager = applicationPoolManager;
 		}
 		
 		@Override
 		public void onCreateTaskInstance(TaskInstance taskInstance) {
 			AutonomicManager instanceManager = new AutonomicManager(simulation, new TaskInstanceManager(taskInstance));
-			instanceManager.installPolicy(new TaskInstanceMonitoringPolicy(applicationManager), SimTime.minutes(1), simulation.getSimulationTime());
+			instanceManager.installPolicy(new TaskInstanceMonitoringPolicy(applicationPoolManager), SimTime.minutes(1), simulation.getSimulationTime());
 			
-			applicationManager.addInstanceManager(taskInstance, instanceManager);
+			applicationPoolManager.getApplicationData(taskInstance.getTask().getApplication()).addInstanceManager(taskInstance, instanceManager);
 		}
 
 		@Override
 		public void onRemoveTaskInstance(TaskInstance taskInstance) {
 			//shutdown the instance manager
-			applicationManager.getInstanceManagers().get(taskInstance).shutdown();
+			
+			applicationPoolManager.getApplicationData(taskInstance.getTask().getApplication()).getInstanceManagers().get(taskInstance).shutdown();
 			
 			//remove the instance manager from the list
-			applicationManager.removeInstanceManager(taskInstance);	
+			applicationPoolManager.getApplicationData(taskInstance.getTask().getApplication()).removeInstanceManager(taskInstance);	
 		}
 
 		@Override
 		public void onShutdownApplication(Application application) {
-			// TODO Auto-generated method stub
-			
+			applicationPoolManager.removeApplication(application);
 		}
 		
 	}

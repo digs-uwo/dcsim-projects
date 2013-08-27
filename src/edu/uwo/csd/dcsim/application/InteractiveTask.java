@@ -63,7 +63,7 @@ public class InteractiveTask extends Task {
 			//set default load balancer
 			setLoadBalancer(new EqualShareLoadBalancer());
 		} else {
-			setLoadBalancer(loadBalancer);
+			setLoadBalancer(builder.loadBalancer.build());
 		}
 	}
 	
@@ -159,7 +159,7 @@ public class InteractiveTask extends Task {
 		Resources resourceSize;
 		double serviceTime; 
 		double visitRatio;
-		LoadBalancer loadBalancer = null;
+		ObjectBuilder<LoadBalancer> loadBalancer = null;
 		InteractiveApplication application = null;
 		
 		public Builder(int defaultInstances,
@@ -175,7 +175,7 @@ public class InteractiveTask extends Task {
 			this.visitRatio = visitRatio;			
 		}
 		
-		public Builder loadBalancer(LoadBalancer loadBalancer) {
+		public Builder loadBalancer(ObjectBuilder<LoadBalancer> loadBalancer) {
 			this.loadBalancer = loadBalancer;
 			return this;
 		}

@@ -1,5 +1,7 @@
 package edu.uwo.csd.dcsim.projects.applicationManagement.policies;
 
+import java.util.Collection;
+
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.apache.commons.math3.stat.regression.SimpleRegression;
 
@@ -7,7 +9,9 @@ import edu.uwo.csd.dcsim.application.*;
 import edu.uwo.csd.dcsim.application.sla.InteractiveServiceLevelAgreement;
 import edu.uwo.csd.dcsim.common.SimTime;
 import edu.uwo.csd.dcsim.management.AutonomicManager;
+import edu.uwo.csd.dcsim.management.HostData;
 import edu.uwo.csd.dcsim.management.Policy;
+import edu.uwo.csd.dcsim.management.capabilities.HostPoolManager;
 import edu.uwo.csd.dcsim.projects.applicationManagement.ApplicationManagementMetrics;
 import edu.uwo.csd.dcsim.projects.applicationManagement.actions.AddTaskInstanceAction;
 import edu.uwo.csd.dcsim.projects.applicationManagement.actions.RemoveTaskInstanceAction;
@@ -68,6 +72,9 @@ public class ApplicationScalingPolicy extends Policy {
 	public void autoscaleOnSLA() {
 		ApplicationManager appManager = manager.getCapability(ApplicationManager.class);
 		Application app = appManager.getApplication();
+		
+		HostPoolManager hostPool = dcManager.getCapability(HostPoolManager.class);
+		
 		
 		boolean slaWarning = false;
 		boolean slaSafe = false;
@@ -142,48 +149,6 @@ public class ApplicationScalingPolicy extends Policy {
 			
 		} else if (slaSafe && (simulation.getSimulationTime() - lastScaleUp) > scaleDownFreeze) {
 			
-			//Select Task to scale down
-//			Task targetTask = null;
-//			double targetSlope = Double.MAX_VALUE;
-//			double targetDecrease = 0;
-//			
-//			//choose task which has had the fastest decrease in response time
-//			for (Task task : app.getTasks()) {
-//				
-//				if (task.getInstances().size() > 1) {
-//					double avgSlope = 0;
-//					double avgDecrease = 0;
-//					for (TaskInstance instance : task.getInstances()) {
-//						DescriptiveStatistics instanceRTs = appManager.getInstanceResponseTimes().get(instance);
-//						SimpleRegression rtRegression = new SimpleRegression();
-//						int i = 0;
-//						for (double val : instanceRTs.getValues()) {
-//							rtRegression.addData(i++, val);
-//						}
-//						avgSlope += rtRegression.getSlope();
-//						
-//						double[] vals = instanceRTs.getValues();
-//						avgDecrease += vals[vals.length - 1] - vals[0];
-//						
-//					}
-//					
-//					avgSlope = avgSlope / task.getInstances().size();
-////					if (avgSlope < targetSlope && avgSlope < 0) {
-////						targetSlope = avgSlope;
-////						targetTask = task;
-////					}
-//					
-//					avgDecrease = avgDecrease / task.getInstances().size();
-//					if (avgDecrease < targetDecrease) {
-//						targetDecrease = avgDecrease;
-//						targetTask = task;
-//					}
-//				}
-//			}
-			
-			
-			
-			
 			//look for an underutilized task to scale down (choose lowest utilization task)
 			Task targetTask = null;
 			double targetUtil = Double.MAX_VALUE;
@@ -219,6 +184,12 @@ public class ApplicationScalingPolicy extends Policy {
 				RemoveTaskInstanceAction action = new RemoveTaskInstanceAction(targetInstance);
 				action.execute(simulation, this);
 				simulation.getSimulationMetrics().getCustomMetricCollection(ApplicationManagementMetrics.class).instancesRemoved++;
+						
+				//invalidate the dcManager host data
+				if (hostPool != null) {
+					HostData hostData = hostPool.getHost(targetInstance.getVM().getVMAllocation().getHost().getId());
+					hostData.invalidateStatus(simulation.getSimulationTime());
+				}
 				
 //				System.out.println(SimTime.toHumanReadable(simulation.getSimulationTime()) + " Removing Instance from Task " + app.getId() + "-" + targetTask.getId());
 				
@@ -230,6 +201,8 @@ public class ApplicationScalingPolicy extends Policy {
 	public void autoscaleOnCpu() {
 		ApplicationManager appManager = manager.getCapability(ApplicationManager.class);
 		Application app = appManager.getApplication();
+		
+		HostPoolManager hostPool = dcManager.getCapability(HostPoolManager.class);
 		
 		boolean scaledUp = false;
 		
@@ -297,6 +270,12 @@ public class ApplicationScalingPolicy extends Policy {
 				RemoveTaskInstanceAction action = new RemoveTaskInstanceAction(targetInstance);
 				action.execute(simulation, this);
 				simulation.getSimulationMetrics().getCustomMetricCollection(ApplicationManagementMetrics.class).instancesRemoved++;
+
+				//invalidate the dcManager host data
+				if (hostPool != null) {
+					HostData hostData = hostPool.getHost(targetInstance.getVM().getVMAllocation().getHost().getId());
+					hostData.invalidateStatus(simulation.getSimulationTime());
+				}
 				
 //				System.out.println(SimTime.toHumanReadable(simulation.getSimulationTime()) + " Removing Instance from Task " + app.getId() + "-" + targetTask.getId());
 			}

@@ -118,6 +118,10 @@ public class HostStatus {
 		return vms;
 	}
 	
+	public ArrayList<Resources> getStartingVmAllocations() {
+		return startingVmAllocations;
+	}
+	
 	public int getCpuAllocated() {
 		int cpu = 0;
 		
