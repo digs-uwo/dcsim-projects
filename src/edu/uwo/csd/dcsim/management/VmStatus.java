@@ -6,7 +6,7 @@ import edu.uwo.csd.dcsim.vm.Vm;
 public class VmStatus {
 	
 	long timeStamp;
-	int id;
+	int id = 0;
 	int cores;
 	int coreCapacity;
 	Resources resourcesInUse;
@@ -35,6 +35,7 @@ public class VmStatus {
 	 * @param resources
 	 */
 	public VmStatus(int cores, int coreCapacity, Resources resources) {
+		this.id = -1;
 		this.cores = cores;
 		this.coreCapacity = coreCapacity;
 		this.resourcesInUse = resources;

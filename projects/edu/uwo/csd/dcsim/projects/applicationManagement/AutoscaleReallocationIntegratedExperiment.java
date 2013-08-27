@@ -51,10 +51,10 @@ public class AutoscaleReallocationIntegratedExperiment extends SimulationTask {
 //		executor.addTask(new AutoscaleReallocationIntegratedExperiment("autoscaling-8", -6452776964812569334l));
 //		executor.addTask(new AutoscaleReallocationIntegratedExperiment("autoscaling-9", -7148920787255940546l));
 //		executor.addTask(new AutoscaleReallocationIntegratedExperiment("autoscaling-10", 8311271444423629559l));		
-		
+//		
 		
 //		completedTasks = executor.execute(); //execute all simulations simultaneously
-		completedTasks = executor.execute(4); //execute 4 simulations (i.e. 4 threads) at a time
+		completedTasks = executor.execute(1); //execute 4 simulations (i.e. 4 threads) at a time
 		
 //		for(SimulationTask task : completedTasks) {
 //			logger.info(task.getName());
@@ -115,8 +115,10 @@ public class AutoscaleReallocationIntegratedExperiment extends SimulationTask {
 			
 			hostPool = new HostPoolManager();
 			dcAM.addCapability(hostPool);
+			hostPool.setAutonomicManager(dcAM);
 			applicationPool = new ApplicationPoolManager(5, 30);
 			dcAM.addCapability(applicationPool);
+			applicationPool.setAutonomicManager(dcAM);
 			
 			dcAM.installPolicy(new HostStatusPolicy(10));
 			dcAM.installPolicy(new ApplicationPlacementPolicy());

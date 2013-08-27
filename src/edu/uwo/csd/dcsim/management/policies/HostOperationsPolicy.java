@@ -39,6 +39,11 @@ public class HostOperationsPolicy extends Policy {
 		
 		Host targetHost = event.getTargetHost();
 		
+		if (host.getVMAllocation(event.getVmId()) == null) {
+			throw new RuntimeException(simulation.getSimulationTime() + " Attempted to migrate VM #" + event.getVmId() + " from Host #" + host.getId() + " to Host #" + targetHost.getId() +
+					" - Failed as VM is not present on source host");
+		}
+		
 		Vm vm = host.getVMAllocation(event.getVmId()).getVm();
 		
 		//create an allocation request for the target
