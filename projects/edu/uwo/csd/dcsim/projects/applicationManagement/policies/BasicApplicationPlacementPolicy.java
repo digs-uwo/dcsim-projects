@@ -2,19 +2,13 @@ package edu.uwo.csd.dcsim.projects.applicationManagement.policies;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 
 import edu.uwo.csd.dcsim.application.*;
-import edu.uwo.csd.dcsim.common.Utility;
 import edu.uwo.csd.dcsim.core.Event;
-import edu.uwo.csd.dcsim.host.Host;
 import edu.uwo.csd.dcsim.host.Resources;
 import edu.uwo.csd.dcsim.management.HostData;
-import edu.uwo.csd.dcsim.management.HostDataComparator;
-import edu.uwo.csd.dcsim.management.HostStatus;
 import edu.uwo.csd.dcsim.management.Policy;
 import edu.uwo.csd.dcsim.management.VmStatus;
-import edu.uwo.csd.dcsim.management.VmStatusComparator;
 import edu.uwo.csd.dcsim.management.action.InstantiateVmAction;
 import edu.uwo.csd.dcsim.management.capabilities.HostPoolManager;
 import edu.uwo.csd.dcsim.management.events.ApplicationPlacementEvent;
@@ -23,18 +17,10 @@ import edu.uwo.csd.dcsim.projects.applicationManagement.events.*;
 import edu.uwo.csd.dcsim.vm.VmAllocationRequest;
 import edu.uwo.csd.dcsim.vm.VmDescription;
 
-public class ApplicationPlacementPolicy extends Policy {
+public class BasicApplicationPlacementPolicy extends Policy {
 
-	protected double lowerThreshold;
-	protected double upperThreshold;
-	protected double targetUtilization;
-	
-	public ApplicationPlacementPolicy(double lowerThreshold, double upperThreshold, double targetUtilization) {
+	public BasicApplicationPlacementPolicy() {
 		addRequiredCapability(HostPoolManager.class);
-		
-		this.lowerThreshold = lowerThreshold;
-		this.upperThreshold = upperThreshold;
-		this.targetUtilization = targetUtilization;
 	}
 	
 	public void execute(ApplicationPlacementEvent event) {
@@ -74,25 +60,24 @@ public class ApplicationPlacementPolicy extends Policy {
 	private boolean place(Collection<VmAllocationRequest> requests, Collection<HostData> hosts, Event placementEvent) {
 		
 		ArrayList<InstantiateVmAction> actions = new ArrayList<InstantiateVmAction>();
+		
+		//filter out invalid host status
+		Collection<HostData> targets = new ArrayList<HostData>(); 
+		for (HostData host : hosts) {
+			if (host.isStatusValid()) {
+				targets.add(host);
+			}
+		}
 				
 		//reset the sandbox host status to the current host status
-		for (HostData host : hosts) {
-			host.resetSandboxStatusToCurrent();
+		for (HostData target : targets) {
+			target.resetSandboxStatusToCurrent();
 		}
-		
-		// Categorize hosts.
-		ArrayList<HostData> partiallyUtilized = new ArrayList<HostData>();
-		ArrayList<HostData> underUtilized = new ArrayList<HostData>();
-		ArrayList<HostData> empty = new ArrayList<HostData>();
-		
-		this.classifyHosts(partiallyUtilized, underUtilized, empty, hosts);
-		
-		// Create target hosts list.
-		ArrayList<HostData> targets = this.orderTargetHosts(partiallyUtilized, underUtilized, empty);
 		
 		for (VmAllocationRequest request : requests) {
 			
 			HostData allocatedHost = null;
+			
 			for (HostData target : targets) {
 				Resources reqResources = new Resources();
 				reqResources.setCpu(request.getCpu());
@@ -105,7 +90,7 @@ public class ApplicationPlacementPolicy extends Policy {
 						reqResources,
 						target.getSandboxStatus(),
 						target.getHostDescription()) &&
-						(target.getSandboxStatus().getResourcesInUse().getCpu() + request.getCpu()) / target.getHostDescription().getResourceCapacity().getCpu() <= targetUtilization)
+						(target.getHostDescription().getResourceCapacity().getCpu() - target.getSandboxStatus().getCpuAllocated()) >= request.getCpu()) //effectively disable overcommitting for initial placement
 						{
 					
 					allocatedHost = target;
@@ -139,72 +124,7 @@ public class ApplicationPlacementPolicy extends Policy {
 	}
 	
 	public void execute(ShutdownApplicationEvent event) {
-		//TODO: handle
-	}
-	
-	/**
-	 * Classifies hosts as Partially-Utilized, Underutilized or Empty based on 
-	 * the hosts' average CPU utilization over the last window of time.
-	 */
-	protected void classifyHosts(ArrayList<HostData> partiallyUtilized, 
-			ArrayList<HostData> underUtilized, 
-			ArrayList<HostData> empty, 
-			Collection<HostData> hosts) {
 		
-		for (HostData host : hosts) {
-			
-			// Filter out hosts with a currently invalid status.
-			if (host.isStatusValid()) {
-				
-				// Calculate host's avg CPU utilization over the last window of time.
-				double avgCpuInUse = 0;
-				int count = 0;
-				for (HostStatus status : host.getHistory()) {
-					// Only consider times when the host is powered on.
-					if (status.getState() == Host.HostState.ON) {
-						avgCpuInUse += status.getResourcesInUse().getCpu();
-						++count;
-					}
-					else
-						break;
-				}
-				if (count != 0) {
-					avgCpuInUse = avgCpuInUse / count;
-				}
-				
-				double avgCpuUtilization = Utility.roundDouble(avgCpuInUse / host.getHostDescription().getResourceCapacity().getCpu());
-				
-				// Classify hosts.
-				if (host.getCurrentStatus().getVms().size() == 0) {
-					empty.add(host);
-				} else if (avgCpuUtilization < lowerThreshold) {
-					underUtilized.add(host);
-				} else if (avgCpuUtilization <= upperThreshold) {
-					partiallyUtilized.add(host);
-				}
-			}
-		}
-	}
-	
-	protected ArrayList<HostData> orderTargetHosts(ArrayList<HostData> partiallyUtilized, ArrayList<HostData> underUtilized, ArrayList<HostData> empty) {
-		ArrayList<HostData> targets = new ArrayList<HostData>();
-		
-		// Sort Partially-utilized in increasing order by <CPU utilization, power efficiency>.
-		Collections.sort(partiallyUtilized, HostDataComparator.getComparator(HostDataComparator.CPU_UTIL, HostDataComparator.EFFICIENCY));
-		
-		// Sort Underutilized hosts in decreasing order by <CPU utilization, power efficiency>.
-		Collections.sort(underUtilized, HostDataComparator.getComparator(HostDataComparator.CPU_UTIL, HostDataComparator.EFFICIENCY));
-		Collections.reverse(underUtilized);
-		
-		// Sort Empty hosts in decreasing order by <power efficiency, power state>.
-		Collections.sort(empty, HostDataComparator.getComparator(HostDataComparator.EFFICIENCY, HostDataComparator.PWR_STATE));
-		Collections.reverse(empty);
-		
-		targets.addAll(partiallyUtilized);
-		targets.addAll(underUtilized);
-		targets.addAll(empty);
-		
-		return targets;
 	}
 	
 	@Override

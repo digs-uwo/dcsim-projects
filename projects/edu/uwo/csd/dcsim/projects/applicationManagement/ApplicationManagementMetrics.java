@@ -15,6 +15,19 @@ public class ApplicationManagementMetrics extends MetricCollection {
 	public int instancesRemoved = 0;
 	public int instancePlacementsFailed = 0;
 	
+	public int managerExecutions = 0;
+	public int scaleUpRelief = 0;
+	public int scaleDownStress = 0;
+	public int scaleDownStressMinor = 0;
+	public int scaleDownShutdown = 0;
+	public int stressMigration = 0;
+	public int underMigration = 0;
+	public int scaleUp = 0;
+	public int scaleDown = 0;
+	public int shutdownAttempts = 0;
+	public int shutdowns = 0;
+	public int emptyShutdown = 0;
+	
 	public ApplicationManagementMetrics(Simulation simulation) {
 		super(simulation);
 		// TODO Auto-generated constructor stub
@@ -33,6 +46,19 @@ public class ApplicationManagementMetrics extends MetricCollection {
 		out.info("   added: " + instancesAdded);
 		out.info("   removed: " + instancesRemoved);
 		out.info("   failed: " + instancePlacementsFailed);
+		out.info("Policy Actions");
+		out.info("   managerExecutions: " + managerExecutions);
+		out.info("   scaleUpRelief: " + scaleUpRelief);
+		out.info("   scaleDownStress: " + scaleDownStress);
+		out.info("   scaleDownStressMinor: " + scaleDownStressMinor);
+		out.info("   scaleDownShutdown: " + scaleDownShutdown);
+		out.info("   stressMigration: " + stressMigration);
+		out.info("   underMigration: " + underMigration);
+		out.info("   scaleUp: " + scaleUp);
+		out.info("   scaleDown: " + scaleDown);
+		out.info("   shutdownAttempts: " + shutdownAttempts);
+		out.info("   shutdowns: " + shutdowns);
+		out.info("   emptyShutdown: " + emptyShutdown);
 	}
 
 	@Override

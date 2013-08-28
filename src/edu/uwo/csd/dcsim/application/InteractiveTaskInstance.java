@@ -2,6 +2,7 @@ package edu.uwo.csd.dcsim.application;
 
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 
+import edu.uwo.csd.dcsim.common.HashCodeUtil;
 import edu.uwo.csd.dcsim.core.Simulation;
 
 /**
@@ -19,8 +20,13 @@ public class InteractiveTaskInstance extends TaskInstance {
 	private DescriptiveStatistics utilizationDeltas = new DescriptiveStatistics(5);
 	private double visitRatio;
 	
+	private final int hashCode;
+	
 	public InteractiveTaskInstance(InteractiveTask task) {
 		this.task = task;
+		
+		//init hashCode
+		hashCode = generateHashCode();
 	}
 
 	@Override
@@ -92,5 +98,18 @@ public class InteractiveTaskInstance extends TaskInstance {
 	public Task getTask() {
 		return task;
 	}
+	
+	@Override
+	public int hashCode() {
+		return hashCode;
+	}
+	
+	private int generateHashCode() {
+		int result = HashCodeUtil.SEED;
+		result = HashCodeUtil.hash(result, task.getId());
+		result = HashCodeUtil.hash(result, task.getInstances().size());
+		return result;
+	}
+	
 	
 }

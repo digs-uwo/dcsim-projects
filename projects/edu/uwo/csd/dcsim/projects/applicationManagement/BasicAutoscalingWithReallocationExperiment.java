@@ -62,7 +62,7 @@ public class BasicAutoscalingWithReallocationExperiment extends SimulationTask {
 //			logger.info(task.getName());
 //			task.getMetrics().printDefault(logger);
 //		}
-		
+//		
 		//output CSV
 		for(SimulationTask task : completedTasks) {
 			if (completedTasks.indexOf(task) == 0) {
@@ -111,15 +111,14 @@ public class BasicAutoscalingWithReallocationExperiment extends SimulationTask {
 			hostPool = new HostPoolManager();
 			dcAM.addCapability(hostPool);
 			
-			dcAM.installPolicy(new HostStatusPolicy(10));
-			dcAM.installPolicy(new ApplicationPlacementPolicy());
-			
 			// Set utilization thresholds.
 			double lower = 0.60;
 			double upper = 0.90;
 			double target = 0.85;
 			
-//			dcAM.installPolicy(new VmPlacementPolicyFFMHybrid(lower, upper, target));
+			dcAM.installPolicy(new HostStatusPolicy(10));
+			dcAM.installPolicy(new ApplicationPlacementPolicy(lower, upper, target));
+			
 			dcAM.installPolicy(new VmRelocationPolicyFFIMDHybrid(lower, upper, target), SimTime.minutes(10), SimTime.minutes(10) + 2);
 			dcAM.installPolicy(new VmConsolidationPolicyFFDDIHybrid(lower, upper, target), SimTime.hours(1), SimTime.hours(1) + 3);
 			

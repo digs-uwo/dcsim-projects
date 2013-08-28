@@ -44,15 +44,15 @@ public class BasicAutoscalingExperiment extends SimulationTask {
 		SimulationExecutor executor = new SimulationExecutor();
 		
 		executor.addTask(new BasicAutoscalingExperiment("autoscaling-1", 6198910678692541341l));
-//		executor.addTask(new BasicAutoscalingExperiment("autoscaling-2", 5646441053220106016l));
-//		executor.addTask(new BasicAutoscalingExperiment("autoscaling-3", -5705302823151233610l));
-//		executor.addTask(new BasicAutoscalingExperiment("autoscaling-4", 8289672009575825404l));
-//		executor.addTask(new BasicAutoscalingExperiment("autoscaling-5", -4637549055860880177l));
-//		executor.addTask(new BasicAutoscalingExperiment("autoscaling-6", -4280782692131378509l));
-//		executor.addTask(new BasicAutoscalingExperiment("autoscaling-7", -1699811527182374894l));
-//		executor.addTask(new BasicAutoscalingExperiment("autoscaling-8", -6452776964812569334l));
-//		executor.addTask(new BasicAutoscalingExperiment("autoscaling-9", -7148920787255940546l));
-//		executor.addTask(new BasicAutoscalingExperiment("autoscaling-10", 8311271444423629559l));		
+		executor.addTask(new BasicAutoscalingExperiment("autoscaling-2", 5646441053220106016l));
+		executor.addTask(new BasicAutoscalingExperiment("autoscaling-3", -5705302823151233610l));
+		executor.addTask(new BasicAutoscalingExperiment("autoscaling-4", 8289672009575825404l));
+		executor.addTask(new BasicAutoscalingExperiment("autoscaling-5", -4637549055860880177l));
+		executor.addTask(new BasicAutoscalingExperiment("autoscaling-6", -4280782692131378509l));
+		executor.addTask(new BasicAutoscalingExperiment("autoscaling-7", -1699811527182374894l));
+		executor.addTask(new BasicAutoscalingExperiment("autoscaling-8", -6452776964812569334l));
+		executor.addTask(new BasicAutoscalingExperiment("autoscaling-9", -7148920787255940546l));
+		executor.addTask(new BasicAutoscalingExperiment("autoscaling-10", 8311271444423629559l));		
 		
 		
 //		completedTasks = executor.execute(); //execute all simulations simultaneously
@@ -93,19 +93,6 @@ public class BasicAutoscalingExperiment extends SimulationTask {
 		Environment environment = new Environment(simulation, 40, 2);
 		environment.createDataCentre(simulation);
 		
-//		Application app1 = environment.createApplication(0, 2);
-//		Application app2 =  environment.createApplication(1, 2);
-//		Application app3 = environment.createApplication(2, 2);
-//		Application app4 = environment.createApplication(3, 2);
-		
-//		simulation.sendEvent(new ApplicationPlacementEvent(environment.getDcAM(), app1));
-//		
-//		simulation.sendEvent(new ApplicationPlacementEvent(environment.getDcAM(), app2), SimTime.minutes(1));
-//		
-//		simulation.sendEvent(new ApplicationPlacementEvent(environment.getDcAM(), app3), SimTime.minutes(2));
-//		
-//		simulation.sendEvent(new ApplicationPlacementEvent(environment.getDcAM(), app4), SimTime.minutes(3));
-		
 		for (int i = 0; i < 20; ++i) {
 			simulation.sendEvent(new ApplicationPlacementEvent(environment.getDcAM(), environment.createApplication()));
 		}
@@ -125,7 +112,7 @@ public class BasicAutoscalingExperiment extends SimulationTask {
 			dcAM.addCapability(hostPool);
 			
 			dcAM.installPolicy(new HostStatusPolicy(10));
-			dcAM.installPolicy(new ApplicationPlacementPolicy());
+			dcAM.installPolicy(new BasicApplicationPlacementPolicy());
 			
 		}
 

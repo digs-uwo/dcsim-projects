@@ -7,6 +7,7 @@ import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 
 import edu.uwo.csd.dcsim.application.Application;
 import edu.uwo.csd.dcsim.application.TaskInstance;
+import edu.uwo.csd.dcsim.common.HashCodeUtil;
 import edu.uwo.csd.dcsim.management.AutonomicManager;
 import edu.uwo.csd.dcsim.management.capabilities.ManagerCapability;
 
@@ -50,11 +51,23 @@ public class ApplicationPoolManager extends ManagerCapability {
 		
 		private long lastScaleUp = Long.MIN_VALUE;
 		
+		private final int hashCode;
+		
 		public ApplicationData (Application application) {
 			this.application = application;
 			
 			applicationResponseTimes = new DescriptiveStatistics(windowSize);
 			applicationResponseTimesLong = new DescriptiveStatistics(longWindowSize);
+			
+			//init hashCode
+			hashCode = generateHashCode();
+		}
+		
+		private int generateHashCode() {
+			int result = HashCodeUtil.SEED;
+			result = HashCodeUtil.hash(result, application.getId());
+			result = HashCodeUtil.hash(result, application.getSimulation().getSimulationTime());
+			return result;
 		}
 		
 		public Application getApplication() {
@@ -113,6 +126,11 @@ public class ApplicationPoolManager extends ManagerCapability {
 		
 		public Map<TaskInstance, DescriptiveStatistics> getInstanceResponseTimesLong() {
 			return instanceResponseTimesLong;
+		}
+		
+		@Override
+		public int hashCode() {
+			return hashCode;
 		}
 		
 	}

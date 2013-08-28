@@ -3,6 +3,7 @@ package edu.uwo.csd.dcsim.application;
 import java.util.*;
 
 import edu.uwo.csd.dcsim.application.sla.ServiceLevelAgreement;
+import edu.uwo.csd.dcsim.common.HashCodeUtil;
 import edu.uwo.csd.dcsim.core.Simulation;
 import edu.uwo.csd.dcsim.host.Host;
 import edu.uwo.csd.dcsim.management.AutonomicManager;
@@ -23,11 +24,15 @@ public abstract class Application {
 	protected Simulation simulation;
 	ServiceLevelAgreement sla = null;
 	private ArrayList<ApplicationListener> applicationListeners = new ArrayList<ApplicationListener>();
+	private final int hashCode;
 	
 	public Application(Simulation simulation) {
 		this.simulation = simulation;
 		simulation.addApplication(this);
 		this.id = simulation.nextId(Application.class.toString());
+		
+		//init hashCode
+		hashCode = generateHashCode();
 	}
 	
 	public abstract void initializeScheduling();
@@ -123,6 +128,18 @@ public abstract class Application {
 	
 	public void setSla(ServiceLevelAgreement sla) {
 		this.sla = sla;
+	}
+	
+	@Override
+	public int hashCode() {
+		return hashCode;
+	}
+	
+	private int generateHashCode() {
+		int result = HashCodeUtil.SEED;
+		result = HashCodeUtil.hash(result, getId());
+		result = HashCodeUtil.hash(result, simulation.getSimulationTime());
+		return result;
 	}
 	
 }

@@ -67,7 +67,10 @@ public class HostStatus {
 		outgoingMigrations = host.outgoingMigrations;
 		state = host.state;
 		
-		startingVmAllocations = host.startingVmAllocations;
+		startingVmAllocations = new ArrayList<Resources>();
+		for (Resources r : host.startingVmAllocations) {
+			startingVmAllocations.add(r.copy());
+		}
 		
 		powerConsumption = host.powerConsumption;
 		
@@ -75,6 +78,10 @@ public class HostStatus {
 		
 		for (VmStatus vm : host.vms) {
 			vms.add(vm.copy());
+		}
+		
+		for (VmStatus vm : host.migratingInVms) {
+			migratingInVms.add(vm.copy());
 		}
 	}
 	
@@ -120,6 +127,10 @@ public class HostStatus {
 	
 	public ArrayList<Resources> getStartingVmAllocations() {
 		return startingVmAllocations;
+	}
+	
+	public ArrayList<VmStatus> getMigratingInVms() {
+		return migratingInVms;
 	}
 	
 	public int getCpuAllocated() {

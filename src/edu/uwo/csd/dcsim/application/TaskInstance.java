@@ -83,4 +83,7 @@ public abstract class TaskInstance  {
 	
 	public abstract Task getTask();
 	
+	@Override
+	public abstract int hashCode();
+
 }

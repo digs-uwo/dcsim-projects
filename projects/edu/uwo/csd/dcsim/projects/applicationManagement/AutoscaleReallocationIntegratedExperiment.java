@@ -41,26 +41,26 @@ public class AutoscaleReallocationIntegratedExperiment extends SimulationTask {
 		List<SimulationTask> completedTasks;
 		SimulationExecutor executor = new SimulationExecutor();
 		
-		executor.addTask(new AutoscaleReallocationIntegratedExperiment("autoscaling-1", 6198910678692541341l));
-//		executor.addTask(new AutoscaleReallocationIntegratedExperiment("autoscaling-2", 5646441053220106016l));
-//		executor.addTask(new AutoscaleReallocationIntegratedExperiment("autoscaling-3", -5705302823151233610l));
-//		executor.addTask(new AutoscaleReallocationIntegratedExperiment("autoscaling-4", 8289672009575825404l));
-//		executor.addTask(new AutoscaleReallocationIntegratedExperiment("autoscaling-5", -4637549055860880177l));
-//		executor.addTask(new AutoscaleReallocationIntegratedExperiment("autoscaling-6", -4280782692131378509l));
-//		executor.addTask(new AutoscaleReallocationIntegratedExperiment("autoscaling-7", -1699811527182374894l));
-//		executor.addTask(new AutoscaleReallocationIntegratedExperiment("autoscaling-8", -6452776964812569334l));
-//		executor.addTask(new AutoscaleReallocationIntegratedExperiment("autoscaling-9", -7148920787255940546l));
-//		executor.addTask(new AutoscaleReallocationIntegratedExperiment("autoscaling-10", 8311271444423629559l));		
-//		
+		executor.addTask(new AutoscaleReallocationIntegratedExperiment("autoscaling-integrated-1", 6198910678692541341l));
+		executor.addTask(new AutoscaleReallocationIntegratedExperiment("autoscaling-integrated-2", 5646441053220106016l));
+		executor.addTask(new AutoscaleReallocationIntegratedExperiment("autoscaling-integrated-3", -5705302823151233610l));
+		executor.addTask(new AutoscaleReallocationIntegratedExperiment("autoscaling-integrated-4", 8289672009575825404l));
+		executor.addTask(new AutoscaleReallocationIntegratedExperiment("autoscaling-integrated-5", -4637549055860880177l));
+		executor.addTask(new AutoscaleReallocationIntegratedExperiment("autoscaling-integrated-6", -4280782692131378509l));
+		executor.addTask(new AutoscaleReallocationIntegratedExperiment("autoscaling-integrated-7", -1699811527182374894l));
+		executor.addTask(new AutoscaleReallocationIntegratedExperiment("autoscaling-integrated-8", -6452776964812569334l));
+		executor.addTask(new AutoscaleReallocationIntegratedExperiment("autoscaling-integrated-9", -7148920787255940546l));
+		executor.addTask(new AutoscaleReallocationIntegratedExperiment("autoscaling-integrated-10", 8311271444423629559l));		
+		
 		
 //		completedTasks = executor.execute(); //execute all simulations simultaneously
-		completedTasks = executor.execute(1); //execute 4 simulations (i.e. 4 threads) at a time
+		completedTasks = executor.execute(4); //execute 4 simulations (i.e. 4 threads) at a time
 		
 //		for(SimulationTask task : completedTasks) {
 //			logger.info(task.getName());
 //			task.getMetrics().printDefault(logger);
 //		}
-		
+//		
 		//output CSV
 		for(SimulationTask task : completedTasks) {
 			if (completedTasks.indexOf(task) == 0) {
@@ -121,7 +121,7 @@ public class AutoscaleReallocationIntegratedExperiment extends SimulationTask {
 			applicationPool.setAutonomicManager(dcAM);
 			
 			dcAM.installPolicy(new HostStatusPolicy(10));
-			dcAM.installPolicy(new ApplicationPlacementPolicy());
+			dcAM.installPolicy(new ApplicationPlacementPolicy(lower, upper, target));
 			dcAM.installPolicy(new ApplicationManagementPolicy(lower, upper, target), SimTime.minutes(5), 0);
 		}
 
