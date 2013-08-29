@@ -1,7 +1,5 @@
 package edu.uwo.csd.dcsim.projects.applicationManagement.policies;
 
-import java.util.Collection;
-
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.apache.commons.math3.stat.regression.SimpleRegression;
 
@@ -20,12 +18,13 @@ import edu.uwo.csd.dcsim.projects.applicationManagement.events.TaskInstanceStatu
 
 public class ApplicationScalingPolicy extends Policy {
 
-	private static final double SLA_WARNING_THRESHOLD = 0.8;
-	private static final double SLA_SAFE_THRESHOLD = 0.6;
-	private static final double scaleDownFreeze = SimTime.minutes(30);
+	private double slaWarningThreshold = 0.8;
+	private double slaSafeThreshold = 0.6;
+	private long scaleDownFreeze = SimTime.minutes(30);
 	
-	private static final double CPU_WARNING_THRESHOLD = 0.9;
-	private static final double CPU_SAFE_THRESHOLD = 0.5;
+	private double cpuSafeThreshold = 0.5;
+	
+	private double cpuWarningThreshold = 0.9;
 	
 	private AutonomicManager dcManager;
 	private boolean slaAware;
@@ -36,6 +35,20 @@ public class ApplicationScalingPolicy extends Policy {
 		this.dcManager = dcManager;
 		
 		this.slaAware = slaAware;
+	}
+	
+	public void setParameters(double slaWarningThreshold, 
+			double slaSafeThreshold,
+			long scaleDownFreeze,
+			double cpuSafeThreshold,
+			double cpuWarningThreshold) {
+		
+		this.slaWarningThreshold = slaWarningThreshold;
+		this.slaSafeThreshold = slaSafeThreshold;
+		this.scaleDownFreeze = scaleDownFreeze;
+		this.cpuSafeThreshold = cpuSafeThreshold;
+		this.cpuWarningThreshold = cpuWarningThreshold;
+		
 	}
 	
 	public void execute(TaskInstanceStatusEvent event) {
@@ -79,7 +92,6 @@ public class ApplicationScalingPolicy extends Policy {
 		boolean slaWarning = false;
 		boolean slaSafe = false;
 		if (app instanceof InteractiveApplication && app.getSla() instanceof InteractiveServiceLevelAgreement) {
-			InteractiveApplication interactiveApp = (InteractiveApplication)app;
 			InteractiveServiceLevelAgreement sla = (InteractiveServiceLevelAgreement)app.getSla();
 			
 			//predict response time for next interval
@@ -90,12 +102,10 @@ public class ApplicationScalingPolicy extends Policy {
 			}
 			
 			double rt = appManager.getApplicationResponseTimes().getMean();
-//			double rt = interactiveApp.getResponseTime();
-//			double rt = regression.predict(appManager.getApplicationResponseTimes().getN());
 			
-			if (rt >= (sla.getResponseTime() * SLA_WARNING_THRESHOLD) && regression.getSlope() > 0) {
+			if (rt >= (sla.getResponseTime() * slaWarningThreshold) && regression.getSlope() > 0) {
 				slaWarning = true;
-			} else if (	rt < (sla.getResponseTime() * SLA_SAFE_THRESHOLD ) && regression.getSlope() < 0) {
+			} else if (	rt < (sla.getResponseTime() * slaSafeThreshold ) && regression.getSlope() < 0) {
 				slaSafe = true;
 			}
 		}
@@ -104,32 +114,18 @@ public class ApplicationScalingPolicy extends Policy {
 
 			//Select Task to scale up
 			Task targetTask = null;
-			double targetSlope = -1 * Double.MAX_VALUE;
 			double targetIncrease = 0;
 			
 			//choose task which has had the fastest increase in response time
 			for (Task task : app.getTasks()) {
-				double avgSlope = 0;
 				double avgIncrease = 0;
 				for (TaskInstance instance : task.getInstances()) {
 					DescriptiveStatistics instanceRTs = appManager.getInstanceResponseTimes().get(instance);
-					SimpleRegression rtRegression = new SimpleRegression();
-					int i = 0;
-					for (double val : instanceRTs.getValues()) {
-						rtRegression.addData(i++, val);
-					}
-					avgSlope += rtRegression.getSlope();
 					
 					double[] vals = instanceRTs.getValues();
 					avgIncrease += vals[vals.length - 1] - vals[0];
 					
 				}
-				
-				avgSlope = avgSlope / task.getInstances().size();
-//				if (avgSlope > targetSlope && avgSlope > 0) {
-//					targetSlope = avgSlope;
-//					targetTask = task;
-//				}
 				
 				avgIncrease = avgIncrease / task.getInstances().size();
 				if (avgIncrease > targetIncrease) {
@@ -159,7 +155,7 @@ public class ApplicationScalingPolicy extends Policy {
 					for (TaskInstance instance : task.getInstances()) {
 						utilization += appManager.getInstanceCpuUtilsLong().get(instance).getMean();
 					}
-					if ((utilization / (task.getInstances().size() - 1)) < CPU_SAFE_THRESHOLD) {
+					if ((utilization / (task.getInstances().size() - 1)) < cpuSafeThreshold) {
 						if (utilization < targetUtil) {
 							targetUtil = utilization;
 							targetTask = task;
@@ -169,17 +165,10 @@ public class ApplicationScalingPolicy extends Policy {
 			}
 			
 			if (targetTask != null) {			
-				double targetHostUtil = -1;
 				TaskInstance targetInstance = null;
 				
-				//choose a task instance to shut down (instance on host with highest utilization to reduce overload risk)
-				for (TaskInstance instance : targetTask.getInstances()) {
-					double util = instance.getVM().getVMAllocation().getHost().getResourceManager().getCpuUtilization();
-					if (util > targetHostUtil) {
-						targetHostUtil = util;
-						targetInstance = instance;
-					}
-				}
+				//choose a task instance to shut down (first task... note that this algorithm does not have knowledge of host state, only task instance/VM states belonging to Application)
+				targetInstance = targetTask.getInstances().get(0);
 				
 				RemoveTaskInstanceAction action = new RemoveTaskInstanceAction(targetInstance);
 				action.execute(simulation, this);
@@ -217,7 +206,7 @@ public class ApplicationScalingPolicy extends Policy {
 			}
 			taskUtil = taskUtil / task.getInstances().size();
 			
-			if (taskUtil > CPU_WARNING_THRESHOLD && taskUtil > targetUtil) {
+			if (taskUtil > cpuWarningThreshold && taskUtil > targetUtil) {
 				targetUtil = taskUtil;
 				targetTask = task;
 			}
@@ -244,7 +233,7 @@ public class ApplicationScalingPolicy extends Policy {
 						utilization += appManager.getInstanceCpuUtils().get(instance).getMean();
 					}
 
-					if ((utilization / (task.getInstances().size() - 1)) < CPU_SAFE_THRESHOLD) {
+					if ((utilization / (task.getInstances().size() - 1)) < cpuSafeThreshold) {
 						if (utilization < targetUtil) {
 							targetUtil = utilization;
 							targetTask = task;
@@ -285,20 +274,17 @@ public class ApplicationScalingPolicy extends Policy {
 	
 	@Override
 	public void onInstall() {
-		// TODO Auto-generated method stub
 		
 	}
 
 	@Override
 	public void onManagerStart() {
-		// TODO Auto-generated method stub
-		
+	
 	}
 
 	@Override
 	public void onManagerStop() {
-		// TODO Auto-generated method stub
-		
+
 	}
 
 }
