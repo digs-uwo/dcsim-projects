@@ -268,47 +268,15 @@ public class ApplicationManagementPolicy extends Policy {
 		
 		// Sort Underutilized hosts in decreasing order by <CPU utilization, power efficiency>.
 		Collections.sort(underUtilized, HostDataComparator.getComparator(HostDataComparator.CPU_UTIL, HostDataComparator.EFFICIENCY));
-		
-		//calculate underutilized host shutdown cost (number of required migrations)
-		HashMap<HostData, Integer> underUtilizedCost = new HashMap<HostData, Integer>();
-		for (HostData host : underUtilized) {
-			int cost = 0;
-			for (Task task : scaleDownTasks) {
-				for (TaskInstance instance : task.getInstances()) {
-					if (instance.getVM().getVMAllocation().getHost().getId() == host.getId()) {
-						++cost;
-						break;
-					}
-				}
-			}
-			cost = host.getCurrentStatus().getVms().size() - cost; //cost = # of VMs - # of VMs that can be removed from down scaling = # of required migrations
-			underUtilizedCost.put(host, cost);
-		}
-		
-		//sort underutilized by increasing cost
-		ArrayList<HostData> sortedUnderUtilized = new ArrayList<HostData>();
-		ArrayList<HostData> unsortedUnderUtilized = new ArrayList<HostData>();
-		unsortedUnderUtilized.addAll(underUtilized);
-		while (unsortedUnderUtilized.size() > 0) {
-			int lowestCost = Integer.MAX_VALUE;
-			HostData lowestCostHost = null;
-			for (HostData host : unsortedUnderUtilized) {
-				if (underUtilizedCost.get(host) < lowestCost) {
-					lowestCost = underUtilizedCost.get(host);
-					lowestCostHost = host;
-				}
-			}
-			sortedUnderUtilized.add(lowestCostHost);
-			unsortedUnderUtilized.remove(lowestCostHost);
-		}
 		Collections.reverse(underUtilized);
+
 		
 		// Sort Empty hosts in decreasing order by <power efficiency, power state>.
 		Collections.sort(empty, HostDataComparator.getComparator(HostDataComparator.EFFICIENCY, HostDataComparator.PWR_STATE));
 		Collections.reverse(empty);
 		
 		targets.addAll(partiallyUtilized);
-		targets.addAll(sortedUnderUtilized);
+		targets.addAll(underUtilized);
 		targets.addAll(empty);
 		
 
@@ -412,10 +380,38 @@ public class ApplicationManagementPolicy extends Policy {
 		scaleUpTasks.clear(); //all scaling up complete
 		
 		
+		//calculate underutilized host shutdown cost (number of required migrations)
+		HashMap<HostData, Integer> underUtilizedCost = new HashMap<HostData, Integer>();
+		for (HostData host : underUtilized) {
+			int cost = 0;
+			for (Task task : scaleDownTasks) {
+				for (TaskInstance instance : task.getInstances()) {
+					if (instance.getVM().getVMAllocation().getHost().getId() == host.getId()) {
+						++cost;
+						break;
+					}
+				}
+			}
+			cost = host.getCurrentStatus().getVms().size() - cost; //cost = # of VMs - # of VMs that can be removed from down scaling = # of required migrations
+			underUtilizedCost.put(host, cost);
+		}
 		
-		
-		// return underutilized to increasing cost 
-		Collections.reverse(sortedUnderUtilized);
+		//sort underutilized by increasing cost
+		ArrayList<HostData> sortedUnderUtilized = new ArrayList<HostData>();
+		ArrayList<HostData> unsortedUnderUtilized = new ArrayList<HostData>();
+		unsortedUnderUtilized.addAll(underUtilized);
+		while (unsortedUnderUtilized.size() > 0) {
+			int lowestCost = Integer.MAX_VALUE;
+			HostData lowestCostHost = null;
+			for (HostData host : unsortedUnderUtilized) {
+				if (underUtilizedCost.get(host) < lowestCost) {
+					lowestCost = underUtilizedCost.get(host);
+					lowestCostHost = host;
+				}
+			}
+			sortedUnderUtilized.add(lowestCostHost);
+			unsortedUnderUtilized.remove(lowestCostHost);
+		}
 		
 		//attempt to shutdown underutilized hosts not chosen as targets
 		ArrayList<HostData> usedSources = new ArrayList<HostData>();
@@ -511,7 +507,7 @@ public class ApplicationManagementPolicy extends Policy {
 			
 		//complete scale down actions for applications that have not had their scaling executed in previous steps
 		for (Task task : scaleDownTasks) {
-			double targetHostUtil = Double.MAX_VALUE;
+			double targetHostUtil = -1;
 			TaskInstance targetInstance = null;
 			
 			//choose a task instance to shut down (instance on host with lowest utilization)
@@ -520,7 +516,7 @@ public class ApplicationManagementPolicy extends Policy {
 				
 				if (util == 1)	System.out.println(simulation.getSimulationTime() + " " + util + " host#" + instance.getVM().getVMAllocation().getHost().getId());
 				
-				if (util < targetHostUtil) {
+				if (util > targetHostUtil) {
 					targetHostUtil = util;
 					targetInstance = instance;
 				}

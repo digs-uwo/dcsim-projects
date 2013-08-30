@@ -82,60 +82,6 @@ public class StaticFullAllocationExperiment extends SimulationTask {
 
 	}
 	
-	public static void runSimulationSet(PrintStream out, 
-			boolean slaAware,
-			double slaWarningThreshold, 
-			double slaSafeThreshold,
-			long scaleDownFreeze,
-			double cpuSafeThreshold,
-			double cpuWarningThreshold,
-			int shortWindow,
-			int longWindow,
-			long scalingInterval) {
-		
-		logger.info("Started New Simulation Set");
-		logger.info(slaAware + "," + slaWarningThreshold + "," + slaSafeThreshold + "," + SimTime.toMinutes(scaleDownFreeze) + "," + cpuSafeThreshold + "," + cpuWarningThreshold +
-				"," + shortWindow + "," + longWindow + "," + SimTime.toMinutes(scalingInterval));
-		
-		List<SimulationTask> completedTasks;
-		SimulationExecutor executor = new SimulationExecutor();
-		for (int i = 0; i < 10; ++i)  {
-			StaticFullAllocationExperiment e = new StaticFullAllocationExperiment("autoscaling-" + (i + 1), randomSeeds[i]);
-			e.setParameters(slaAware, slaWarningThreshold, slaSafeThreshold, scaleDownFreeze, cpuSafeThreshold, cpuWarningThreshold, shortWindow, longWindow, scalingInterval);
-			executor.addTask(e);
-		}
-		
-		completedTasks = executor.execute(4);
-		
-		//output CSV
-		out.println("Autoscale Experiment");
-		out.println("slaAware, slaWarningThreshold, slaSafeThreshold, scaleDownFreeze, cpuSafeThreshold, cpuWarningThreshold, shortWindow, longWindow, scalingInterval");
-		out.println(slaAware + "," + slaWarningThreshold + "," + slaSafeThreshold + "," + SimTime.toMinutes(scaleDownFreeze) + "," + cpuSafeThreshold + "," + cpuWarningThreshold +
-				"," + shortWindow + "," + longWindow + "," + SimTime.toMinutes(scalingInterval));
-		for(SimulationTask task : completedTasks) {
-			if (completedTasks.indexOf(task) == 0) {
-				task.getMetrics().printCSV(out);
-			} else {
-				task.getMetrics().printCSV(out, false);
-			}
-		}
-		out.println("");
-		out.println("");
-		
-		out.flush();
-		
-	}
-	
-	private boolean slaAware = true;
-	private double slaWarningThreshold = 0.8;
-	private double slaSafeThreshold = 0.6;
-	private long scaleDownFreeze = SimTime.minutes(30);
-	private double cpuSafeThreshold = 0.5;
-	private double cpuWarningThreshold = 0.9;
-	private int shortWindow = 5;
-	private int longWindow = 30;
-	private long scalingInterval = SimTime.minutes(5);
-	
 	public StaticFullAllocationExperiment(String name) {
 		super(name, DURATION);
 		this.setMetricRecordStart(METRIC_RECORD_START);
@@ -147,37 +93,16 @@ public class StaticFullAllocationExperiment extends SimulationTask {
 		this.setRandomSeed(randomSeed);
 	}
 
-	public void setParameters(boolean slaAware,
-			double slaWarningThreshold, 
-			double slaSafeThreshold,
-			long scaleDownFreeze,
-			double cpuSafeThreshold,
-			double cpuWarningThreshold,
-			int shortWindow,
-			int longWindow,
-			long scalingInterval) {
-		
-		this.slaAware = slaAware;
-		this.slaWarningThreshold = slaWarningThreshold;
-		this.slaSafeThreshold = slaSafeThreshold;
-		this.scaleDownFreeze = scaleDownFreeze;
-		this.cpuSafeThreshold = cpuSafeThreshold;
-		this.cpuWarningThreshold = cpuWarningThreshold;
-		this.shortWindow = shortWindow;
-		this.longWindow = longWindow;
-		this.scalingInterval = scalingInterval;
-		
-	}
-	
+
 	@Override
 	public void setup(Simulation simulation) {
 		
 		simulation.getSimulationMetrics().addCustomMetricCollection(new ApplicationManagementMetrics(simulation));
 		
-		Environment environment = new Environment(simulation, 40, 2);
+		Environment environment = new Environment(simulation, 40, 5);
 		environment.createDataCentre(simulation);
 		
-		for (int i = 0; i < 20; ++i) {
+		for (int i = 0; i < 50; ++i) {
 			simulation.sendEvent(new ApplicationPlacementEvent(environment.getDcAM(), environment.createApplication(true)));
 		}
 	}
@@ -213,16 +138,7 @@ public class StaticFullAllocationExperiment extends SimulationTask {
 
 		@Override
 		public void processApplication(InteractiveApplication application) {
-//			AutonomicManager manager = new AutonomicManager(simulation);
-//			ApplicationManager applicationManager = new ApplicationManager(application, shortWindow, longWindow);
-//			manager.addCapability(applicationManager);
-//			applicationManager.setAutonomicManager(manager);
-			
-//			ApplicationScalingPolicy appPolicy = new ApplicationScalingPolicy(dcAM, slaAware);
-//			appPolicy.setParameters(slaWarningThreshold, slaSafeThreshold, scaleDownFreeze, cpuSafeThreshold, cpuWarningThreshold);
-//			manager.installPolicy(appPolicy, scalingInterval, 0);
-			
-//			application.addApplicationListener(new ManagedApplicationListener(simulation, applicationManager));
+
 		}
 		
 	}
