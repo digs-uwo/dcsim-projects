@@ -61,99 +61,137 @@ public class BasicAutoscalingExperiment extends SimulationTask {
 		 * SLA AWARE
 		 */
 		
-		//autoscaling interval
-		runSimulationSet(printStream, true, 0.8, 0.6, SimTime.minutes(30), 0.5, 0.9, 5, 30, SimTime.minutes(5));
-		runSimulationSet(printStream, true, 0.8, 0.6, SimTime.minutes(30), 0.5, 0.9, 5, 30, SimTime.minutes(10));
-		runSimulationSet(printStream, true, 0.8, 0.6, SimTime.minutes(30), 0.5, 0.9, 5, 30, SimTime.minutes(15));
-
-		//adjust sla warning
-		runSimulationSet(printStream, true, 0.9, 0.6, SimTime.minutes(30), 0.5, 0.9, 5, 30, SimTime.minutes(5));
-		runSimulationSet(printStream, true, 0.7, 0.6, SimTime.minutes(30), 0.5, 0.9, 5, 30, SimTime.minutes(5));
-		runSimulationSet(printStream, true, 0.6, 0.6, SimTime.minutes(30), 0.5, 0.9, 5, 30, SimTime.minutes(5));
-
-		//adjust sla safe
-		runSimulationSet(printStream, true, 0.8, 0.7, SimTime.minutes(30), 0.5, 0.9, 5, 30, SimTime.minutes(5));
-		runSimulationSet(printStream, true, 0.8, 0.5, SimTime.minutes(30), 0.5, 0.9, 5, 30, SimTime.minutes(5));
-		runSimulationSet(printStream, true, 0.8, 0.4, SimTime.minutes(30), 0.5, 0.9, 5, 30, SimTime.minutes(5));
+//		//autoscaling interval
+//		runSimulationSet(printStream, true, 0.8, 0.6, SimTime.minutes(30), 0.5, 0.9, 5, 30, SimTime.minutes(5));
+//		runSimulationSet(printStream, true, 0.8, 0.6, SimTime.minutes(30), 0.5, 0.9, 5, 30, SimTime.minutes(10));
+//		runSimulationSet(printStream, true, 0.8, 0.6, SimTime.minutes(30), 0.5, 0.9, 5, 30, SimTime.minutes(15));
+//
+//		//adjust sla warning
+//		runSimulationSet(printStream, true, 0.9, 0.6, SimTime.minutes(30), 0.5, 0.9, 5, 30, SimTime.minutes(5));
+//		runSimulationSet(printStream, true, 0.7, 0.6, SimTime.minutes(30), 0.5, 0.9, 5, 30, SimTime.minutes(5));
+//		runSimulationSet(printStream, true, 0.6, 0.6, SimTime.minutes(30), 0.5, 0.9, 5, 30, SimTime.minutes(5));
+//
+//		//adjust sla safe
+//		runSimulationSet(printStream, true, 0.8, 0.7, SimTime.minutes(30), 0.5, 0.9, 5, 30, SimTime.minutes(5));
+//		runSimulationSet(printStream, true, 0.8, 0.5, SimTime.minutes(30), 0.5, 0.9, 5, 30, SimTime.minutes(5));
+//		runSimulationSet(printStream, true, 0.8, 0.4, SimTime.minutes(30), 0.5, 0.9, 5, 30, SimTime.minutes(5));
+//		
+//		//adjust cpu safe
+//		runSimulationSet(printStream, true, 0.8, 0.6, SimTime.minutes(30), 0.6, 0.9, 5, 30, SimTime.minutes(5));
+//		runSimulationSet(printStream, true, 0.8, 0.6, SimTime.minutes(30), 0.4, 0.9, 5, 30, SimTime.minutes(5));
+//		runSimulationSet(printStream, true, 0.8, 0.6, SimTime.minutes(30), 0.3, 0.9, 5, 30, SimTime.minutes(5));
+//		
+//		//adjust sla safe with cpu safe
+//		runSimulationSet(printStream, true, 0.8, 0.7, SimTime.minutes(30), 0.6, 0.9, 5, 30, SimTime.minutes(5));
+//		runSimulationSet(printStream, true, 0.8, 0.5, SimTime.minutes(30), 0.4, 0.9, 5, 30, SimTime.minutes(5));
+//		runSimulationSet(printStream, true, 0.8, 0.4, SimTime.minutes(30), 0.3, 0.9, 5, 30, SimTime.minutes(5));
+//		
+//		//both sla high
+//		runSimulationSet(printStream, true, 0.9, 0.7, SimTime.minutes(30), 0.5, 0.9, 5, 30, SimTime.minutes(5));
+//		
+//		//both sla low
+//		runSimulationSet(printStream, true, 0.6, 0.4, SimTime.minutes(30), 0.5, 0.9, 5, 30, SimTime.minutes(5));
+//		
+//		//sla split high low
+//		runSimulationSet(printStream, true, 0.9, 0.4, SimTime.minutes(30), 0.5, 0.9, 5, 30, SimTime.minutes(5));
+//		runSimulationSet(printStream, true, 0.6, 0.6, SimTime.minutes(30), 0.5, 0.9, 5, 30, SimTime.minutes(5));
+//		
+//		//adjust scale down freeze
+//		runSimulationSet(printStream, true, 0.8, 0.6, SimTime.minutes(5), 0.5, 0.9, 5, 30, SimTime.minutes(5));
+//		runSimulationSet(printStream, true, 0.8, 0.6, SimTime.minutes(10), 0.5, 0.9, 5, 30, SimTime.minutes(5));
+//		runSimulationSet(printStream, true, 0.8, 0.6, SimTime.minutes(20), 0.5, 0.9, 5, 30, SimTime.minutes(5));
+//		runSimulationSet(printStream, true, 0.8, 0.6, SimTime.minutes(45), 0.5, 0.9, 5, 30, SimTime.minutes(5));
+//		runSimulationSet(printStream, true, 0.8, 0.6, SimTime.minutes(60), 0.5, 0.9, 5, 30, SimTime.minutes(5));
+//		
+//		//adjust window sizes
+//		runSimulationSet(printStream, true, 0.8, 0.6, SimTime.minutes(30), 0.5, 0.9, 1, 1, SimTime.minutes(5));
+//		runSimulationSet(printStream, true, 0.8, 0.6, SimTime.minutes(30), 0.5, 0.9, 5, 10, SimTime.minutes(5));
+//		runSimulationSet(printStream, true, 0.8, 0.6, SimTime.minutes(30), 0.5, 0.9, 5, 20, SimTime.minutes(5));
+//		runSimulationSet(printStream, true, 0.8, 0.6, SimTime.minutes(30), 0.5, 0.9, 10, 5, SimTime.minutes(5));
+//		runSimulationSet(printStream, true, 0.8, 0.6, SimTime.minutes(30), 0.5, 0.9, 10, 20, SimTime.minutes(5));
+//		runSimulationSet(printStream, true, 0.8, 0.6, SimTime.minutes(30), 0.5, 0.9, 10, 30, SimTime.minutes(5));
+//		runSimulationSet(printStream, true, 0.8, 0.6, SimTime.minutes(30), 0.5, 0.9, 20, 30, SimTime.minutes(5));
+//		runSimulationSet(printStream, true, 0.8, 0.6, SimTime.minutes(30), 0.5, 0.9, 30, 30, SimTime.minutes(5));
 		
-		//adjust cpu safe
-		runSimulationSet(printStream, true, 0.8, 0.6, SimTime.minutes(30), 0.6, 0.9, 5, 30, SimTime.minutes(5));
-		runSimulationSet(printStream, true, 0.8, 0.6, SimTime.minutes(30), 0.4, 0.9, 5, 30, SimTime.minutes(5));
-		runSimulationSet(printStream, true, 0.8, 0.6, SimTime.minutes(30), 0.3, 0.9, 5, 30, SimTime.minutes(5));
 		
-		//adjust sla safe with cpu safe
-		runSimulationSet(printStream, true, 0.8, 0.7, SimTime.minutes(30), 0.6, 0.9, 5, 30, SimTime.minutes(5));
-		runSimulationSet(printStream, true, 0.8, 0.5, SimTime.minutes(30), 0.4, 0.9, 5, 30, SimTime.minutes(5));
-		runSimulationSet(printStream, true, 0.8, 0.4, SimTime.minutes(30), 0.3, 0.9, 5, 30, SimTime.minutes(5));
+//		//sla warn high, CPU safe high
+//		runSimulationSet(printStream, true, 0.9, 0.6, SimTime.minutes(60), 0.5, 0.9, 5, 30, SimTime.minutes(5));
+//		
+//		//sla warn high, CPU safe low
+//		runSimulationSet(printStream, true, 0.9, 0.6, SimTime.minutes(60), 0.3, 0.9, 5, 30, SimTime.minutes(5));
+//		
+//		//sla warn low, CPU safe high
+//		runSimulationSet(printStream, true, 0.6, 0.6, SimTime.minutes(60), 0.5, 0.9, 5, 30, SimTime.minutes(5));
+//		
+//		//sla warn low, CPU safe low
+//		runSimulationSet(printStream, true, 0.6, 0.6, SimTime.minutes(60), 0.3, 0.9, 5, 30, SimTime.minutes(5));
 		
-		//both sla high
-		runSimulationSet(printStream, true, 0.9, 0.7, SimTime.minutes(30), 0.5, 0.9, 5, 30, SimTime.minutes(5));
-		
-		//both sla low
-		runSimulationSet(printStream, true, 0.6, 0.4, SimTime.minutes(30), 0.5, 0.9, 5, 30, SimTime.minutes(5));
-		
-		//sla split high low
-		runSimulationSet(printStream, true, 0.9, 0.4, SimTime.minutes(30), 0.5, 0.9, 5, 30, SimTime.minutes(5));
-		runSimulationSet(printStream, true, 0.6, 0.6, SimTime.minutes(30), 0.5, 0.9, 5, 30, SimTime.minutes(5));
-		
-		//adjust scale down freeze
-		runSimulationSet(printStream, true, 0.8, 0.6, SimTime.minutes(5), 0.5, 0.9, 5, 30, SimTime.minutes(5));
-		runSimulationSet(printStream, true, 0.8, 0.6, SimTime.minutes(10), 0.5, 0.9, 5, 30, SimTime.minutes(5));
-		runSimulationSet(printStream, true, 0.8, 0.6, SimTime.minutes(20), 0.5, 0.9, 5, 30, SimTime.minutes(5));
-		runSimulationSet(printStream, true, 0.8, 0.6, SimTime.minutes(45), 0.5, 0.9, 5, 30, SimTime.minutes(5));
-		runSimulationSet(printStream, true, 0.8, 0.6, SimTime.minutes(60), 0.5, 0.9, 5, 30, SimTime.minutes(5));
-		
-		//adjust window sizes
-		runSimulationSet(printStream, true, 0.8, 0.6, SimTime.minutes(30), 0.5, 0.9, 1, 1, SimTime.minutes(5));
-		runSimulationSet(printStream, true, 0.8, 0.6, SimTime.minutes(30), 0.5, 0.9, 5, 10, SimTime.minutes(5));
-		runSimulationSet(printStream, true, 0.8, 0.6, SimTime.minutes(30), 0.5, 0.9, 5, 20, SimTime.minutes(5));
-		runSimulationSet(printStream, true, 0.8, 0.6, SimTime.minutes(30), 0.5, 0.9, 10, 5, SimTime.minutes(5));
-		runSimulationSet(printStream, true, 0.8, 0.6, SimTime.minutes(30), 0.5, 0.9, 10, 20, SimTime.minutes(5));
-		runSimulationSet(printStream, true, 0.8, 0.6, SimTime.minutes(30), 0.5, 0.9, 10, 30, SimTime.minutes(5));
-		runSimulationSet(printStream, true, 0.8, 0.6, SimTime.minutes(30), 0.5, 0.9, 20, 30, SimTime.minutes(5));
-		runSimulationSet(printStream, true, 0.8, 0.6, SimTime.minutes(30), 0.5, 0.9, 30, 30, SimTime.minutes(5));
+		//sla warn very low, CPU safe low
+//		runSimulationSet(printStream, true, 0.5, 0.6, SimTime.minutes(60), 0.3, 0.9, 5, 30, SimTime.minutes(5));
+//		runSimulationSet(printStream, true, 0.4, 0.6, SimTime.minutes(60), 0.3, 0.9, 5, 30, SimTime.minutes(5));
+//		runSimulationSet(printStream, true, 0.3, 0.6, SimTime.minutes(60), 0.3, 0.9, 5, 30, SimTime.minutes(5));
+//		runSimulationSet(printStream, true, 0.2, 0.6, SimTime.minutes(60), 0.3, 0.9, 5, 30, SimTime.minutes(5));		
+//		
+		//higher values for the long window
 		
 		/*
 		 * CPU ONLY 
 		 */
 		
-		//autoscaling interval
-		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(30), 0.5, 0.9, 5, 30, SimTime.minutes(5));
-		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(30), 0.5, 0.9, 5, 30, SimTime.minutes(10));
-		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(30), 0.5, 0.9, 5, 30, SimTime.minutes(15));
+//		//autoscaling interval
+//		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(30), 0.5, 0.9, 5, 30, SimTime.minutes(5));
+//		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(30), 0.5, 0.9, 5, 30, SimTime.minutes(10));
+//		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(30), 0.5, 0.9, 5, 30, SimTime.minutes(15));
+//		
+//		//adjust CPU warning
+//		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(30), 0.5, 0.95, 5, 30, SimTime.minutes(5));
+//		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(30), 0.5, 0.8, 5, 30, SimTime.minutes(5));
+//		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(30), 0.5, 0.7, 5, 30, SimTime.minutes(5));
+//		
+//		//adjust CPU safe
+//		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(30), 0.6, 0.8, 5, 30, SimTime.minutes(5));
+//		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(30), 0.4, 0.8, 5, 30, SimTime.minutes(5));
+//		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(30), 0.3, 0.8, 5, 30, SimTime.minutes(5));
+//		
+//		//both high
+//		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(30), 0.6, 0.95, 5, 30, SimTime.minutes(5));
+//		
+//		//both low
+//		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(30), 0.3, 0.7, 5, 30, SimTime.minutes(5));
+//		
+//		//adjust scale down freeze
+//		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(5), 0.5, 0.9, 5, 30, SimTime.minutes(5));
+//		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(10), 0.5, 0.9, 5, 30, SimTime.minutes(5));
+//		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(20), 0.5, 0.9, 5, 30, SimTime.minutes(5));
+//		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(45), 0.5, 0.9, 5, 30, SimTime.minutes(5));
+//		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(60), 0.5, 0.9, 5, 30, SimTime.minutes(5));
+//		
+//		//adjust window sizes
+//		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(30), 0.5, 0.9, 1, 1, SimTime.minutes(5));
+//		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(30), 0.5, 0.9, 5, 10, SimTime.minutes(5));
+//		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(30), 0.5, 0.9, 5, 20, SimTime.minutes(5));
+//		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(30), 0.5, 0.9, 10, 5, SimTime.minutes(5));
+//		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(30), 0.5, 0.9, 10, 20, SimTime.minutes(5));
+//		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(30), 0.5, 0.9, 10, 30, SimTime.minutes(5));
+//		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(30), 0.5, 0.9, 20, 30, SimTime.minutes(5));
+//		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(30), 0.5, 0.9, 30, 30, SimTime.minutes(5));
 		
-		//adjust CPU warning
-		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(30), 0.5, 0.95, 5, 30, SimTime.minutes(5));
-		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(30), 0.5, 0.8, 5, 30, SimTime.minutes(5));
-		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(30), 0.5, 0.7, 5, 30, SimTime.minutes(5));
+		//TODO:
+		//use long scale down freeze (60 minutes)
 		
-		//adjust CPU safe
-		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(30), 0.6, 0.8, 5, 30, SimTime.minutes(5));
-		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(30), 0.4, 0.8, 5, 30, SimTime.minutes(5));
-		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(30), 0.3, 0.8, 5, 30, SimTime.minutes(5));
 		
-		//both high
-		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(30), 0.6, 0.95, 5, 30, SimTime.minutes(5));
 		
-		//both low
-		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(30), 0.3, 0.7, 5, 30, SimTime.minutes(5));
+		//Try new "best" configurations
+		runSimulationSet(printStream, true, 0.1, 0.1, SimTime.minutes(60), 0.3, 0.9, 5, 30, SimTime.minutes(5)); //SLA SLA+
+//		runSimulationSet(printStream, true, 0.2, 0.1, SimTime.minutes(60), 0.3, 0.9, 5, 30, SimTime.minutes(5)); //SLA SLA
+//		runSimulationSet(printStream, true, 0.9, 0.4, SimTime.minutes(60), 0.3, 0.9, 5, 30, SimTime.minutes(5)); //SLA Operations
+//		runSimulationSet(printStream, true, 0.9, 0.4, SimTime.minutes(60), 0.6, 0.9, 5, 30, SimTime.minutes(5)); //SLA Power
+//		runSimulationSet(printStream, true, 0.5, 0.4, SimTime.minutes(60), 0.3, 0.9, 5, 30, SimTime.minutes(5)); //SLA Balanced
+//
+//		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(60), 0.3, 0.7, 5, 30, SimTime.minutes(5)); //CPU SLA
+//		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(60), 0.5, 0.95, 5, 30, SimTime.minutes(5)); //CPU Ops & Power
+//		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(60), 0.4, 0.8, 5, 30, SimTime.minutes(5));  //CPU Balanced
 		
-		//adjust scale down freeze
-		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(5), 0.5, 0.9, 5, 30, SimTime.minutes(5));
-		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(10), 0.5, 0.9, 5, 30, SimTime.minutes(5));
-		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(20), 0.5, 0.9, 5, 30, SimTime.minutes(5));
-		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(45), 0.5, 0.9, 5, 30, SimTime.minutes(5));
-		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(60), 0.5, 0.9, 5, 30, SimTime.minutes(5));
-		
-		//adjust window sizes
-		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(30), 0.5, 0.9, 1, 1, SimTime.minutes(5));
-		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(30), 0.5, 0.9, 5, 10, SimTime.minutes(5));
-		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(30), 0.5, 0.9, 5, 20, SimTime.minutes(5));
-		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(30), 0.5, 0.9, 10, 5, SimTime.minutes(5));
-		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(30), 0.5, 0.9, 10, 20, SimTime.minutes(5));
-		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(30), 0.5, 0.9, 10, 30, SimTime.minutes(5));
-		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(30), 0.5, 0.9, 20, 30, SimTime.minutes(5));
-		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(30), 0.5, 0.9, 30, 30, SimTime.minutes(5));
 		
 		printStream.close();
 		
@@ -283,10 +321,10 @@ public class BasicAutoscalingExperiment extends SimulationTask {
 		
 		simulation.getSimulationMetrics().addCustomMetricCollection(new ApplicationManagementMetrics(simulation));
 		
-		Environment environment = new Environment(simulation, 40, 2);
+		Environment environment = new Environment(simulation, 40, 4);
 		environment.createDataCentre(simulation);
 		
-		for (int i = 0; i < 20; ++i) {
+		for (int i = 0; i < 50; ++i) {
 			simulation.sendEvent(new ApplicationPlacementEvent(environment.getDcAM(), environment.createApplication()));
 		}
 	}

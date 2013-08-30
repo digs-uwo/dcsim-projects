@@ -104,10 +104,14 @@ public abstract class AppManagementTestEnvironment {
 	public abstract void processHost(Host host, Rack rack, Cluster cluster, DataCentre dc, AutonomicManager dcAM);
 	
 	public Application createApplication() {
-		return createApplication(appGenerationRandom.nextInt(5), appGenerationRandom.nextInt(MAX_APP_SCALE) + 1);
+		return createApplication(appGenerationRandom.nextInt(5), appGenerationRandom.nextInt(MAX_APP_SCALE) + 1, false);
 	}
 	
-	public Application createApplication(int appTemplate, int appScale) {
+	public Application createApplication(boolean fullSize) {
+		return createApplication(appGenerationRandom.nextInt(5), appGenerationRandom.nextInt(MAX_APP_SCALE) + 1, fullSize);
+	}
+	
+	public Application createApplication(int appTemplate, int appScale, boolean fullSize) {
 		++nApps;
 		
 		int trace = appGenerationRandom.nextInt(N_TRACES);		
@@ -119,27 +123,54 @@ public abstract class AppManagementTestEnvironment {
 		
 		switch(appTemplate) {
 		case 0:
-			appBuilder = new InteractiveApplication.Builder(simulation).thinkTime(4)
-			.task(1, appScale, new Resources(2500,1024,0,0), 0.005, 1, loadBalancerBuilder)
-			.task(4, 4 * appScale, new Resources(2500,1024,0,0), 0.02, 1, loadBalancerBuilder)
-			.task(2, 2 * appScale, new Resources(2500,1024,0,0), 0.01, 1, loadBalancerBuilder);
+			if (!fullSize) {
+				appBuilder = new InteractiveApplication.Builder(simulation).thinkTime(4)
+						.task(1, appScale, new Resources(2500,1024,0,0), 0.005, 1, loadBalancerBuilder)
+						.task(4, 4 * appScale, new Resources(2500,1024,0,0), 0.02, 1, loadBalancerBuilder)
+						.task(2, 2 * appScale, new Resources(2500,1024,0,0), 0.01, 1, loadBalancerBuilder);
+			} else {
+				appBuilder = new InteractiveApplication.Builder(simulation).thinkTime(4)
+						.task(appScale, appScale, new Resources(2500,1024,0,0), 0.005, 1, loadBalancerBuilder)
+						.task(4 * appScale, 4 * appScale, new Resources(2500,1024,0,0), 0.02, 1, loadBalancerBuilder)
+						.task(2 * appScale, 2 * appScale, new Resources(2500,1024,0,0), 0.01, 1, loadBalancerBuilder);
+			}
 			break;
 		case 1:
-			appBuilder = new InteractiveApplication.Builder(simulation).thinkTime(4)
-			.task(1, appScale, new Resources(2500,1024,0,0), 0.005, 1, loadBalancerBuilder)
-			.task(4, 4 * appScale, new Resources(2500,1024,0,0), 0.02, 1, loadBalancerBuilder);
+			if (!fullSize) {
+				appBuilder = new InteractiveApplication.Builder(simulation).thinkTime(4)
+						.task(1, appScale, new Resources(2500,1024,0,0), 0.005, 1, loadBalancerBuilder)
+						.task(4, 4 * appScale, new Resources(2500,1024,0,0), 0.02, 1, loadBalancerBuilder);
+			} else {
+				appBuilder = new InteractiveApplication.Builder(simulation).thinkTime(4)
+						.task(appScale, appScale, new Resources(2500,1024,0,0), 0.005, 1, loadBalancerBuilder)
+						.task(4 * appScale, 4 * appScale, new Resources(2500,1024,0,0), 0.02, 1, loadBalancerBuilder);
+			}
 			break;
 		case 2:
-			appBuilder = new InteractiveApplication.Builder(simulation).thinkTime(4)
-			.task(1, appScale, new Resources(2500,1024,0,0), 0.005, 1, loadBalancerBuilder)
-			.task(4, 4 * appScale, new Resources(2500,1024,0,0), 0.02, 1, loadBalancerBuilder)
-			.task(2, 2 * appScale, new Resources(2500,1024,0,0), 0.01, 1, loadBalancerBuilder)
-			.task(1, 1 * appScale, new Resources(2500,1024,0,0), 0.01, 0.5, loadBalancerBuilder)
-			.task(2, 2 * appScale, new Resources(2500,1024,0,0), 0.02, 0.5, loadBalancerBuilder);
+			if (!fullSize) {
+				appBuilder = new InteractiveApplication.Builder(simulation).thinkTime(4)
+						.task(1, appScale, new Resources(2500,1024,0,0), 0.005, 1, loadBalancerBuilder)
+						.task(4, 4 * appScale, new Resources(2500,1024,0,0), 0.02, 1, loadBalancerBuilder)
+						.task(2, 2 * appScale, new Resources(2500,1024,0,0), 0.01, 1, loadBalancerBuilder)
+						.task(1, 1 * appScale, new Resources(2500,1024,0,0), 0.01, 0.5, loadBalancerBuilder)
+						.task(2, 2 * appScale, new Resources(2500,1024,0,0), 0.02, 0.5, loadBalancerBuilder);
+			} else {
+				appBuilder = new InteractiveApplication.Builder(simulation).thinkTime(4)
+						.task(appScale, appScale, new Resources(2500,1024,0,0), 0.005, 1, loadBalancerBuilder)
+						.task(4 * appScale, 4 * appScale, new Resources(2500,1024,0,0), 0.02, 1, loadBalancerBuilder)
+						.task(2 * appScale, 2 * appScale, new Resources(2500,1024,0,0), 0.01, 1, loadBalancerBuilder)
+						.task(1 * appScale, 1 * appScale, new Resources(2500,1024,0,0), 0.01, 0.5, loadBalancerBuilder)
+						.task(2 * appScale, 2 * appScale, new Resources(2500,1024,0,0), 0.02, 0.5, loadBalancerBuilder);
+			}
 			break;
 		case 3:
-			appBuilder = new InteractiveApplication.Builder(simulation).thinkTime(4)
-			.task(1, appScale, new Resources(2500,1024,0,0), 0.01, 1, loadBalancerBuilder);
+			if (fullSize) {
+				appBuilder = new InteractiveApplication.Builder(simulation).thinkTime(4)
+						.task(1, appScale, new Resources(2500,1024,0,0), 0.01, 1, loadBalancerBuilder);
+			} else {
+				appBuilder = new InteractiveApplication.Builder(simulation).thinkTime(4)
+						.task(appScale, appScale, new Resources(2500,1024,0,0), 0.01, 1, loadBalancerBuilder);
+			}
 			break;
 		default: //case 4
 			appBuilder = new InteractiveApplication.Builder(simulation).thinkTime(4)

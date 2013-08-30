@@ -1,5 +1,7 @@
 package edu.uwo.csd.dcsim.projects.applicationManagement;
 
+import java.io.FileNotFoundException;
+import java.io.PrintStream;
 import java.util.List;
 
 import org.apache.log4j.Logger;
@@ -34,27 +36,65 @@ public class AutoscaleReallocationIntegratedExperiment extends SimulationTask {
 //	private static final long DURATION = SimTime.minutes(5);
 	private static final long METRIC_RECORD_START = SimTime.days(1);
 	
+	private static final long[] randomSeeds = {6198910678692541341l,
+		5646441053220106016l,
+		-5705302823151233610l,
+		8289672009575825404l,
+		-4637549055860880177l,
+		-4280782692131378509l,
+		-1699811527182374894l,
+		-6452776964812569334l,
+		-7148920787255940546l,
+		8311271444423629559l};
+	
 	public static void main(String args[]) {
 		Simulation.initializeLogging();
+
+		PrintStream printStream;
+		try {
+			printStream = new PrintStream("out");
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return;
+		}
 		
-		//broadcast
-		List<SimulationTask> completedTasks;
-		SimulationExecutor executor = new SimulationExecutor();
+		//runSimulationSet(out, slaWarningThreshold, slaSafeThreshold, cpuSafeThreshold, upper, target, lower)
 		
-		executor.addTask(new AutoscaleReallocationIntegratedExperiment("autoscaling-integrated-1", 6198910678692541341l));
-		executor.addTask(new AutoscaleReallocationIntegratedExperiment("autoscaling-integrated-2", 5646441053220106016l));
-		executor.addTask(new AutoscaleReallocationIntegratedExperiment("autoscaling-integrated-3", -5705302823151233610l));
-		executor.addTask(new AutoscaleReallocationIntegratedExperiment("autoscaling-integrated-4", 8289672009575825404l));
-		executor.addTask(new AutoscaleReallocationIntegratedExperiment("autoscaling-integrated-5", -4637549055860880177l));
-		executor.addTask(new AutoscaleReallocationIntegratedExperiment("autoscaling-integrated-6", -4280782692131378509l));
-		executor.addTask(new AutoscaleReallocationIntegratedExperiment("autoscaling-integrated-7", -1699811527182374894l));
-		executor.addTask(new AutoscaleReallocationIntegratedExperiment("autoscaling-integrated-8", -6452776964812569334l));
-		executor.addTask(new AutoscaleReallocationIntegratedExperiment("autoscaling-integrated-9", -7148920787255940546l));
-		executor.addTask(new AutoscaleReallocationIntegratedExperiment("autoscaling-integrated-10", 8311271444423629559l));		
+		//with SLA - SLA+ (true, 0.1, 0.1, 0.3, 0.9)
+			//90 - 85 - 60
+		runSimulationSet(printStream, 0.1, 0.1, 0.3, 0.9, 0.85, 0.6);
+//			//90 - 85 - 50
+//		runSimulationSet(printStream, 0.1, 0.1, 0.3, 0.9, 0.85, 0.5);
+//			//85 - 80 - 50
+//		runSimulationSet(printStream, 0.1, 0.1, 0.3, 0.85, 0.80, 0.5);
+//		
+//		//with SLA - Balanced (true, 0.5, 0.4, 0.3, 0.9)
+//			//90 - 85 - 60
+//		runSimulationSet(printStream, 0.5, 0.4, 0.3, 0.9, 0.85, 0.6);
+//			//90 - 85 - 50
+//		runSimulationSet(printStream, 0.5, 0.4, 0.3, 0.9, 0.85, 0.5);
+//			//85 - 80 - 50
+//		runSimulationSet(printStream, 0.5, 0.4, 0.3, 0.85, 0.8, 0.5);
+
+
+//		List<SimulationTask> completedTasks;
+//		SimulationExecutor executor = new SimulationExecutor();
+		
+//		executor.addTask(new AutoscaleReallocationIntegratedExperiment("autoscaling-integrated-1", 6198910678692541341l));
+//		executor.addTask(new AutoscaleReallocationIntegratedExperiment("autoscaling-integrated-2", 5646441053220106016l));
+//		executor.addTask(new AutoscaleReallocationIntegratedExperiment("autoscaling-integrated-3", -5705302823151233610l));
+//		executor.addTask(new AutoscaleReallocationIntegratedExperiment("autoscaling-integrated-4", 8289672009575825404l));
+//		executor.addTask(new AutoscaleReallocationIntegratedExperiment("autoscaling-integrated-5", -4637549055860880177l));
+//		executor.addTask(new AutoscaleReallocationIntegratedExperiment("autoscaling-integrated-6", -4280782692131378509l));
+//		executor.addTask(new AutoscaleReallocationIntegratedExperiment("autoscaling-integrated-7", -1699811527182374894l));
+//		executor.addTask(new AutoscaleReallocationIntegratedExperiment("autoscaling-integrated-8", -6452776964812569334l));
+//		executor.addTask(new AutoscaleReallocationIntegratedExperiment("autoscaling-integrated-9", -7148920787255940546l));
+//		executor.addTask(new AutoscaleReallocationIntegratedExperiment("autoscaling-integrated-10", 8311271444423629559l));		
 		
 		
 //		completedTasks = executor.execute(); //execute all simulations simultaneously
-		completedTasks = executor.execute(4); //execute 4 simulations (i.e. 4 threads) at a time
+//		completedTasks = executor.execute(4); //execute 4 simulations (i.e. 4 threads) at a time
 		
 //		for(SimulationTask task : completedTasks) {
 //			logger.info(task.getName());
@@ -62,14 +102,60 @@ public class AutoscaleReallocationIntegratedExperiment extends SimulationTask {
 //		}
 //		
 		//output CSV
+//		for(SimulationTask task : completedTasks) {
+//			if (completedTasks.indexOf(task) == 0) {
+//				task.getMetrics().printCSV(System.out);
+//			} else {
+//				task.getMetrics().printCSV(System.out, false);
+//			}
+//		}
+
+	}
+	
+	public static void runSimulationSet(PrintStream out, 
+			double slaWarningThreshold, 
+			double slaSafeThreshold,
+			double cpuSafeThreshold,
+			double upper,
+			double target,
+			double lower) {
+		
+		logger.info("Started New Simulation Set");
+		logger.info(upper + "," + target + "," + lower + "," + slaWarningThreshold + "," + slaSafeThreshold + "," + "," + cpuSafeThreshold);
+		
+		List<SimulationTask> completedTasks;
+		SimulationExecutor executor = new SimulationExecutor();
+		for (int i = 0; i < 1; ++i)  {
+			AutoscaleReallocationIntegratedExperiment e = new AutoscaleReallocationIntegratedExperiment("integrated-" + (i + 1), randomSeeds[i]);
+			e.setParameters(slaWarningThreshold, slaSafeThreshold, cpuSafeThreshold, upper, target, lower);
+			executor.addTask(e);
+		}
+		
+		completedTasks = executor.execute(6);
+		
+		for(SimulationTask task : completedTasks) {
+			logger.info(task.getName());
+			task.getMetrics().printDefault(logger);
+		}
+		
+		//output CSV
+		out.println("Autoscale+Reallocation Experiment");
+		out.println("upper=" + upper + " | target=" + target + " | lower=" + lower +
+				" | slaWarning=" + slaWarningThreshold + " | slaSafe=" + slaSafeThreshold + 
+				" | cpuSafe=" + cpuSafeThreshold);
+		
 		for(SimulationTask task : completedTasks) {
 			if (completedTasks.indexOf(task) == 0) {
-				task.getMetrics().printCSV(System.out);
+				task.getMetrics().printCSV(out);
 			} else {
-				task.getMetrics().printCSV(System.out, false);
+				task.getMetrics().printCSV(out, false);
 			}
 		}
-
+		out.println("");
+		out.println("");
+		
+		out.flush();
+		
 	}
 	
 	public AutoscaleReallocationIntegratedExperiment(String name) {
@@ -83,15 +169,42 @@ public class AutoscaleReallocationIntegratedExperiment extends SimulationTask {
 		this.setRandomSeed(randomSeed);
 	}
 
+	private double slaWarningThreshold = 0.8;
+	private double slaSafeThreshold = 0.6;
+	private long scaleDownFreeze = SimTime.minutes(60);
+	private double cpuSafeThreshold = 0.5;
+	private int shortWindow = 5;
+	private int longWindow = 30;
+	private long scalingInterval = SimTime.minutes(5);
+	private double upper = 0.90;
+	private double target = 0.85;
+	private double lower = 0.60;
+	
+	public void setParameters(double slaWarningThreshold, 
+			double slaSafeThreshold,
+			double cpuSafeThreshold,
+			double upper,
+			double target,
+			double lower) {
+		
+		this.slaWarningThreshold = slaWarningThreshold;
+		this.slaSafeThreshold = slaSafeThreshold;
+		this.cpuSafeThreshold = cpuSafeThreshold;
+		this.upper = upper;
+		this.target = target;
+		this.lower = lower;
+		
+	}
+	
 	@Override
 	public void setup(Simulation simulation) {
 		
 		simulation.getSimulationMetrics().addCustomMetricCollection(new ApplicationManagementMetrics(simulation));
 		
-		Environment environment = new Environment(simulation, 40, 2);
+		Environment environment = new Environment(simulation, 30, 4);
 		environment.createDataCentre(simulation);
 		
-		for (int i = 0; i < 20; ++i) {
+		for (int i = 0; i < 50; ++i) {
 			simulation.sendEvent(new ApplicationPlacementEvent(environment.getDcAM(), environment.createApplication()));
 		}
 	}
@@ -108,21 +221,19 @@ public class AutoscaleReallocationIntegratedExperiment extends SimulationTask {
 		@Override
 		public void processDcAM(AutonomicManager dcAM) {
 			
-			// Set utilization thresholds.
-			double lower = 0.60;
-			double upper = 0.90;
-			double target = 0.85;
-			
 			hostPool = new HostPoolManager();
 			dcAM.addCapability(hostPool);
 			hostPool.setAutonomicManager(dcAM);
-			applicationPool = new ApplicationPoolManager(5, 30);
+			applicationPool = new ApplicationPoolManager(shortWindow, longWindow);
 			dcAM.addCapability(applicationPool);
 			applicationPool.setAutonomicManager(dcAM);
 			
 			dcAM.installPolicy(new HostStatusPolicy(10));
 			dcAM.installPolicy(new ApplicationPlacementPolicy(lower, upper, target));
-			dcAM.installPolicy(new ApplicationManagementPolicy(lower, upper, target), SimTime.minutes(5), 0);
+			
+			ApplicationManagementPolicy appManagementPolicy = new ApplicationManagementPolicy(lower, upper, target);
+			appManagementPolicy.setParameters(slaWarningThreshold, slaSafeThreshold, scaleDownFreeze, cpuSafeThreshold);
+			dcAM.installPolicy(appManagementPolicy, scalingInterval, 0);
 		}
 
 		@Override

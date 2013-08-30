@@ -230,7 +230,7 @@ public class ApplicationScalingPolicy extends Policy {
 				if (task.getInstances().size() > 1) {
 					double utilization = 0;
 					for (TaskInstance instance : task.getInstances()) {
-						utilization += appManager.getInstanceCpuUtils().get(instance).getMean();
+						utilization += appManager.getInstanceCpuUtilsLong().get(instance).getMean();
 					}
 
 					if ((utilization / (task.getInstances().size() - 1)) < cpuSafeThreshold) {

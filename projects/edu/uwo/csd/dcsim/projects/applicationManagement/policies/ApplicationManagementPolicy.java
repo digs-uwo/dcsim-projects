@@ -43,17 +43,16 @@ import edu.uwo.csd.dcsim.vm.VmDescription;
 
 public class ApplicationManagementPolicy extends Policy {
 
-	private static final double SLA_WARNING_THRESHOLD = 0.8;
-	private static final double SLA_SAFE_THRESHOLD = 0.6;
-	private static final double scaleDownFreeze = SimTime.minutes(30);	
-	private static final double CPU_SAFE_THRESHOLD = 0.5;
-	
 	private static final double STRESS_WINDOW = 2; //* 5 min intervals = 10 min
 	private static final double UNDERUTIL_WINDOW = 12; //* 5 min intervals = 60 min
 	
-	protected double lowerThreshold;
-	protected double upperThreshold;
-	protected double targetUtilization;
+	private double slaWarningThreshold = 0.8;
+	private double slaSafeThreshold = 0.6;
+	private double scaleDownFreeze = SimTime.minutes(60);	
+	private double cpuSafeThreshold = 0.5;
+	private double lowerThreshold;
+	private double upperThreshold;
+	private double targetUtilization;
 
 	private HashMap<HostData, Integer> stressedHostWindow = new HashMap<HostData, Integer>();
 	private HashMap<HostData, Integer> underutilHostWindow = new HashMap<HostData, Integer>();
@@ -65,6 +64,18 @@ public class ApplicationManagementPolicy extends Policy {
 		this.lowerThreshold = lowerThreshold;
 		this.upperThreshold = upperThreshold;
 		this.targetUtilization = targetUtilization;
+	}
+	
+	public void setParameters(double slaWarningThreshold, 
+			double slaSafeThreshold,
+			long scaleDownFreeze,
+			double cpuSafeThreshold) {
+		
+		this.slaWarningThreshold = slaWarningThreshold;
+		this.slaSafeThreshold = slaSafeThreshold;
+		this.scaleDownFreeze = scaleDownFreeze;
+		this.cpuSafeThreshold = cpuSafeThreshold;
+	
 	}
 	
 	public void execute() {
@@ -206,41 +217,7 @@ public class ApplicationManagementPolicy extends Policy {
 			}
 		}
 		
-//		//complete scale down actions for tasks with instances on stressed hosts that weren't enough to relieve the situation
-//		for (HostData host : stressed) {
-//			if (!stressedHostsAddressed.contains(host)) {
-//				ArrayList<Task> tempTasks = new ArrayList<Task>();
-//				tempTasks.addAll(scaleDownTasks);
-//				for (Task task : tempTasks) {
-//					for (TaskInstance instance : task.getInstances()) {
-//						if (instance.getVM().getVMAllocation().getHost().getId() == host.getId()) {
-//							scaleDownTasks.remove(task);
-//							RemoveTaskInstanceAction action = new RemoveTaskInstanceAction(instance);
-//							action.execute(simulation, this);
-//							host.invalidateStatus(simulation.getSimulationTime());
-//							
-//							VmStatus vmToRemove = null;
-//							for (VmStatus vm : host.getSandboxStatus().getVms()) {
-//								if (vm.getId() == instance.getVM().getId()) {
-//									vmToRemove = vm;
-//									break;
-//								}
-//							}
-//							host.getSandboxStatus().getVms().remove(vmToRemove);
-//							
-//							simulation.getSimulationMetrics().getCustomMetricCollection(ApplicationManagementMetrics.class).scaleDownStressMinor++;
-//							
-////							System.out.println(SimTime.toHumanReadable(simulation.getSimulationTime()) + " Removing Instance from Task " + 
-////									instance.getTask().getApplication().getId() + "-" + instance.getTask().getId() + 
-////									" VM#" + instance.getVM().getId() +
-////									" on Host #" + host.getId());
-//							break;
-//						}
-//					}
-//				}
-//			}
-//		}
-		
+		//scale down other tasks located on hosts with utilization over target utilization
 		ArrayList<Task> scaleTasks = new ArrayList<Task>();
 		scaleTasks.addAll(scaleDownTasks);
 		for (Task task : scaleTasks) {
@@ -257,7 +234,7 @@ public class ApplicationManagementPolicy extends Policy {
 				}
 			}
 			
-			if (targetHostUtil > 0.85) { //only shutdown if target is over 85%
+			if (targetHostUtil >= targetUtilization) { //only shutdown if over target utilization
 				RemoveTaskInstanceAction action = new RemoveTaskInstanceAction(targetInstance);
 				action.execute(simulation, this);
 				hostPool.getHost(targetInstance.getVM().getVMAllocation().getHost().getId()).invalidateStatus(simulation.getSimulationTime());
@@ -283,6 +260,14 @@ public class ApplicationManagementPolicy extends Policy {
 			}
 		}
 		
+		//attempt to place VMs from stressed hosts awaiting migration, first partially utilized, then underutilized with highest shutdown cost
+		
+		ArrayList<HostData> targets = new ArrayList<HostData>();
+		// Sort Partially-Utilized hosts in increasing order by <CPU utilization, power efficiency>.
+		Collections.sort(partiallyUtilized, HostDataComparator.getComparator(HostDataComparator.CPU_UTIL, HostDataComparator.EFFICIENCY));
+		
+		// Sort Underutilized hosts in decreasing order by <CPU utilization, power efficiency>.
+		Collections.sort(underUtilized, HostDataComparator.getComparator(HostDataComparator.CPU_UTIL, HostDataComparator.EFFICIENCY));
 		
 		//calculate underutilized host shutdown cost (number of required migrations)
 		HashMap<HostData, Integer> underUtilizedCost = new HashMap<HostData, Integer>();
@@ -316,14 +301,6 @@ public class ApplicationManagementPolicy extends Policy {
 			sortedUnderUtilized.add(lowestCostHost);
 			unsortedUnderUtilized.remove(lowestCostHost);
 		}
-
-		//attempt to place VMs from stressed hosts awaiting migration, first partially utilized, then underutilized with highest shutdown cost
-		
-		ArrayList<HostData> targets = new ArrayList<HostData>();
-		// Sort Partially-Utilized hosts in increasing order by <CPU utilization, power efficiency>.
-		Collections.sort(partiallyUtilized, HostDataComparator.getComparator(HostDataComparator.CPU_UTIL, HostDataComparator.EFFICIENCY));
-		
-		// sort underutilized by decreasing cost
 		Collections.reverse(underUtilized);
 		
 		// Sort Empty hosts in decreasing order by <power efficiency, power state>.
@@ -331,11 +308,10 @@ public class ApplicationManagementPolicy extends Policy {
 		Collections.reverse(empty);
 		
 		targets.addAll(partiallyUtilized);
-		targets.addAll(underUtilized);
+		targets.addAll(sortedUnderUtilized);
 		targets.addAll(empty);
 		
-		// return underutilized to increasing cost 
-		Collections.reverse(underUtilized);
+
 		
 		ArrayList<HostData> usedTargets = new ArrayList<HostData>();
 		
@@ -437,9 +413,13 @@ public class ApplicationManagementPolicy extends Policy {
 		
 		
 		
+		
+		// return underutilized to increasing cost 
+		Collections.reverse(sortedUnderUtilized);
+		
 		//attempt to shutdown underutilized hosts not chosen as targets
 		ArrayList<HostData> usedSources = new ArrayList<HostData>();
-		for (HostData source : underUtilized) {
+		for (HostData source : sortedUnderUtilized) {
 			if (!usedTargets.contains(source)) {	
 				
 				//check all remaining tasks requiring scale down, select instances on this host for shutdown
@@ -530,33 +510,33 @@ public class ApplicationManagementPolicy extends Policy {
 		}	
 			
 		//complete scale down actions for applications that have not had their scaling executed in previous steps
-//		for (Task task : scaleDownTasks) {
-//			double targetHostUtil = -1;
-//			TaskInstance targetInstance = null;
-//			
-//			//choose a task instance to shut down (instance on host with lowest utilization)
-//			for (TaskInstance instance : task.getInstances()) {
-//				double util = instance.getVM().getVMAllocation().getHost().getResourceManager().getCpuUtilization();
-//				
-//				if (util == 1)	System.out.println(simulation.getSimulationTime() + " " + util + " host#" + instance.getVM().getVMAllocation().getHost().getId());
-//				
-//				if (util > targetHostUtil) {
-//					targetHostUtil = util;
-//					targetInstance = instance;
-//				}
-//			}
-//			
-//			RemoveTaskInstanceAction action = new RemoveTaskInstanceAction(targetInstance);
-//			action.execute(simulation, this);
-//			hostPool.getHost(targetInstance.getVM().getVMAllocation().getHost().getId()).invalidateStatus(simulation.getSimulationTime());
-//			
-//			simulation.getSimulationMetrics().getCustomMetricCollection(ApplicationManagementMetrics.class).scaleDown++;
-//			
-////			System.out.println(SimTime.toHumanReadable(simulation.getSimulationTime()) + " Removing Instance from Task " + 
-////					targetInstance.getTask().getApplication().getId() + "-" + targetInstance.getTask().getId() + 
-////					" VM#" + targetInstance.getVM().getId() +
-////					" on Host #" + targetInstance.getVM().getVMAllocation().getHost().getId());
-//		}
+		for (Task task : scaleDownTasks) {
+			double targetHostUtil = Double.MAX_VALUE;
+			TaskInstance targetInstance = null;
+			
+			//choose a task instance to shut down (instance on host with lowest utilization)
+			for (TaskInstance instance : task.getInstances()) {
+				double util = instance.getVM().getVMAllocation().getHost().getResourceManager().getCpuUtilization();
+				
+				if (util == 1)	System.out.println(simulation.getSimulationTime() + " " + util + " host#" + instance.getVM().getVMAllocation().getHost().getId());
+				
+				if (util < targetHostUtil) {
+					targetHostUtil = util;
+					targetInstance = instance;
+				}
+			}
+			
+			RemoveTaskInstanceAction action = new RemoveTaskInstanceAction(targetInstance);
+			action.execute(simulation, this);
+			hostPool.getHost(targetInstance.getVM().getVMAllocation().getHost().getId()).invalidateStatus(simulation.getSimulationTime());
+			
+			simulation.getSimulationMetrics().getCustomMetricCollection(ApplicationManagementMetrics.class).scaleDown++;
+			
+//			System.out.println(SimTime.toHumanReadable(simulation.getSimulationTime()) + " Removing Instance from Task " + 
+//					targetInstance.getTask().getApplication().getId() + "-" + targetInstance.getTask().getId() + 
+//					" VM#" + targetInstance.getVM().getId() +
+//					" on Host #" + targetInstance.getVM().getVMAllocation().getHost().getId());
+		}
 		
 		//clean up any empty hosts not powered off (resulting from terminated instances or applications)
 		for (HostData host : empty) {
@@ -620,9 +600,9 @@ public class ApplicationManagementPolicy extends Policy {
 				
 				double rt = appData.getApplicationResponseTimes().getMean();
 				
-				if (rt >= (sla.getResponseTime() * SLA_WARNING_THRESHOLD) && regression.getSlope() > 0) {
+				if (rt >= (sla.getResponseTime() * slaWarningThreshold) && regression.getSlope() > 0) {
 					slaWarning = true;
-				} else if (	rt < (sla.getResponseTime() * SLA_SAFE_THRESHOLD ) && regression.getSlope() < 0) {
+				} else if (	rt < (sla.getResponseTime() * slaSafeThreshold ) && regression.getSlope() < 0) {
 					slaSafe = true;
 				}
 			}
@@ -672,7 +652,7 @@ public class ApplicationManagementPolicy extends Policy {
 						for (TaskInstance instance : task.getInstances()) {
 							utilization += appData.getInstanceCpuUtilsLong().get(instance).getMean();
 						}
-						if ((utilization / (task.getInstances().size() - 1)) < CPU_SAFE_THRESHOLD) {
+						if ((utilization / (task.getInstances().size() - 1)) < cpuSafeThreshold) {
 							if (utilization < targetUtil) {
 								targetUtil = utilization;
 								targetTask = task;
