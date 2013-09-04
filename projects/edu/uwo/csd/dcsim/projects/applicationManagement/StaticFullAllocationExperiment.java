@@ -1,7 +1,6 @@
 package edu.uwo.csd.dcsim.projects.applicationManagement;
 
-import java.io.FileNotFoundException;
-import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.log4j.Logger;
@@ -64,7 +63,7 @@ public class StaticFullAllocationExperiment extends SimulationTask {
 		
 		
 //		completedTasks = executor.execute(); //execute all simulations simultaneously
-		completedTasks = executor.execute(4); //execute 4 simulations (i.e. 4 threads) at a time
+		completedTasks = executor.execute(6); //execute 4 simulations (i.e. 4 threads) at a time
 		
 //		for(SimulationTask task : completedTasks) {
 //			logger.info(task.getName());
@@ -99,12 +98,14 @@ public class StaticFullAllocationExperiment extends SimulationTask {
 		
 		simulation.getSimulationMetrics().addCustomMetricCollection(new ApplicationManagementMetrics(simulation));
 		
-		Environment environment = new Environment(simulation, 40, 5);
+		Environment environment = new Environment(simulation, 40, 10);
 		environment.createDataCentre(simulation);
 		
+		ArrayList<Application> applications = new ArrayList<Application>();
 		for (int i = 0; i < 50; ++i) {
-			simulation.sendEvent(new ApplicationPlacementEvent(environment.getDcAM(), environment.createApplication(true)));
+			applications.add(environment.createApplication(true));
 		}
+		simulation.sendEvent(new ApplicationPlacementEvent(environment.getDcAM(), applications));
 	}
 	
 	public class Environment extends AppManagementTestEnvironment {

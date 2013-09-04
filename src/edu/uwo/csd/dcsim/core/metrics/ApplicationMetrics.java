@@ -22,6 +22,7 @@ public class ApplicationMetrics extends MetricCollection {
 	Map<Application, Long> totalTime = new HashMap<Application, Long>();
 	Map<Application, WeightedMetric> responseTime = new HashMap<Application, WeightedMetric>();
 	Map<Application, WeightedMetric> throughput = new HashMap<Application, WeightedMetric>();
+	Map<Application, WeightedMetric> size = new HashMap<Application, WeightedMetric>();
 	
 	WeightedMetric aggregateCpuUnderProvision = new WeightedMetric();
 	WeightedMetric aggregateCpuDemand = new WeightedMetric();
@@ -33,6 +34,7 @@ public class ApplicationMetrics extends MetricCollection {
 	DescriptiveStatistics slaAchievementStats;
 	DescriptiveStatistics responseTimeStats;
 	DescriptiveStatistics throughputStats;
+	DescriptiveStatistics sizeStats;
 	
 	long applicationsSpawned = 0;
 	long applicationsShutdown = 0;
@@ -63,7 +65,11 @@ public class ApplicationMetrics extends MetricCollection {
 				slaPenalty.put(application, new WeightedMetric());
 				slaAchieved.put(application, 0l);
 				totalTime.put(application, 0l);
+				size.put(application, new WeightedMetric());
 			}
+			
+			//record the size of the application as VMs/Max VMs
+			size.get(application).add(application.getSize() / (double)application.getMaxSize(), simulation.getElapsedTime());
 			
 			if (application.getTotalCpuDemand() > application.getTotalCpuScheduled()) {
 				val = (double)application.getTotalCpuDemand() - application.getTotalCpuScheduled();
@@ -120,6 +126,7 @@ public class ApplicationMetrics extends MetricCollection {
 		slaAchievementStats = new DescriptiveStatistics();
 		responseTimeStats = new DescriptiveStatistics();
 		throughputStats = new DescriptiveStatistics();
+		sizeStats = new DescriptiveStatistics();
 		
 		for (Application application : slaPenalty.keySet()) {
 			slaPenaltyStats.addValue(slaPenalty.get(application).getSum());
@@ -135,6 +142,10 @@ public class ApplicationMetrics extends MetricCollection {
 		
 		for (Application application : throughput.keySet()) {
 			throughputStats.addValue(throughput.get(application).getMean());
+		}
+		
+		for (Application application : size.keySet()) {
+			sizeStats.addValue(size.get(application).getMean());
 		}
 		
 	}
@@ -213,6 +224,10 @@ public class ApplicationMetrics extends MetricCollection {
 		return throughputStats;
 	}
 	
+	public DescriptiveStatistics getSizeStats() {
+		return sizeStats;
+	}
+	
 	public long getApplicationsSpawned() {
 		return applicationsSpawned;
 	}
@@ -264,6 +279,7 @@ public class ApplicationMetrics extends MetricCollection {
 		out.info("   spawned: " + getApplicationsSpawned());
 		out.info("   shutdown: " + getApplicationsShutdown());
 		out.info("   failed placement: " + getApplicationPlacementsFailed());
+		out.info("   average size: " + Utility.roundDouble(Utility.toPercentage(getSizeStats().getMean())) + "%");
 		out.info("CPU Underprovision");
 		out.info("   percentage: " + Utility.roundDouble(Utility.toPercentage(getAggregateCpuUnderProvision().getSum() / getAggregateCpuDemand().getSum()), Simulation.getMetricPrecision()) + "%");
 		out.info("SLA");
@@ -355,6 +371,7 @@ public class ApplicationMetrics extends MetricCollection {
 		metrics.add(new Tuple<String, Object>("applicationsSpawned", getApplicationsSpawned()));
 		metrics.add(new Tuple<String, Object>("applicationsShutdown", getApplicationsShutdown()));
 		metrics.add(new Tuple<String, Object>("applicationPlacementsFailed", getApplicationPlacementsFailed()));
+		metrics.add(new Tuple<String, Object>("averageSize", Utility.roundDouble(getSizeStats().getMean(), Simulation.getMetricPrecision())));
 		
 		return metrics;
 	}

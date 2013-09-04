@@ -14,7 +14,6 @@ import edu.uwo.csd.dcsim.management.HostDataComparator;
 import edu.uwo.csd.dcsim.management.HostStatus;
 import edu.uwo.csd.dcsim.management.Policy;
 import edu.uwo.csd.dcsim.management.VmStatus;
-import edu.uwo.csd.dcsim.management.VmStatusComparator;
 import edu.uwo.csd.dcsim.management.action.InstantiateVmAction;
 import edu.uwo.csd.dcsim.management.capabilities.HostPoolManager;
 import edu.uwo.csd.dcsim.management.events.ApplicationPlacementEvent;
@@ -41,9 +40,12 @@ public class ApplicationPlacementPolicy extends Policy {
 		
 		HostPoolManager hostPool = manager.getCapability(HostPoolManager.class);
 		
-		Application application = event.getApplication();
+		ArrayList<Application> applications = event.getApplications();
 		
-		ArrayList<VmAllocationRequest> allocationRequests = application.createInitialVmRequests();
+		ArrayList<VmAllocationRequest> allocationRequests = new ArrayList<VmAllocationRequest>();
+		for (Application application : applications) {
+			allocationRequests.addAll(application.createInitialVmRequests());
+		}
 		
 		if (!place(allocationRequests, hostPool.getHosts(), event)) {
 			simulation.getSimulationMetrics().getApplicationMetrics().incrementApplicationPlacementsFailed();

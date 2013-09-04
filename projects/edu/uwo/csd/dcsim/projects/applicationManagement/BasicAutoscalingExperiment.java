@@ -2,6 +2,7 @@ package edu.uwo.csd.dcsim.projects.applicationManagement;
 
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.log4j.Logger;
@@ -183,14 +184,14 @@ public class BasicAutoscalingExperiment extends SimulationTask {
 		
 		//Try new "best" configurations
 		runSimulationSet(printStream, true, 0.1, 0.1, SimTime.minutes(60), 0.3, 0.9, 5, 30, SimTime.minutes(5)); //SLA SLA+
-//		runSimulationSet(printStream, true, 0.2, 0.1, SimTime.minutes(60), 0.3, 0.9, 5, 30, SimTime.minutes(5)); //SLA SLA
-//		runSimulationSet(printStream, true, 0.9, 0.4, SimTime.minutes(60), 0.3, 0.9, 5, 30, SimTime.minutes(5)); //SLA Operations
-//		runSimulationSet(printStream, true, 0.9, 0.4, SimTime.minutes(60), 0.6, 0.9, 5, 30, SimTime.minutes(5)); //SLA Power
-//		runSimulationSet(printStream, true, 0.5, 0.4, SimTime.minutes(60), 0.3, 0.9, 5, 30, SimTime.minutes(5)); //SLA Balanced
-//
-//		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(60), 0.3, 0.7, 5, 30, SimTime.minutes(5)); //CPU SLA
-//		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(60), 0.5, 0.95, 5, 30, SimTime.minutes(5)); //CPU Ops & Power
-//		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(60), 0.4, 0.8, 5, 30, SimTime.minutes(5));  //CPU Balanced
+		runSimulationSet(printStream, true, 0.2, 0.1, SimTime.minutes(60), 0.3, 0.9, 5, 30, SimTime.minutes(5)); //SLA SLA
+		runSimulationSet(printStream, true, 0.9, 0.4, SimTime.minutes(60), 0.3, 0.9, 5, 30, SimTime.minutes(5)); //SLA Operations
+		runSimulationSet(printStream, true, 0.9, 0.4, SimTime.minutes(60), 0.6, 0.9, 5, 30, SimTime.minutes(5)); //SLA Power
+		runSimulationSet(printStream, true, 0.5, 0.4, SimTime.minutes(60), 0.3, 0.9, 5, 30, SimTime.minutes(5)); //SLA Balanced
+
+		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(60), 0.3, 0.7, 5, 30, SimTime.minutes(5)); //CPU SLA
+		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(60), 0.5, 0.95, 5, 30, SimTime.minutes(5)); //CPU Ops & Power
+		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(60), 0.4, 0.8, 5, 30, SimTime.minutes(5));  //CPU Balanced
 		
 		
 		printStream.close();
@@ -324,9 +325,11 @@ public class BasicAutoscalingExperiment extends SimulationTask {
 		Environment environment = new Environment(simulation, 40, 4);
 		environment.createDataCentre(simulation);
 		
+		ArrayList<Application> applications = new ArrayList<Application>();
 		for (int i = 0; i < 50; ++i) {
-			simulation.sendEvent(new ApplicationPlacementEvent(environment.getDcAM(), environment.createApplication()));
+			applications.add(environment.createApplication());
 		}
+		simulation.sendEvent(new ApplicationPlacementEvent(environment.getDcAM(), applications));
 	}
 	
 	public class Environment extends AppManagementTestEnvironment {

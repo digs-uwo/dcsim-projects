@@ -142,4 +142,20 @@ public abstract class Application {
 		return result;
 	}
 	
+	public int getMaxSize() {
+		int size = 0;
+		for (Task task : getTasks()) {
+			size += task.maxInstances;
+		}
+		return size;
+	}
+	
+	public int getSize() {
+		int size = 0;
+		for (Task task :getTasks()) {
+			size += task.getInstances().size();
+		}
+		return size;
+	}
+	
 }

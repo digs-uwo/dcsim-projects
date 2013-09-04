@@ -2,6 +2,7 @@ package edu.uwo.csd.dcsim.projects.applicationManagement;
 
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.log4j.Logger;
@@ -229,9 +230,11 @@ public class BasicAutoscalingWithReallocationExperiment extends SimulationTask {
 		Environment environment = new Environment(simulation, 30, 4);
 		environment.createDataCentre(simulation);
 			
+		ArrayList<Application> applications = new ArrayList<Application>();
 		for (int i = 0; i < 50; ++i) {
-			simulation.sendEvent(new ApplicationPlacementEvent(environment.getDcAM(), environment.createApplication()));
+			applications.add(environment.createApplication());
 		}
+		simulation.sendEvent(new ApplicationPlacementEvent(environment.getDcAM(), applications));
 	}
 	
 	public class Environment extends AppManagementTestEnvironment {

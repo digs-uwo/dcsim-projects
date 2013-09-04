@@ -164,7 +164,7 @@ public abstract class AppManagementTestEnvironment {
 			}
 			break;
 		case 3:
-			if (fullSize) {
+			if (!fullSize) {
 				appBuilder = new InteractiveApplication.Builder(simulation).thinkTime(4)
 						.task(1, appScale, new Resources(2500,1024,0,0), 0.01, 1, loadBalancerBuilder);
 			} else {

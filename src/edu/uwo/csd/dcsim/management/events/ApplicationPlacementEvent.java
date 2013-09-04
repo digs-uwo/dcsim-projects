@@ -1,27 +1,32 @@
 package edu.uwo.csd.dcsim.management.events;
 
+import java.util.ArrayList;
+
 import edu.uwo.csd.dcsim.application.Application;
 import edu.uwo.csd.dcsim.core.Event;
 import edu.uwo.csd.dcsim.management.AutonomicManager;
 
 public class ApplicationPlacementEvent extends Event {
 
-	private Application application;
+	private ArrayList<Application> applications;
 	private boolean failed = false;
 	
 	public ApplicationPlacementEvent(AutonomicManager target, Application application) {
 		super(target);
 		
-		this.application = application;
+		applications = new ArrayList<Application>();
+		applications.add(application);
 		
 	}
-
-	public Application getApplication() {
-		return application;
+	
+	public ApplicationPlacementEvent(AutonomicManager target, ArrayList<Application> applications) {
+		super(target);
+		
+		this.applications = applications;
 	}
 
-	public void setApplication(Application application) {
-		this.application = application;
+	public ArrayList<Application> getApplications() {
+		return applications;
 	}
 	
 	public void setFailed(boolean failed) {
