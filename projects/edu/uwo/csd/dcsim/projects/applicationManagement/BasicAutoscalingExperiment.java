@@ -212,7 +212,8 @@ public class BasicAutoscalingExperiment extends SimulationTask {
 //		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(60), 0.4, 0.8, 5, 30, SimTime.minutes(5));  //CPU Balanced
 		
 		
-		
+		printStream.println("DONE!");
+		printStream.flush();
 		printStream.close();
 		
 //		List<SimulationTask> completedTasks;
@@ -341,7 +342,7 @@ public class BasicAutoscalingExperiment extends SimulationTask {
 		
 		simulation.getSimulationMetrics().addCustomMetricCollection(new ApplicationManagementMetrics(simulation));
 		
-		Environment environment = new Environment(simulation, 40, 4);
+		Environment environment = new Environment(simulation, 40, 5);
 		environment.createDataCentre(simulation);
 		
 		ArrayList<Application> applications = new ArrayList<Application>();

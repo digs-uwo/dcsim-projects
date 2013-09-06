@@ -24,7 +24,8 @@ import edu.uwo.csd.dcsim.management.AutonomicManager;
 public abstract class AppManagementTestEnvironment {
 
 	public static final int N_APP_TEMPLATES = 4;
-	public static final int MAX_APP_SCALE = 5;
+	public static final int MIN_APP_SCALE = 3;
+	public static final int MAX_APP_SCALE = 6;
 	public static final int N_TRACES = 5; 
 	public static final String[] TRACES = {"traces/clarknet", 
 		"traces/epa",
@@ -105,11 +106,11 @@ public abstract class AppManagementTestEnvironment {
 	public abstract void processHost(Host host, Rack rack, Cluster cluster, DataCentre dc, AutonomicManager dcAM);
 	
 	public Application createApplication() {
-		return createApplication(appGenerationRandom.nextInt(N_APP_TEMPLATES), appGenerationRandom.nextInt(MAX_APP_SCALE) + 1, false);
+		return createApplication(appGenerationRandom.nextInt(N_APP_TEMPLATES), appGenerationRandom.nextInt(MAX_APP_SCALE) + MIN_APP_SCALE, false);
 	}
 	
 	public Application createApplication(boolean fullSize) {
-		return createApplication(appGenerationRandom.nextInt(N_APP_TEMPLATES), appGenerationRandom.nextInt(MAX_APP_SCALE) + 1, fullSize);
+		return createApplication(appGenerationRandom.nextInt(N_APP_TEMPLATES), appGenerationRandom.nextInt(MAX_APP_SCALE) + MIN_APP_SCALE, fullSize);
 	}
 	
 	public Application createApplication(int appTemplate, int appScale, boolean fullSize) {
