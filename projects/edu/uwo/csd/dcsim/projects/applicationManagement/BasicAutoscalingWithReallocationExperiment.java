@@ -67,13 +67,13 @@ public class BasicAutoscalingWithReallocationExperiment extends SimulationTask {
 		
 		//runSimulationSet(out, slaAware, slaWarningThreshold, slaSafeThreshold, cpuSafeThreshold, cpuWarningThreshold, upper, target, lower)
 		
-		//with SLA - Balanced (true, 0.5, 0.4, 0.3, 0.9)
-			//90 - 85 - 60
-		runSimulationSet(printStream, true, 0.5, 0.4, 0.3, 0.9, 0.9, 0.85, 0.6);
-			//90 - 85 - 50
-		runSimulationSet(printStream, true, 0.5, 0.4, 0.3, 0.9, 0.9, 0.85, 0.5);
-			//85 - 80 - 50
-		runSimulationSet(printStream, true, 0.5, 0.4, 0.3, 0.9, 0.85, 0.8, 0.5);
+//		//with SLA - Balanced (true, 0.5, 0.4, 0.3, 0.9)
+//			//90 - 85 - 60
+//		runSimulationSet(printStream, true, 0.5, 0.4, 0.3, 0.9, 0.9, 0.85, 0.6);
+//			//90 - 85 - 50
+//		runSimulationSet(printStream, true, 0.5, 0.4, 0.3, 0.9, 0.9, 0.85, 0.5);
+//			//85 - 80 - 50
+//		runSimulationSet(printStream, true, 0.5, 0.4, 0.3, 0.9, 0.85, 0.8, 0.5);
 		
 		//with SLA - SLA+ (true, 0.1, 0.1, 0.3, 0.9)
 			//90 - 85 - 60
@@ -83,21 +83,21 @@ public class BasicAutoscalingWithReallocationExperiment extends SimulationTask {
 			//85 - 80 - 50
 		runSimulationSet(printStream, true, 0.1, 0.1, 0.3, 0.9, 0.85, 0.8, 0.5);
 		
-		//with CPU - SLA (false, 0.8, 0.6, 0.3, 0.7)
-			//90 - 85 - 60
-		runSimulationSet(printStream, false, 0.8, 0.6, 0.3, 0.7, 0.9, 0.85, 0.6);
-			//90 - 85 - 50
-		runSimulationSet(printStream, false, 0.8, 0.6, 0.3, 0.7, 0.9, 0.85, 0.5);
-			//85 - 80 - 50
-		runSimulationSet(printStream, false, 0.8, 0.6, 0.3, 0.7, 0.85, 0.8, 0.5);
-		
-		//with CPU - Balanced (false, 0.8, 0.6, 0.4, 0.8)
-			//90 - 85 - 60
-		runSimulationSet(printStream, false, 0.8, 0.6, 0.4, 0.8, 0.9, 0.85, 0.6);
-			//90 - 85 - 50
-		runSimulationSet(printStream, false, 0.8, 0.6, 0.4, 0.8, 0.9, 0.85, 0.5);
-			//85 - 80 - 50
-		runSimulationSet(printStream, false, 0.8, 0.6, 0.4, 0.8, 0.85, 0.8, 0.5);
+//		//with CPU - SLA (false, 0.8, 0.6, 0.3, 0.7)
+//			//90 - 85 - 60
+//		runSimulationSet(printStream, false, 0.8, 0.6, 0.3, 0.7, 0.9, 0.85, 0.6);
+//			//90 - 85 - 50
+//		runSimulationSet(printStream, false, 0.8, 0.6, 0.3, 0.7, 0.9, 0.85, 0.5);
+//			//85 - 80 - 50
+//		runSimulationSet(printStream, false, 0.8, 0.6, 0.3, 0.7, 0.85, 0.8, 0.5);
+//		
+//		//with CPU - Balanced (false, 0.8, 0.6, 0.4, 0.8)
+//			//90 - 85 - 60
+//		runSimulationSet(printStream, false, 0.8, 0.6, 0.4, 0.8, 0.9, 0.85, 0.6);
+//			//90 - 85 - 50
+//		runSimulationSet(printStream, false, 0.8, 0.6, 0.4, 0.8, 0.9, 0.85, 0.5);
+//			//85 - 80 - 50
+//		runSimulationSet(printStream, false, 0.8, 0.6, 0.4, 0.8, 0.85, 0.8, 0.5);
 		
 		printStream.close();
 		
@@ -253,7 +253,7 @@ public class BasicAutoscalingWithReallocationExperiment extends SimulationTask {
 			dcAM.installPolicy(new HostStatusPolicy(10));
 			dcAM.installPolicy(new ApplicationPlacementPolicy(lower, upper, target));
 			
-			dcAM.installPolicy(new VmRelocationPolicyFFIMDHybrid(lower, upper, target), SimTime.minutes(10), SimTime.minutes(10) + 2);
+			dcAM.installPolicy(new VmRelocationPolicyFFIMDHybrid(lower, upper, target), SimTime.minutes(10), SimTime.minutes(20) + 2);
 			dcAM.installPolicy(new VmConsolidationPolicyFFDDIHybrid(lower, upper, target), SimTime.hours(1), SimTime.hours(1) + 3);
 			
 		}

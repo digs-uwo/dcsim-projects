@@ -23,6 +23,7 @@ import edu.uwo.csd.dcsim.management.AutonomicManager;
 
 public abstract class AppManagementTestEnvironment {
 
+	public static final int N_APP_TEMPLATES = 4;
 	public static final int MAX_APP_SCALE = 5;
 	public static final int N_TRACES = 5; 
 	public static final String[] TRACES = {"traces/clarknet", 
@@ -104,11 +105,11 @@ public abstract class AppManagementTestEnvironment {
 	public abstract void processHost(Host host, Rack rack, Cluster cluster, DataCentre dc, AutonomicManager dcAM);
 	
 	public Application createApplication() {
-		return createApplication(appGenerationRandom.nextInt(5), appGenerationRandom.nextInt(MAX_APP_SCALE) + 1, false);
+		return createApplication(appGenerationRandom.nextInt(N_APP_TEMPLATES), appGenerationRandom.nextInt(MAX_APP_SCALE) + 1, false);
 	}
 	
 	public Application createApplication(boolean fullSize) {
-		return createApplication(appGenerationRandom.nextInt(5), appGenerationRandom.nextInt(MAX_APP_SCALE) + 1, fullSize);
+		return createApplication(appGenerationRandom.nextInt(N_APP_TEMPLATES), appGenerationRandom.nextInt(MAX_APP_SCALE) + 1, fullSize);
 	}
 	
 	public Application createApplication(int appTemplate, int appScale, boolean fullSize) {
@@ -180,7 +181,7 @@ public abstract class AppManagementTestEnvironment {
 		InteractiveApplication app = appBuilder.build();
 		app.setWorkload(workload);
 		
-		workload.setScaleFactor(app.calculateMaxWorkloadResponseTimeLimit(1)); //1s response time SLA
+		workload.setScaleFactor(app.calculateMaxWorkloadResponseTimeLimit(0.9)); //1s response time SLA
 
 		InteractiveServiceLevelAgreement sla = new InteractiveServiceLevelAgreement(app).responseTime(1, 1); //sla limit at 1s response time, penalty rate of 1 per second in violation
 		app.setSla(sla);

@@ -43,7 +43,7 @@ import edu.uwo.csd.dcsim.vm.VmDescription;
 
 public class ApplicationManagementPolicy extends Policy {
 
-	private static final double STRESS_WINDOW = 2; //* 5 min intervals = 10 min
+	private static final double STRESS_WINDOW = 4; //* 5 min intervals = 10 min
 	private static final double UNDERUTIL_WINDOW = 12; //* 5 min intervals = 60 min
 	
 	private double slaWarningThreshold = 0.8;
@@ -165,6 +165,9 @@ public class ApplicationManagementPolicy extends Policy {
 			if (estimatedCpuRelief >= cpuOverThreshold) {
 				stressedHostsAddressed.add(host);
 				simulation.getSimulationMetrics().getCustomMetricCollection(ApplicationManagementMetrics.class).scaleUpRelief++;
+				
+				//reset stress window
+				stressedHostWindow.remove(host);
 				break;
 			}
 			
@@ -204,6 +207,9 @@ public class ApplicationManagementPolicy extends Policy {
 //						targetInstance.getTask().getApplication().getId() + "-" + targetInstance.getTask().getId() + 
 //						" VM#" + targetInstance.getVM().getId() +
 //						" on Host #" + host.getId());
+				
+				//reset stress window
+				stressedHostWindow.remove(host);
 				
 			} else {				
 				//if we have exceeded the stress window, trigger a migration (choose VM and target at a later point in the algorithm)
@@ -561,6 +567,10 @@ public class ApplicationManagementPolicy extends Policy {
 		
 	}
 	
+	/**
+	 * Receive and process Task Instance updates
+	 * @param event
+	 */
 	public void execute(TaskInstanceStatusEvent event) {
 		ApplicationPoolManager appPool = manager.getCapability(ApplicationPoolManager.class);
 		TaskInstance instance = event.getTaskInstance();
@@ -576,6 +586,12 @@ public class ApplicationManagementPolicy extends Policy {
 		appData.getInstanceResponseTimesLong().get(instance).addValue(event.getResponseTime());
 	}
 	
+	/**
+	 * Evaluate application scaling
+	 * @param scaleUpTasks
+	 * @param scaleDownTasks
+	 * @param appPool
+	 */
 	private void evaluateScaling(ArrayList<Task> scaleUpTasks, ArrayList<Task> scaleDownTasks, ApplicationPoolManager appPool) {
 		
 		for (ApplicationData appData : appPool.getApplicationData().values()) {
@@ -611,20 +627,21 @@ public class ApplicationManagementPolicy extends Policy {
 				
 				//choose task which has had the fastest increase in response time
 				for (Task task : app.getTasks()) {
-					double avgSlope = 0;
-					double avgIncrease = 0;
-					for (TaskInstance instance : task.getInstances()) {
-						DescriptiveStatistics instanceRTs = appData.getInstanceResponseTimes().get(instance);
+					if (task.getInstances().size() < task.getMaxInstances()) {
+						double avgIncrease = 0;
+						for (TaskInstance instance : task.getInstances()) {
+							DescriptiveStatistics instanceRTs = appData.getInstanceResponseTimes().get(instance);
+							
+							double[] vals = instanceRTs.getValues();
+							avgIncrease += vals[vals.length - 1] - vals[0];
+							
+						}
 						
-						double[] vals = instanceRTs.getValues();
-						avgIncrease += vals[vals.length - 1] - vals[0];
-						
-					}
-					
-					avgIncrease = avgIncrease / task.getInstances().size();
-					if (avgIncrease > targetIncrease) {
-						targetIncrease = avgIncrease;
-						targetTask = task;
+						avgIncrease = avgIncrease / task.getInstances().size();
+						if (avgIncrease > targetIncrease) {
+							targetIncrease = avgIncrease;
+							targetTask = task;
+						}
 					}
 				}
 						

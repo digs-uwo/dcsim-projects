@@ -65,10 +65,10 @@ public class AutoscaleReallocationIntegratedExperiment extends SimulationTask {
 		//with SLA - SLA+ (true, 0.1, 0.1, 0.3, 0.9)
 			//90 - 85 - 60
 		runSimulationSet(printStream, 0.1, 0.1, 0.3, 0.9, 0.85, 0.6);
-//			//90 - 85 - 50
-//		runSimulationSet(printStream, 0.1, 0.1, 0.3, 0.9, 0.85, 0.5);
-//			//85 - 80 - 50
-//		runSimulationSet(printStream, 0.1, 0.1, 0.3, 0.85, 0.80, 0.5);
+			//90 - 85 - 50
+		runSimulationSet(printStream, 0.1, 0.1, 0.3, 0.9, 0.85, 0.5);
+			//85 - 80 - 50
+		runSimulationSet(printStream, 0.1, 0.1, 0.3, 0.85, 0.80, 0.5);
 //		
 //		//with SLA - Balanced (true, 0.5, 0.4, 0.3, 0.9)
 //			//90 - 85 - 60
@@ -126,7 +126,7 @@ public class AutoscaleReallocationIntegratedExperiment extends SimulationTask {
 		
 		List<SimulationTask> completedTasks;
 		SimulationExecutor executor = new SimulationExecutor();
-		for (int i = 0; i < 1; ++i)  {
+		for (int i = 0; i < 10; ++i)  {
 			AutoscaleReallocationIntegratedExperiment e = new AutoscaleReallocationIntegratedExperiment("integrated-" + (i + 1), randomSeeds[i]);
 			e.setParameters(slaWarningThreshold, slaSafeThreshold, cpuSafeThreshold, upper, target, lower);
 			executor.addTask(e);
@@ -134,10 +134,10 @@ public class AutoscaleReallocationIntegratedExperiment extends SimulationTask {
 		
 		completedTasks = executor.execute(6);
 		
-		for(SimulationTask task : completedTasks) {
-			logger.info(task.getName());
-			task.getMetrics().printDefault(logger);
-		}
+//		for(SimulationTask task : completedTasks) {
+//			logger.info(task.getName());
+//			task.getMetrics().printDefault(logger);
+//		}
 		
 		//output CSV
 		out.println("Autoscale+Reallocation Experiment");
@@ -232,7 +232,7 @@ public class AutoscaleReallocationIntegratedExperiment extends SimulationTask {
 			applicationPool.setAutonomicManager(dcAM);
 			
 			dcAM.installPolicy(new HostStatusPolicy(10));
-			dcAM.installPolicy(new ApplicationPlacementPolicy(lower, upper, target));
+			dcAM.installPolicy(new IntegratedApplicationPlacementPolicy(lower, upper, target));
 			
 			ApplicationManagementPolicy appManagementPolicy = new ApplicationManagementPolicy(lower, upper, target);
 			appManagementPolicy.setParameters(slaWarningThreshold, slaSafeThreshold, scaleDownFreeze, cpuSafeThreshold);

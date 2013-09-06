@@ -48,10 +48,9 @@ public abstract class Application {
 	public ArrayList<VmAllocationRequest> createInitialVmRequests() {
 		ArrayList<VmAllocationRequest> vmList = new ArrayList<VmAllocationRequest>();
 		
-		//create a VMAllocationRequest for the minimum number of replicas in each tier
+		//create a VMAllocationRequest for the minimum number of instances in each task
 		for (Task task : getTasks()) {
-			for (int i = 0; i < task.getDefaultInstances(); ++i)
-				vmList.add(new VmAllocationRequest(new VmDescription(task)));
+			vmList.addAll(task.createInitialVmRequests());
 		}
 		return vmList;
 	}

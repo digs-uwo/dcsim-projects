@@ -118,19 +118,21 @@ public class ApplicationScalingPolicy extends Policy {
 			
 			//choose task which has had the fastest increase in response time
 			for (Task task : app.getTasks()) {
-				double avgIncrease = 0;
-				for (TaskInstance instance : task.getInstances()) {
-					DescriptiveStatistics instanceRTs = appManager.getInstanceResponseTimes().get(instance);
+				if (task.getInstances().size() < task.getMaxInstances()) {
+					double avgIncrease = 0;
+					for (TaskInstance instance : task.getInstances()) {
+						DescriptiveStatistics instanceRTs = appManager.getInstanceResponseTimes().get(instance);
+						
+						double[] vals = instanceRTs.getValues();
+						avgIncrease += vals[vals.length - 1] - vals[0];
+						
+					}
 					
-					double[] vals = instanceRTs.getValues();
-					avgIncrease += vals[vals.length - 1] - vals[0];
-					
-				}
-				
-				avgIncrease = avgIncrease / task.getInstances().size();
-				if (avgIncrease > targetIncrease) {
-					targetIncrease = avgIncrease;
-					targetTask = task;
+					avgIncrease = avgIncrease / task.getInstances().size();
+					if (avgIncrease > targetIncrease) {
+						targetIncrease = avgIncrease;
+						targetTask = task;
+					}
 				}
 			}
 					
@@ -200,15 +202,17 @@ public class ApplicationScalingPolicy extends Policy {
 		double targetUtil = 0;
 		
 		for (Task task : app.getTasks()) {
-			double taskUtil = 0;
-			for (TaskInstance instance : task.getInstances()) {
-				taskUtil += appManager.getInstanceCpuUtils().get(instance).getMean();
-			}
-			taskUtil = taskUtil / task.getInstances().size();
-			
-			if (taskUtil > cpuWarningThreshold && taskUtil > targetUtil) {
-				targetUtil = taskUtil;
-				targetTask = task;
+			if (task.getInstances().size() < task.getMaxInstances()) {
+				double taskUtil = 0;
+				for (TaskInstance instance : task.getInstances()) {
+					taskUtil += appManager.getInstanceCpuUtils().get(instance).getMean();
+				}
+				taskUtil = taskUtil / task.getInstances().size();
+				
+				if (taskUtil > cpuWarningThreshold && taskUtil > targetUtil) {
+					targetUtil = taskUtil;
+					targetTask = task;
+				}
 			}
 		}
 		

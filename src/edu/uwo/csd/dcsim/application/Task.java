@@ -3,6 +3,8 @@ package edu.uwo.csd.dcsim.application;
 import java.util.ArrayList;
 
 import edu.uwo.csd.dcsim.host.Resources;
+import edu.uwo.csd.dcsim.vm.VmAllocationRequest;
+import edu.uwo.csd.dcsim.vm.VmDescription;
 
 /**
  * 
@@ -44,6 +46,15 @@ public abstract class Task {
 	public abstract ArrayList<TaskInstance> getInstances();
 
 	public abstract Application getApplication();
+	
+	public ArrayList<VmAllocationRequest> createInitialVmRequests() {
+		ArrayList<VmAllocationRequest> vmList = new ArrayList<VmAllocationRequest>();
+		
+		//create a VMAllocationRequest for the minimum number of instances
+		for (int i = 0; i < getDefaultInstances(); ++i)
+			vmList.add(new VmAllocationRequest(new VmDescription(this)));
+		return vmList;
+	}
 	
 	public int getDefaultInstances() {
 		return defaultInstances;
