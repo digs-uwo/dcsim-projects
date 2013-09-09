@@ -2,7 +2,6 @@ package edu.uwo.csd.dcsim.projects.hierarchical.policies;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 
 import edu.uwo.csd.dcsim.host.Resources;
 import edu.uwo.csd.dcsim.management.*;
@@ -18,16 +17,20 @@ import edu.uwo.csd.dcsim.projects.hierarchical.events.*;
  */
 public class VmRelocationPolicyLevel2 extends Policy {
 
+	protected AutonomicManager target;
+	
 	/**
 	 * Creates an instance of VmRelocationPolicyLevel2.
 	 */
-	public VmRelocationPolicyLevel2() {
-		addRequiredCapability(ClusterPoolManager.class);
+	public VmRelocationPolicyLevel2(AutonomicManager target) {
+		addRequiredCapability(RackPoolManager.class);
 		addRequiredCapability(MigRequestRecord.class);
+		
+		this.target = target;
 	}
 	
 	/**
-	 * This event can only come from a Cluster in the Data Centre.
+	 * This event can come from a Rack in this Cluster or from the DC Manager.
 	 */
 	public void execute(MigRequestEvent event) {
 		MigRequestEntry entry = new MigRequestEntry(event.getVm(), event.getOrigin(), event.getSender());
@@ -39,14 +42,14 @@ public class VmRelocationPolicyLevel2 extends Policy {
 	}
 	
 	/**
-	 * This event can only come from a Cluster in response to a migration request sent by the DC Manager.
+	 * This event can only come from Racks in this Cluster in response to migration requests sent by the ClusterManager.
 	 */
 	public void execute(MigRejectEvent event) {
 		// Mark sender's status as invalid (to avoid choosing sender again in the next step).
-		Collection<ClusterData> clusters = manager.getCapability(ClusterPoolManager.class).getClusters();
-		for (ClusterData cluster : clusters) {
-			if (cluster.getId() == event.getSender()) {
-				cluster.invalidateStatus(simulation.getSimulationTime());
+		Collection<RackData> racks = manager.getCapability(RackPoolManager.class).getRacks();
+		for (RackData rack : racks) {
+			if (rack.getId() == event.getSender()) {
+				rack.invalidateStatus(simulation.getSimulationTime());
 				break;
 			}
 		}
@@ -60,151 +63,123 @@ public class VmRelocationPolicyLevel2 extends Policy {
 	 * 
 	 */
 	protected void searchForVmMigrationTarget(MigRequestEntry entry) {
-		ClusterPoolManager clusterPool = manager.getCapability(ClusterPoolManager.class);
-		ArrayList<ClusterData> clusters = new ArrayList<ClusterData>(clusterPool.getClusters());
+		RackPoolManager rackPool = manager.getCapability(RackPoolManager.class);
+		ArrayList<RackData> racks = new ArrayList<RackData>(rackPool.getRacks());
 		
-		ClusterData targetCluster = null;
+		RackData targetRack = null;
 		
-		/**
-		 * TODO: Check that the chosen Cluster has the required HW capabilities (cores, core capacity) 
-		 * to host the VM. Two ways of doing it:
-		 * 1. Modify getInactiveCluster() to also check that the Cluster can host the VM, and add a 
-		 *    check in the FOR loop to also skip Clusters that cannot host the VM;
-		 * 2. At the beginning of the method, before even sorting the Clusters by power efficiency, 
-		 *    parse the list of Clusters and make a sublist with the Clusters that could host the VM.
-		 */
+		// Create sublist of active Racks (includes Racks with currently Invalid Status).
+		ArrayList<RackData> active = this.getActiveRacksSublist(racks);
 		
-		// Sort Clusters in decreasing order by power efficiency.
-		// TODO Since Power Efficiency is a static metric, the ClusterPoolManager could maintain 
-		// the list of Clusters sorted (at insertion time) and in that way the list would not 
-		// have to be sorted here every time.
-		Collections.sort(clusters, ClusterDataComparator.getComparator(ClusterDataComparator.POWER_EFFICIENCY));
-		Collections.reverse(clusters);
-		
-		// Create (ordered) sublist of active Clusters (includes Clusters with currently Invalid Status).
-		ArrayList<ClusterData> active = this.getActiveClustersSublist(clusters);
-		
-		// If there's only one active Cluster, the migration request has to have come from there, 
-		// so we need to start a new Cluster.
-		if (active.size() == 1) {
-			targetCluster = this.getInactiveCluster(clusters);
+		// If there are no active Racks, activate one.
+		if (active.size() == 0) {
+			targetRack = this.getInactiveRack(racks);
+		}
+		// If there is only one active Rack and the Rack is not the sender of the migration request, 
+		// then check if the Rack can host the VM; otherwise, activate a new Rack.
+		else if (active.size() == 1) {
+			if (active.get(0).getId() != entry.getSender() && this.canHost(entry.getVm(), active.get(0))) {
+				targetRack = active.get(0);
+			}
+			else {
+				targetRack = this.getInactiveRack(racks);
+			}
 		}
 		else {
-			// Search for a target Cluster among the subset of active Clusters.
-			
-			// For each PowerEff set (that is, the set composed by Clusters of the same PowerEff), 
-			// perform the following 3 tasks:
-			// 
-			// 		1. Find the Cluster with the Host with the most spare capacity;
-			//		2. Find the Cluster with the most loaded Rack (i.e., the Rack with the smallest 
-			//		   number of inactive Hosts) that has at least one inactive Host; and
-			//		3. Find the Cluster with the largest number of active Racks, but that has still 
-			//		   some more Racks to activate.
-			// 
-			// When we change PowerEff sets, check whether any Cluster that could take the VM was 
-			// identified during the iterations over the previous PowerEff set. If so, terminate 
-			// the loop and send the migration request. Otherwise, continue the analysis with the 
-			// new PowerEff set.
+			// Search for a target Rack among the subset of active Racks.
 			
 			double maxSpareCapacity = 0;
-			ClusterData maxSpareCapacityCluster = null;
+			RackData maxSpareCapacityRack = null;
 			int minInactiveHosts = Integer.MAX_VALUE;
-			ClusterData mostLoadedRack = null;
-			int mostActiveRacks = 0;
-			ClusterData mostLoadedCluster = null;
-			
-			double currentPowerEff = 0;
-			
-			for (ClusterData cluster : active) {
-				// Filter out Clusters with a currently invalid status.
-				// Filter out also the Cluster that sent the request.
-				if (!cluster.isStatusValid() || cluster.getId() == entry.getSender())
+			RackData mostLoadedWithSuspended = null;
+			RackData mostLoadedWithPoweredOff = null;
+			for (RackData rack : racks) {
+				// Filter out Racks with a currently invalid status.
+				// If the Rack sending the request belongs in this Cluster, skip it, too.
+				if (!rack.isStatusValid() || rack.getId() == entry.getSender())
 					continue;
 				
-				if (currentPowerEff != cluster.getClusterDescription().getPowerEfficiency()) {
-					// Check if the Cluster with the most spare capacity has enough resources to take the VM.
-					if (null != maxSpareCapacityCluster && this.canHost(entry.getVm(), maxSpareCapacityCluster)) {
-						targetCluster = maxSpareCapacityCluster;
-						break;
-					}
-					// Otherwise, make the Cluster with the most loaded Rack the target.
-					else if (null != mostLoadedRack) {
-						targetCluster = mostLoadedRack;
-						break;
-					}
-					// Last recourse: make the most loaded Cluster the target.
-					else if (null != mostLoadedCluster) {
-						targetCluster = mostLoadedCluster;
-						break;
-					}
-					
-					currentPowerEff = cluster.getClusterDescription().getPowerEfficiency();
-					// These two variables could have been modified during the iterations over the previous 
-					// PowerEff set.
-					maxSpareCapacity = 0;
-					maxSpareCapacityCluster = null;
-				}
+				RackStatus status = rack.getCurrentStatus();
 				
-				ClusterStatus status = cluster.getCurrentStatus();
-				
-				// Find the Cluster with the Host with the most spare capacity.
+				// Find the Rack with the most spare capacity.
 				if (status.getMaxSpareCapacity() > maxSpareCapacity) {
 					maxSpareCapacity = status.getMaxSpareCapacity();
-					maxSpareCapacityCluster = cluster;
+					maxSpareCapacityRack = rack;
 				}
 				
-				// Find the Cluster with the most loaded Rack (i.e., the Rack with the 
-				// smallest number of inactive Hosts) that has at least one inactive Host.
-				if (status.getMinInactiveHosts() < minInactiveHosts && status.getMinInactiveHosts() > 0) {
-					minInactiveHosts = status.getMinInactiveHosts();
-					mostLoadedRack = cluster;
-				}
-				
-				// Find the Cluster with the largest number of active Racks, but that has 
-				// still some more Racks to activate.
-				// TODO This check assumes that Racks are active or inactive, never failed.
-				if (status.getActiveRacks() > mostActiveRacks && status.getActiveRacks() < cluster.getClusterDescription().getRackCount()) {
-					mostActiveRacks = status.getActiveRacks();
-					mostLoadedCluster = cluster;
+				// Find the most loaded Racks (i.e., the Racks with the smallest number of inactive 
+				// Hosts) that have at least one suspended or powered off Host.
+				int inactiveHosts = status.getSuspendedHosts() + status.getPoweredOffHosts();
+				if (inactiveHosts > 0 && inactiveHosts < minInactiveHosts) {
+					minInactiveHosts = inactiveHosts;
+					if (status.getSuspendedHosts() > 0)
+						mostLoadedWithSuspended = rack;
+					if (status.getPoweredOffHosts() > 0)
+						mostLoadedWithPoweredOff = rack;
 				}
 			}
 			
-			// If we have not found a target Cluster among the subset of active Clusters, activate a new Cluster.
-			if (null == targetCluster && active.size() < clusters.size()) {
-				targetCluster = this.getInactiveCluster(clusters);
+			// Check if Rack with most spare capacity has enough resources to take the VM (i.e., become target).
+			if (null != maxSpareCapacityRack && this.canHost(entry.getVm(), maxSpareCapacityRack)) {
+				targetRack = maxSpareCapacityRack;
+			}
+			// Otherwise, make the most loaded Rack with a suspended Host the target.
+			else if (null != mostLoadedWithSuspended) {
+				targetRack = mostLoadedWithSuspended;
+			}
+			// Last recourse: make the most loaded Rack with a powered off Host the target.
+			else if (null != mostLoadedWithPoweredOff) {
+				targetRack = mostLoadedWithPoweredOff;
+			}
+			
+			// If we have not found a target Rack among the subset of active Racks, activate a new Rack.
+			if (null == targetRack && active.size() < racks.size()) {
+				targetRack = this.getInactiveRack(racks);
 			}
 		}
 		
-		if (null != targetCluster) {
+		if (null != targetRack) {
 			// Found target. Send migration request.
-			simulation.sendEvent(new MigRequestEvent(targetCluster.getClusterManager(), entry.getVm(), entry.getOrigin(), 0));
+			simulation.sendEvent(new MigRequestEvent(targetRack.getRackManager(), entry.getVm(), entry.getOrigin(), 0));
 			
-			// Invalidate target Cluster's status, as we know it to be incorrect until the next status update arrives.
-			targetCluster.invalidateStatus(simulation.getSimulationTime());
+			// Invalidate target Rack's status, as we know it to be incorrect until the next status update arrives.
+			targetRack.invalidateStatus(simulation.getSimulationTime());
 		}
-		// Could not find suitable target Cluster in the Data Centre.
+		// Could not find suitable target Rack in the Cluster.
 		else {
-			// Contact RackManager origin to reject migration request.
-			simulation.sendEvent(new MigRejectEvent(entry.getOrigin(), entry.getVm(), entry.getOrigin(), 0));
+			int clusterId = manager.getCapability(ClusterManager.class).getCluster().getId();
 			
-			// Delete entry from migration requests record.
+			// If event's sender belongs in this Cluster, request assistance from DC Manager 
+			// to find a target Host for the VM migration in another Cluster.
+			if (null != rackPool.getRack(entry.getSender())) {
+				simulation.sendEvent(new MigRequestEvent(target, entry.getVm(), entry.getOrigin(), clusterId));
+			}
+			// Event's sender does not belong in this Cluster.
+			else {
+				// Migration request was sent by DC Manager. Reject migration request.
+				simulation.sendEvent(new MigRejectEvent(target, entry.getVm(), entry.getOrigin(), clusterId));
+			}
+			
+			// In any case, delete entry from migration requests record.
+			// If requested assistance from DC Manager, I'm not seeing this request again.
+			// If rejected the request, I'm not seeing this request again.
 			manager.getCapability(MigRequestRecord.class).removeEntry(entry);
 		}
 	}
 	
 	/**
-	 * Verifies whether the given Cluster can meet the resource requirements of the VM.
+	 * Verifies whether the given Rack can meet the resource requirements of the VM.
 	 */
-	protected boolean canHost(VmStatus vm, ClusterData cluster) {
+	protected boolean canHost(VmStatus vm, RackData rack) {
 		// Check Host capabilities (e.g. core count, core capacity).
-		HostDescription hostDescription = cluster.getClusterDescription().getRackDescription().getHostDescription();
+		HostDescription hostDescription = rack.getRackDescription().getHostDescription();
 		if (hostDescription.getCpuCount() * hostDescription.getCoreCount() < vm.getCores())
 			return false;
 		if (hostDescription.getCoreCapacity() < vm.getCoreCapacity())
 			return false;
 		
 		// Check available resources.
-		Resources availableResources = AverageVmSizes.convertCapacityToResources(cluster.getCurrentStatus().getMaxSpareCapacity());
+		Resources availableResources = AverageVmSizes.convertCapacityToResources(rack.getCurrentStatus().getMaxSpareCapacity());
 		Resources vmResources = vm.getResourcesInUse();
 		if (availableResources.getCpu() < vmResources.getCpu())
 			return false;
@@ -219,29 +194,29 @@ public class VmRelocationPolicyLevel2 extends Policy {
 	}
 	
 	/**
-	 * Returns the subset of active Clusters in the given list. The sublist preserves the order of 
+	 * Returns the subset of active Racks in the given list. The sublist preserves the order of 
 	 * the elements in the original list.
 	 */
-	protected ArrayList<ClusterData> getActiveClustersSublist(ArrayList<ClusterData> clusters) {
-		ArrayList<ClusterData> active = new ArrayList<ClusterData>();
-		for (ClusterData cluster : clusters) {
-			if (cluster.getCurrentStatus().getActiveRacks() > 0)
-				active.add(cluster);
+	protected ArrayList<RackData> getActiveRacksSublist(ArrayList<RackData> racks) {
+		ArrayList<RackData> active = new ArrayList<RackData>();
+		for (RackData rack : racks) {
+			if (rack.getCurrentStatus().getActiveHosts() > 0)
+				active.add(rack);
 		}
 		
 		return active;
 	}
 	
 	/**
-	 * Returns the first inactive Cluster found in the given list. A Cluster is considered inactive 
-	 * if it has no active Racks. Otherwise, it's consider active.
+	 * Returns the first inactive Rack found in the given list. A Rack is considered inactive 
+	 * if it has no active Hosts. Otherwise, it's consider active.
 	 * 
-	 * This method may return NULL if the list contains no inactive Clusters.
+	 * This method may return NULL if the list contains no inactive Racks.
 	 */
-	protected ClusterData getInactiveCluster(ArrayList<ClusterData> clusters) {
-		for (ClusterData cluster : clusters) {
-			if (cluster.getCurrentStatus().getActiveRacks() == 0)
-				return cluster;
+	protected RackData getInactiveRack(ArrayList<RackData> racks) {
+		for (RackData rack : racks) {
+			if (rack.getCurrentStatus().getActiveHosts() == 0)
+				return rack;
 		}
 		
 		return null;

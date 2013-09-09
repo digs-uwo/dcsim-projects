@@ -28,7 +28,7 @@ import edu.uwo.csd.dcsim.management.capabilities.HostPoolManager;
  * @author Gaston Keller
  *
  */
-public abstract class VmConsolidationPolicyLevel0 extends Policy {
+public abstract class VmConsolidationPolicyLevel1 extends Policy {
 
 	protected AutonomicManager target;
 	
@@ -37,9 +37,9 @@ public abstract class VmConsolidationPolicyLevel0 extends Policy {
 	protected double targetUtilization;
 	
 	/**
-	 * Creates an instance of VmConsolidationPolicyLevel0.
+	 * Creates an instance of VmConsolidationPolicyLevel1.
 	 */
-	public VmConsolidationPolicyLevel0(AutonomicManager target, double lowerThreshold, double upperThreshold, double targetUtilization) {
+	public VmConsolidationPolicyLevel1(AutonomicManager target, double lowerThreshold, double upperThreshold, double targetUtilization) {
 		addRequiredCapability(HostPoolManager.class);
 		
 		this.target = target;

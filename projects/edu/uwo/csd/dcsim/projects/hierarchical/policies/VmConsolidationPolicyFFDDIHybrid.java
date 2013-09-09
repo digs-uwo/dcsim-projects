@@ -18,7 +18,7 @@ import edu.uwo.csd.dcsim.management.*;
  * @author Gaston Keller
  *
  */
-public class VmConsolidationPolicyFFDDIHybrid extends VmConsolidationPolicyLevel0 {
+public class VmConsolidationPolicyFFDDIHybrid extends VmConsolidationPolicyLevel1 {
 
 	/**
 	 * Creates a new instance of VmConsolidationPolicyFFDDIHybrid.

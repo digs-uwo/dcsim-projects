@@ -3,235 +3,373 @@ package edu.uwo.csd.dcsim.projects.hierarchical.policies;
 import java.util.ArrayList;
 import java.util.Collection;
 
-import edu.uwo.csd.dcsim.host.Resources;
+import edu.uwo.csd.dcsim.common.Utility;
+import edu.uwo.csd.dcsim.core.metrics.CountMetric;
+import edu.uwo.csd.dcsim.host.*;
 import edu.uwo.csd.dcsim.management.*;
-import edu.uwo.csd.dcsim.projects.hierarchical.*;
+import edu.uwo.csd.dcsim.management.action.MigrationAction;
+import edu.uwo.csd.dcsim.management.capabilities.HostPoolManager;
+import edu.uwo.csd.dcsim.projects.centralized.events.VmRelocationEvent;
+import edu.uwo.csd.dcsim.projects.hierarchical.MigRequestEntry;
 import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.*;
 import edu.uwo.csd.dcsim.projects.hierarchical.events.*;
 
 /**
+ * This policy implements the VM Relocation process in two steps. First, the 
+ * policy tries to find a VM migration within the scope of the Hosts pool it 
+ * controls. Then, if that fails, the policy contacts a higher-level manager 
+ * to request assistance finding a target Host outside of the policy's Hosts 
+ * pool to which to migrate a VM.
  * 
+ * The first step in the VM Relocation process is labelled *Internal* and 
+ * consists of a greedy algorithm that attempts to migrate a VM away from the 
+ * Stressed Host and into a Partially-Utilized, Under-Utilized or Empty Host. 
+ * Hosts are classified as Stressed, Partially-Utilized, Under-Utilized or 
+ * Empty based on the hosts' average CPU utilization over the last window of 
+ * time.
+ * 
+ * The second step in the VM Relocation process is labelled *External* and 
+ * consists of selecting a VM to be migrated away from the Stressed Host and 
+ * sending the VM's information to the higher-level manager for it to find a 
+ * suitable new Host for the VM.
  * 
  * @author Gaston Keller
  *
  */
-public class VmRelocationPolicyLevel1 extends Policy {
+public abstract class VmRelocationPolicyLevel1 extends Policy {
 
+	private static final String INTRARACK_MIGRATION_COUNT_METRIC = "migrationCount-IntraRack";
+	private static final String INTRACLUSTER_MIGRATION_COUNT_METRIC = "migrationCount-IntraCluster";
+	private static final String INTERCLUSTER_MIGRATION_COUNT_METRIC = "migrationCount-InterCluster";
+	
 	protected AutonomicManager target;
+	
+	protected double lowerThreshold;
+	protected double upperThreshold;
+	protected double targetUtilization;
 	
 	/**
 	 * Creates an instance of VmRelocationPolicyLevel1.
 	 */
-	public VmRelocationPolicyLevel1(AutonomicManager target) {
-		addRequiredCapability(RackPoolManager.class);
+	public VmRelocationPolicyLevel1(AutonomicManager target, double lowerThreshold, double upperThreshold, double targetUtilization) {
+		addRequiredCapability(HostPoolManager.class);
 		addRequiredCapability(MigRequestRecord.class);
 		
 		this.target = target;
+		
+		this.lowerThreshold = lowerThreshold;
+		this.upperThreshold = upperThreshold;
+		this.targetUtilization = targetUtilization;
 	}
 	
 	/**
-	 * This event can come from a Rack in this Cluster or from the DC Manager.
+	 * Sorts the candidate VMs in the order in which they are to be considered 
+	 * for VM Relocation.
+	 */
+	protected abstract ArrayList<VmStatus> orderSourceVms(ArrayList<VmStatus> sourceVms, HostData source);
+	
+	/**
+	 * Sorts the target hosts (Partially-Utilized, Under-Utilized and Empty) in 
+	 * the order in which they are to be considered for VM Relocation.
+	 */
+	protected abstract ArrayList<HostData> orderTargetHosts(ArrayList<HostData> partiallyUtilized, ArrayList<HostData> underUtilized, ArrayList<HostData> empty);
+	
+	/**
+	 * Performs a Stress Check on the Host indicated by the event and starts a 
+	 * VM Relocation process if the Host is stressed.
+	 */
+	public void execute(VmRelocationEvent event) {
+		HostPoolManager hostPool = manager.getCapability(HostPoolManager.class);
+		
+		// Perform Stress Check on the Host whose Status Update was just received.
+		// If Host is NOT stressed, terminate.
+		if (!this.isStressed(hostPool.getHost(event.getHostId())))
+			return;
+		
+		// Perform VM Relocation process within the scope of the Rack.
+		// If it fails, request assistance from ClusterManager.
+		boolean success = this.performInternalVmRelocation(event.getHostId());
+		if (!success)
+			this.performExternalVmRelocation(event.getHostId());
+	}
+	
+	/**
+	 * This event comes from the Cluster Manager, trying to migrate the VM to this Rack.
 	 */
 	public void execute(MigRequestEvent event) {
-		MigRequestEntry entry = new MigRequestEntry(event.getVm(), event.getOrigin(), event.getSender());
+		// Search for potential target Host.
+		HostData targetHost = this.findTargetHost(event.getVm());
 		
-		// Store info about migration request just received.
-		manager.getCapability(MigRequestRecord.class).addEntry(entry);
-		
-		this.searchForVmMigrationTarget(entry);
+		// If found, send message to RackManager origin accepting the migration request.
+		if (null != targetHost) {
+			simulation.sendEvent(new MigAcceptEvent(event.getOrigin(), event.getVm(), targetHost.getHost()));
+			
+			// TODO May have to invalidate here the status of the target Host.
+			
+		}
+		// Otherwise, send message to ClusterManager rejecting the migration request.
+		else {
+			int rackId = manager.getCapability(RackManager.class).getRack().getId();
+			simulation.sendEvent(new MigRejectEvent(target, event.getVm(), event.getOrigin(), rackId));
+		}
 	}
 	
 	/**
-	 * This event can only come from Racks in this Cluster in response to migration requests sent by the ClusterManager.
+	 * This event can only come from another Rack Manager with information about the selected target Host.
+	 */
+	public void execute(MigAcceptEvent event) {
+		// Get entry from migration requests record.
+		MigRequestEntry entry = manager.getCapability(MigRequestRecord.class).getEntry(event.getVm(), manager);
+		
+		// Trigger migration.
+		HostData source = entry.getHost();
+		
+		// TODO Do we need to invalidate the status of the source and target Hosts here ???
+		// Invalidate source and target Hosts' status, as we know them to be incorrect until the next status update arrives.
+//		source.invalidateStatus(simulation.getSimulationTime());
+//		host.invalidateStatus(simulation.getSimulationTime());
+		
+		new MigrationAction(source.getHostManager(), source.getHost(), event.getTargetHost(), event.getVm().getId()).execute(simulation, this);
+		
+		// Delete entry from migration requests record.
+		manager.getCapability(MigRequestRecord.class).removeEntry(entry);
+		
+		// Update metrics.
+		if (simulation.isRecordingMetrics()) {
+			// Find out whether the target Host belongs in the same Cluster as the source Rack.
+			Cluster cluster = target.getCapability(ClusterManager.class).getCluster();
+			if (this.containsHost(cluster, event.getTargetHost().getId()))
+				CountMetric.getMetric(simulation, INTRACLUSTER_MIGRATION_COUNT_METRIC).incrementCount();
+			else
+				CountMetric.getMetric(simulation, INTERCLUSTER_MIGRATION_COUNT_METRIC).incrementCount();
+		}
+	}
+	
+	/**
+	 * This event can only come from the DC Manager, signaling that nobody can accept the migration request.
 	 */
 	public void execute(MigRejectEvent event) {
-		// Mark sender's status as invalid (to avoid choosing sender again in the next step).
-		Collection<RackData> racks = manager.getCapability(RackPoolManager.class).getRacks();
-		for (RackData rack : racks) {
-			if (rack.getId() == event.getSender()) {
-				rack.invalidateStatus(simulation.getSimulationTime());
-				break;
-			}
-		}
-		
-		// Get entry from record and search again for a migration target.
-		MigRequestEntry entry = manager.getCapability(MigRequestRecord.class).getEntry(event.getVm(), event.getOrigin());
-		this.searchForVmMigrationTarget(entry);
+		// Delete entry from migration requests record.
+		MigRequestRecord record = manager.getCapability(MigRequestRecord.class);
+		record.removeEntry(record.getEntry(event.getVm(), event.getOrigin()));
 	}
 	
 	/**
-	 * 
+	 * Search for a target Host that could take the given VM.
 	 */
-	protected void searchForVmMigrationTarget(MigRequestEntry entry) {
-		RackPoolManager rackPool = manager.getCapability(RackPoolManager.class);
-		ArrayList<RackData> racks = new ArrayList<RackData>(rackPool.getRacks());
+	protected HostData findTargetHost(VmStatus vm) {
+		HostPoolManager hostPool = manager.getCapability(HostPoolManager.class);
+		Collection<HostData> hosts = hostPool.getHosts();
 		
-		RackData targetRack = null;
-		
-		// Create sublist of active Racks (includes Racks with currently Invalid Status).
-		ArrayList<RackData> active = this.getActiveRacksSublist(racks);
-		
-		// If there are no active Racks, activate one.
-		if (active.size() == 0) {
-			targetRack = this.getInactiveRack(racks);
+		// Reset the sandbox host status to the current host status.
+		for (HostData host : hosts) {
+			host.resetSandboxStatusToCurrent();
 		}
-		// If there is only one active Rack and the Rack is not the sender of the migration request, 
-		// then check if the Rack can host the VM; otherwise, activate a new Rack.
-		else if (active.size() == 1) {
-			if (active.get(0).getId() != entry.getSender() && this.canHost(entry.getVm(), active.get(0))) {
-				targetRack = active.get(0);
-			}
-			else {
-				targetRack = this.getInactiveRack(racks);
-			}
-		}
-		else {
-			// Search for a target Rack among the subset of active Racks.
-			
-			double maxSpareCapacity = 0;
-			RackData maxSpareCapacityRack = null;
-			int minInactiveHosts = Integer.MAX_VALUE;
-			RackData mostLoadedWithSuspended = null;
-			RackData mostLoadedWithPoweredOff = null;
-			for (RackData rack : racks) {
-				// Filter out Racks with a currently invalid status.
-				// If the Rack sending the request belongs in this Cluster, skip it, too.
-				if (!rack.isStatusValid() || rack.getId() == entry.getSender())
-					continue;
+		
+		// Classify Hosts as Partially-Utilized, Under-Utilized or Empty; ignore Stressed Hosts.
+		ArrayList<HostData> partiallyUtilized = new ArrayList<HostData>();
+		ArrayList<HostData> underUtilized = new ArrayList<HostData>();
+		ArrayList<HostData> empty = new ArrayList<HostData>();
+		this.classifyHosts(hosts, partiallyUtilized, underUtilized, empty);
+		
+		// Create sorted list of target Hosts.
+		ArrayList<HostData> targets = this.orderTargetHosts(partiallyUtilized, underUtilized, empty);
+		
+		for (HostData target : targets) {
+			// Check that target host has at most 1 incoming migration pending, 
+			// that target host is capable and has enough capacity left to host the VM, 
+			// and also that it will not exceed the target utilization.
+			if (target.getSandboxStatus().getIncomingMigrationCount() < 2 && 
+				HostData.canHost(vm, target.getSandboxStatus(), target.getHostDescription()) && 
+				(target.getSandboxStatus().getResourcesInUse().getCpu() + vm.getResourcesInUse().getCpu()) / target.getHostDescription().getResourceCapacity().getCpu() <= targetUtilization) {
 				
-				RackStatus status = rack.getCurrentStatus();
-				
-				// Find the Rack with the most spare capacity.
-				if (status.getMaxSpareCapacity() > maxSpareCapacity) {
-					maxSpareCapacity = status.getMaxSpareCapacity();
-					maxSpareCapacityRack = rack;
-				}
-				
-				// Find the most loaded Racks (i.e., the Racks with the smallest number of inactive 
-				// Hosts) that have at least one suspended or powered off Host.
-				int inactiveHosts = status.getSuspendedHosts() + status.getPoweredOffHosts();
-				if (inactiveHosts > 0 && inactiveHosts < minInactiveHosts) {
-					minInactiveHosts = inactiveHosts;
-					if (status.getSuspendedHosts() > 0)
-						mostLoadedWithSuspended = rack;
-					if (status.getPoweredOffHosts() > 0)
-						mostLoadedWithPoweredOff = rack;
-				}
+				return target;
 			}
-			
-			// Check if Rack with most spare capacity has enough resources to take the VM (i.e., become target).
-			if (null != maxSpareCapacityRack && this.canHost(entry.getVm(), maxSpareCapacityRack)) {
-				targetRack = maxSpareCapacityRack;
-			}
-			// Otherwise, make the most loaded Rack with a suspended Host the target.
-			else if (null != mostLoadedWithSuspended) {
-				targetRack = mostLoadedWithSuspended;
-			}
-			// Last recourse: make the most loaded Rack with a powered off Host the target.
-			else if (null != mostLoadedWithPoweredOff) {
-				targetRack = mostLoadedWithPoweredOff;
-			}
-			
-			// If we have not found a target Rack among the subset of active Racks, activate a new Rack.
-			if (null == targetRack && active.size() < racks.size()) {
-				targetRack = this.getInactiveRack(racks);
-			}
-		}
-		
-		if (null != targetRack) {
-			// Found target. Send migration request.
-			simulation.sendEvent(new MigRequestEvent(targetRack.getRackManager(), entry.getVm(), entry.getOrigin(), 0));
-			
-			// Invalidate target Rack's status, as we know it to be incorrect until the next status update arrives.
-			targetRack.invalidateStatus(simulation.getSimulationTime());
-		}
-		// Could not find suitable target Rack in the Cluster.
-		else {
-			int clusterId = manager.getCapability(ClusterManager.class).getCluster().getId();
-			
-			// If event's sender belongs in this Cluster, request assistance from DC Manager 
-			// to find a target Host for the VM migration in another Cluster.
-			if (null != rackPool.getRack(entry.getSender())) {
-				simulation.sendEvent(new MigRequestEvent(target, entry.getVm(), entry.getOrigin(), clusterId));
-			}
-			// Event's sender does not belong in this Cluster.
-			else {
-				// Migration request was sent by DC Manager. Reject migration request.
-				simulation.sendEvent(new MigRejectEvent(target, entry.getVm(), entry.getOrigin(), clusterId));
-			}
-			
-			// In any case, delete entry from migration requests record.
-			// If requested assistance from DC Manager, I'm not seeing this request again.
-			// If rejected the request, I'm not seeing this request again.
-			manager.getCapability(MigRequestRecord.class).removeEntry(entry);
-		}
-	}
-	
-	/**
-	 * Verifies whether the given Rack can meet the resource requirements of the VM.
-	 */
-	protected boolean canHost(VmStatus vm, RackData rack) {
-		// Check Host capabilities (e.g. core count, core capacity).
-		HostDescription hostDescription = rack.getRackDescription().getHostDescription();
-		if (hostDescription.getCpuCount() * hostDescription.getCoreCount() < vm.getCores())
-			return false;
-		if (hostDescription.getCoreCapacity() < vm.getCoreCapacity())
-			return false;
-		
-		// Check available resources.
-		Resources availableResources = AverageVmSizes.convertCapacityToResources(rack.getCurrentStatus().getMaxSpareCapacity());
-		Resources vmResources = vm.getResourcesInUse();
-		if (availableResources.getCpu() < vmResources.getCpu())
-			return false;
-		if (availableResources.getMemory() < vmResources.getMemory())
-			return false;
-		if (availableResources.getBandwidth() < vmResources.getBandwidth())
-			return false;
-		if (availableResources.getStorage() < vmResources.getStorage())
-			return false;
-		
-		return true;
-	}
-	
-	/**
-	 * Returns the subset of active Racks in the given list. The sublist preserves the order of 
-	 * the elements in the original list.
-	 */
-	protected ArrayList<RackData> getActiveRacksSublist(ArrayList<RackData> racks) {
-		ArrayList<RackData> active = new ArrayList<RackData>();
-		for (RackData rack : racks) {
-			if (rack.getCurrentStatus().getActiveHosts() > 0)
-				active.add(rack);
-		}
-		
-		return active;
-	}
-	
-	/**
-	 * Returns the first inactive Rack found in the given list. A Rack is considered inactive 
-	 * if it has no active Hosts. Otherwise, it's consider active.
-	 * 
-	 * This method may return NULL if the list contains no inactive Racks.
-	 */
-	protected RackData getInactiveRack(ArrayList<RackData> racks) {
-		for (RackData rack : racks) {
-			if (rack.getCurrentStatus().getActiveHosts() == 0)
-				return rack;
 		}
 		
 		return null;
+	}
+	
+	/**
+	 * Performs the VM Relocation process within the scope of the Rack.
+	 * 
+	 * The process searches for a feasible VM migration with target Host inside the Rack.
+	 */
+	protected boolean performInternalVmRelocation(int hostId) {
+		HostPoolManager hostPool = manager.getCapability(HostPoolManager.class);
+		Collection<HostData> hosts = hostPool.getHosts();
+		
+		// Reset the sandbox host status to the current host status.
+		for (HostData host : hosts) {
+			host.resetSandboxStatusToCurrent();
+		}
+		
+		// Stressed Host becomes the source for the VM migration.
+		HostData source = hostPool.getHost(hostId);
+		
+		// Classify Hosts as Partially-Utilized, Under-Utilized or Empty; ignore Stressed Hosts.
+		ArrayList<HostData> partiallyUtilized = new ArrayList<HostData>();
+		ArrayList<HostData> underUtilized = new ArrayList<HostData>();
+		ArrayList<HostData> empty = new ArrayList<HostData>();
+		this.classifyHosts(hosts, partiallyUtilized, underUtilized, empty);
+		
+		// Create sorted list of target Hosts.
+		ArrayList<HostData> targets = this.orderTargetHosts(partiallyUtilized, underUtilized, empty);
+		
+		MigrationAction mig = null;
+		ArrayList<VmStatus> vmList = this.orderSourceVms(source.getCurrentStatus().getVms(), source);
+		for (VmStatus vm : vmList) {
+			
+			for (HostData target : targets) {
+				// Check that target host has at most 1 incoming migration pending, 
+				// that target host is capable and has enough capacity left to host the VM, 
+				// and also that it will not exceed the target utilization.
+				if (target.getSandboxStatus().getIncomingMigrationCount() < 2 && 
+					HostData.canHost(vm, target.getSandboxStatus(), target.getHostDescription()) && 
+					(target.getSandboxStatus().getResourcesInUse().getCpu() + vm.getResourcesInUse().getCpu()) / target.getHostDescription().getResourceCapacity().getCpu() <= targetUtilization) {
+					
+					// Modify host and vm states to record the future migration. Note that we 
+					// can do this because we are using the designated 'sandbox' host status.
+					source.getSandboxStatus().migrate(vm, target.getSandboxStatus());
+					
+					// Invalidate source and target status, as we know them to be incorrect until the next status update arrives.
+					source.invalidateStatus(simulation.getSimulationTime());
+					target.invalidateStatus(simulation.getSimulationTime());
+					
+					mig = new MigrationAction(source.getHostManager(), source.getHost(), target.getHost(), vm.getId());
+					
+					break;		// Found VM migration. Exit loop.
+				}
+			}
+			
+			if (mig != null)	// Found VM migration. Exit loop.
+				break;
+		}
+		
+		if (mig != null) {		// Trigger migration.
+			mig.execute(simulation, this);
+			
+			// Update metrics.
+			if (simulation.isRecordingMetrics()) {
+				CountMetric.getMetric(simulation, INTRARACK_MIGRATION_COUNT_METRIC).incrementCount();
+			}
+			
+			return true;
+		}
+		
+		return false;
+	}
+	
+	/**
+	 * Starts an external VM Relocation process.
+	 * 
+	 * A VM from the stressed Host is selected to be migrated away from the Rack.
+	 * The ClusterManager is contacted for it to find a target Host for the VM migration.
+	 */
+	protected void performExternalVmRelocation(int hostId) {
+		HostData host = manager.getCapability(HostPoolManager.class).getHost(hostId);
+		int rackId = manager.getCapability(RackManager.class).getRack().getId();
+		
+		// Get VM to migrate away -- the first one in the ordered list.
+		VmStatus vm = this.orderSourceVms(host.getCurrentStatus().getVms(), host).get(0);
+		
+		// Request assistance from ClusterManager to find a target Host for migrating the selected VM.
+		simulation.sendEvent(new MigRequestEvent(target, vm, manager, rackId));
+		
+		// Keep track of the migration request just sent.
+		manager.getCapability(MigRequestRecord.class).addEntry(new MigRequestEntry(vm, manager, host));
+	}
+	
+	/**
+	 * Classifies hosts as Partially-Utilized, Under-Utilized or Empty based 
+	 * on the Hosts' average CPU utilization over the last window of time. The 
+	 * method ignores (or discards) Stressed Hosts.
+	 */
+	protected void classifyHosts(Collection<HostData> hosts, 
+			ArrayList<HostData> partiallyUtilized, 
+			ArrayList<HostData> underUtilized, 
+			ArrayList<HostData> empty) {
+		
+		for (HostData host : hosts) {
+			
+			// Filter out Hosts with a currently invalid status.
+			if (host.isStatusValid()) {
+					
+				double avgCpuUtilization = this.calculateHostAvgCpuUtilization(host);
+				
+				// Classify Hosts; ignore Stressed ones.
+				if (host.getCurrentStatus().getVms().size() == 0) {
+					empty.add(host);
+				} else if (avgCpuUtilization < lowerThreshold) {
+					underUtilized.add(host);
+				} else if (avgCpuUtilization < upperThreshold) {
+					partiallyUtilized.add(host);
+				}
+			}
+		}
+	}
+	
+	/**
+	 * Determines if the Host is Stressed or not, based on its average
+	 * CPU utilization over the last window of time.
+	 */
+	protected boolean isStressed(HostData host) {
+		if (this.calculateHostAvgCpuUtilization(host) >= upperThreshold)
+			return true;
+		
+		return false;
+	}
+	
+	/**
+	 * Calculates Host's average CPU utilization over the last window of time.
+	 * 
+	 * @return		value in range [0,1] (i.e., percentage)
+	 */
+	protected double calculateHostAvgCpuUtilization(HostData host) {
+		double avgCpuInUse = 0;
+		int count = 0;
+		for (HostStatus status : host.getHistory()) {
+			// Only consider times when the host is powered ON.
+			if (status.getState() == Host.HostState.ON) {
+				avgCpuInUse += status.getResourcesInUse().getCpu();
+				++count;
+			}
+			else
+				break;
+		}
+		if (count != 0) {
+			avgCpuInUse = avgCpuInUse / count;
+		}
+		
+		return Utility.roundDouble(avgCpuInUse / host.getHostDescription().getResourceCapacity().getCpu());
+	}
+	
+	/**
+	 * Checks whether the given Host belongs in the given Cluster.
+	 */
+	private boolean containsHost(Cluster cluster, int hostId) {
+		
+		for (Rack rack : cluster.getRacks()) {
+			for (Host host : rack.getHosts()) {
+				if (host.getId() == hostId) {
+					return true;
+				}
+			}
+		}
+		
+		return false;
 	}
 	
 	@Override
 	public void onInstall() {
 		// TODO Auto-generated method stub
 	}
-	
+
 	@Override
 	public void onManagerStart() {
 		// TODO Auto-generated method stub
 	}
-	
+
 	@Override
 	public void onManagerStop() {
 		// TODO Auto-generated method stub

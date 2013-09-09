@@ -3,217 +3,223 @@ package edu.uwo.csd.dcsim.projects.hierarchical.policies;
 import java.util.ArrayList;
 import java.util.Collection;
 
-import edu.uwo.csd.dcsim.host.Resources;
+import edu.uwo.csd.dcsim.common.Utility;
+import edu.uwo.csd.dcsim.host.*;
+import edu.uwo.csd.dcsim.host.events.PowerStateEvent;
+import edu.uwo.csd.dcsim.host.events.PowerStateEvent.PowerState;
 import edu.uwo.csd.dcsim.management.*;
-import edu.uwo.csd.dcsim.management.events.VmPlacementEvent;
-import edu.uwo.csd.dcsim.projects.hierarchical.*;
-import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.*;
-import edu.uwo.csd.dcsim.projects.hierarchical.events.*;
+import edu.uwo.csd.dcsim.management.capabilities.HostPoolManager;
+import edu.uwo.csd.dcsim.management.events.*;
+import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.RackManager;
+import edu.uwo.csd.dcsim.projects.hierarchical.events.VmPlacementRejectEvent;
 import edu.uwo.csd.dcsim.vm.VMAllocationRequest;
 
 /**
+ * This policy implements the VM Placement process using a greedy algorithm. 
+ * VMs are placed in the first non-stressed host with enough spare capacity 
+ * to take the VM without exceeding the *targetUtilization* threshold.
  * 
+ * Hosts are classified as Stressed, Partially-Utilized, Underutilized or 
+ * Empty based on the hosts' average CPU utilization over the last window of 
+ * time.
  * 
  * @author Gaston Keller
  *
  */
-public class VmPlacementPolicyLevel1 extends Policy {
+public abstract class VmPlacementPolicyLevel1 extends Policy {
 
 	protected AutonomicManager target;
+	
+	protected double lowerThreshold;
+	protected double upperThreshold;
+	protected double targetUtilization;
 	
 	/**
 	 * Creates an instance of VmPlacementPolicyLevel1.
 	 */
-	public VmPlacementPolicyLevel1(AutonomicManager target) {
-		addRequiredCapability(RackPoolManager.class);
+	public VmPlacementPolicyLevel1(AutonomicManager target, double lowerThreshold, double upperThreshold, double targetUtilization) {
+		addRequiredCapability(HostPoolManager.class);
 		
 		this.target = target;
+		
+		this.lowerThreshold = lowerThreshold;
+		this.upperThreshold = upperThreshold;
+		this.targetUtilization = targetUtilization;
 	}
 	
 	/**
-	 * This event can only come from the DC Manager.
+	 * Sorts the target hosts (Partially-Utilized, Underutilized and Empty) in 
+	 * the order in which they are to be considered for VM Placement.
+	 */
+	protected abstract ArrayList<HostData> orderTargetHosts(ArrayList<HostData> partiallyUtilized, 
+			ArrayList<HostData> underUtilized, 
+			ArrayList<HostData> empty);
+	
+	/**
+	 * This event can only come from the ClusterManager.
+	 * 
+	 * Places the given VM in the first non-stressed Host with enough spare capacity 
+	 * to take the VM without exceeding the *targetUtilization* threshold.
 	 */
 	public void execute(VmPlacementEvent event) {
+		HostPoolManager hostPool = manager.getCapability(HostPoolManager.class);
+		Collection<HostData> hosts = hostPool.getHosts();
+		
+		// Reset the sandbox host status to the current host status.
+		for (HostData host : hosts) {
+			host.resetSandboxStatusToCurrent();
+		}
+		
+		// Categorize hosts.
+		ArrayList<HostData> partiallyUtilized = new ArrayList<HostData>();
+		ArrayList<HostData> underUtilized = new ArrayList<HostData>();
+		ArrayList<HostData> empty = new ArrayList<HostData>();
+		
+		this.classifyHosts(partiallyUtilized, underUtilized, empty, hosts);
+		
+		// Create target hosts list.
+		ArrayList<HostData> targets = this.orderTargetHosts(partiallyUtilized, underUtilized, empty);
+		
 		// The event contains a single placement request.
-		this.searchForVmPlacementTarget(event.getVMAllocationRequests().get(0));
-	}
-	
-	/**
-	 * This event can only come from Racks in this Cluster in response to migration requests sent by the ClusterManager.
-	 */
-	public void execute(VmPlacementRejectEvent event) {
-		// Mark sender's status as invalid (to avoid choosing sender again in the next step).
-		Collection<RackData> racks = manager.getCapability(RackPoolManager.class).getRacks();
-		for (RackData rack : racks) {
-			if (rack.getId() == event.getSender()) {
-				rack.invalidateStatus(simulation.getSimulationTime());
+		VMAllocationRequest request = event.getVMAllocationRequests().get(0);
+		
+		HostData targetHost = null;
+		for (HostData target : targets) {
+			
+			Resources reqResources = new Resources();
+			reqResources.setCpu(request.getCpu());
+			reqResources.setMemory(request.getMemory());
+			reqResources.setBandwidth(request.getBandwidth());
+			reqResources.setStorage(request.getStorage());
+			
+			// Check that target Host is capable and has enough capacity left to host the VM, 
+			// and also that it will not exceed the target utilization.
+			if (HostData.canHost(request.getVMDescription().getCores(), 
+					request.getVMDescription().getCoreCapacity(), 
+					reqResources,
+					target.getSandboxStatus(),
+					target.getHostDescription()) &&	
+			 	(target.getSandboxStatus().getResourcesInUse().getCpu() + request.getCpu()) / target.getHostDescription().getResourceCapacity().getCpu() <= targetUtilization) {
+				
+				targetHost = target;
+				
+				// Add a dummy placeholder VM to keep track of placed VM resource requirements.
+				target.getSandboxStatus().instantiateVm(new VmStatus(request.getVMDescription().getCores(),	request.getVMDescription().getCoreCapacity(), reqResources));
+				
+				// Invalidate this host status, as we know it to be incorrect until the next status update arrives.
+				target.invalidateStatus(simulation.getSimulationTime());
+				
 				break;
 			}
 		}
 		
-		// Search again for a placement target.
-		this.searchForVmPlacementTarget(event.getVmAllocationRequest());
-	}
-	
-	/**
-	 * 
-	 */
-	protected void searchForVmPlacementTarget(VMAllocationRequest request) {
-		RackPoolManager rackPool = manager.getCapability(RackPoolManager.class);
-		ArrayList<RackData> racks = new ArrayList<RackData>(rackPool.getRacks());
-		
-		RackData targetRack = null;
-		
-		// Create sublist of active Racks (includes Racks with currently Invalid Status).
-		ArrayList<RackData> active = this.getActiveRacksSublist(racks);
-		
-		// If there are no active Racks, activate one.
-		if (active.size() == 0) {
-			targetRack = this.getInactiveRack(racks);
-		}
-		// If there is only one active Rack, check if the Rack can host the VM; otherwise, activate a new Rack.
-		else if (active.size() == 1) {
-			if (this.canHost(request, active.get(0))) {
-				targetRack = active.get(0);
-			}
-			else {
-				targetRack = this.getInactiveRack(racks);
-			}
-		}
+		if (null != targetHost)
+			// Found target. Send instantiation request.
+			this.sendVm(request, targetHost);
+		// Could not find suitable target Host in the Rack.
 		else {
-			// Search for a target Rack among the subset of active Racks.
+			int rackId = manager.getCapability(RackManager.class).getRack().getId();
 			
-			double maxSpareCapacity = 0;
-			RackData maxSpareCapacityRack = null;
-			int minInactiveHosts = Integer.MAX_VALUE;
-			RackData mostLoadedWithSuspended = null;
-			RackData mostLoadedWithPoweredOff = null;
-			for (RackData rack : racks) {
-				// Filter out Racks with a currently invalid status.
-				if (!rack.isStatusValid())
-					continue;
-				
-				RackStatus status = rack.getCurrentStatus();
-				
-				// Find the Rack with the most spare capacity.
-				if (status.getMaxSpareCapacity() > maxSpareCapacity) {
-					maxSpareCapacity = status.getMaxSpareCapacity();
-					maxSpareCapacityRack = rack;
-				}
-				
-				// Find the most loaded Racks (i.e., the Racks with the smallest number of inactive 
-				// Hosts) that have at least one suspended or powered off Host.
-				int inactiveHosts = status.getSuspendedHosts() + status.getPoweredOffHosts();
-				if (inactiveHosts > 0 && inactiveHosts < minInactiveHosts) {
-					minInactiveHosts = inactiveHosts;
-					if (status.getSuspendedHosts() > 0)
-						mostLoadedWithSuspended = rack;
-					if (status.getPoweredOffHosts() > 0)
-						mostLoadedWithPoweredOff = rack;
-				}
-			}
-			
-			// Check if Rack with most spare capacity has enough resources to take the VM (i.e., become target).
-			if (null != maxSpareCapacityRack && this.canHost(request, maxSpareCapacityRack)) {
-				targetRack = maxSpareCapacityRack;
-			}
-			// Otherwise, make the most loaded Rack with a suspended Host the target.
-			else if (null != mostLoadedWithSuspended) {
-				targetRack = mostLoadedWithSuspended;
-			}
-			// Last recourse: make the most loaded Rack with a powered off Host the target.
-			else if (null != mostLoadedWithPoweredOff) {
-				targetRack = mostLoadedWithPoweredOff;
-			}
-			
-			// If we have not found a target Rack among the subset of active Racks, activate a new Rack.
-			if (null == targetRack && active.size() < racks.size()) {
-				targetRack = this.getInactiveRack(racks);
-			}
-		}
-		
-		if (null != targetRack) {
-			// Found target. Send placement request.
-			ArrayList<VMAllocationRequest> requests = new ArrayList<VMAllocationRequest>();
-			requests.add(request);
-			simulation.sendEvent(new VmPlacementEvent(targetRack.getRackManager(), requests));
-			
-			// Invalidate target Rack's status, as we know it to be incorrect until the next status update arrives.
-			targetRack.invalidateStatus(simulation.getSimulationTime());
-		}
-		// Could not find suitable target Rack in the Cluster.
-		else {
-			int clusterId = manager.getCapability(ClusterManager.class).getCluster().getId();
-			
-			// Contact DC Manager. Reject migration request.
-			simulation.sendEvent(new VmPlacementRejectEvent(target, request, clusterId));
+			// Contact ClusterManager. Reject placement request.
+			simulation.sendEvent(new VmPlacementRejectEvent(target, request, rackId));
 		}
 	}
 	
+	public void execute(ShutdownVmEvent event) {
+		HostPoolManager hostPool = manager.getCapability(HostPoolManager.class);
+		AutonomicManager hostManager = hostPool.getHost(event.getHostId()).getHostManager();
+		
+		// Mark host status as invalid.
+		hostPool.getHost(event.getHostId()).invalidateStatus(simulation.getSimulationTime());
+		
+		//prevent the original event from logging, since we are creating a new event to forward to the host
+		event.setLog(false);
+		
+		simulation.sendEvent(new ShutdownVmEvent(hostManager, event.getHostId(), event.getVmId()));
+	}
+	
+	private long sendVm(VMAllocationRequest vmAllocationRequest, HostData host) {
+		// If the host is not ON or POWERING_ON, then send an event to power it on.
+		if (host.getCurrentStatus().getState() != Host.HostState.ON && host.getCurrentStatus().getState() != Host.HostState.POWERING_ON) {
+			simulation.sendEvent(new PowerStateEvent(host.getHost(), PowerState.POWER_ON));
+		}
+
+		// Send event to host to instantiate VM.
+		return simulation.sendEvent(new InstantiateVmEvent(host.getHostManager(), vmAllocationRequest));
+	}
+	
 	/**
-	 * Verifies whether the given Rack can meet the resource requirements of the VM.
+	 * Classifies hosts as Partially-Utilized, Under-Utilized or Empty based 
+	 * on the Hosts' average CPU utilization over the last window of time. The 
+	 * method ignores (or discards) Stressed Hosts.
 	 */
-	protected boolean canHost(VMAllocationRequest request, RackData rack) {
-		// Check Host capabilities (e.g. core count, core capacity).
-		HostDescription hostDescription = rack.getRackDescription().getHostDescription();
-		if (hostDescription.getCpuCount() * hostDescription.getCoreCount() < request.getVMDescription().getCores())
-			return false;
-		if (hostDescription.getCoreCapacity() < request.getVMDescription().getCoreCapacity())
-			return false;
+	protected void classifyHosts(ArrayList<HostData> partiallyUtilized, 
+			ArrayList<HostData> underUtilized, 
+			ArrayList<HostData> empty, 
+			Collection<HostData> hosts) {
 		
-		// Check available resources.
-		Resources availableResources = AverageVmSizes.convertCapacityToResources(rack.getCurrentStatus().getMaxSpareCapacity());
-		if (availableResources.getCpu() < request.getCpu())
-			return false;
-		if (availableResources.getMemory() < request.getMemory())
-			return false;
-		if (availableResources.getBandwidth() < request.getBandwidth())
-			return false;
-		if (availableResources.getStorage() < request.getStorage())
-			return false;
-		
-		return true;
-	}
-	
-	/**
-	 * Returns the subset of active Racks in the given list. The sublist preserves the order of 
-	 * the elements in the original list.
-	 */
-	protected ArrayList<RackData> getActiveRacksSublist(ArrayList<RackData> racks) {
-		ArrayList<RackData> active = new ArrayList<RackData>();
-		for (RackData rack : racks) {
-			if (rack.getCurrentStatus().getActiveHosts() > 0)
-				active.add(rack);
+		for (HostData host : hosts) {
+			
+			// Filter out Hosts with a currently invalid status.
+			if (host.isStatusValid()) {
+				
+				double avgCpuUtilization = this.calculateHostAvgCpuUtilization(host);
+				
+				// Classify hosts.
+				if (host.getCurrentStatus().getVms().size() == 0) {
+					empty.add(host);
+				} else if (avgCpuUtilization < lowerThreshold) {
+					underUtilized.add(host);
+				} else if (avgCpuUtilization < upperThreshold) {
+					partiallyUtilized.add(host);
+				}
+			}
 		}
-		
-		return active;
 	}
 	
 	/**
-	 * Returns the first inactive Rack found in the given list. A Rack is considered inactive 
-	 * if it has no active Hosts. Otherwise, it's consider active.
+	 * Calculates Host's average CPU utilization over the last window of time.
 	 * 
-	 * This method may return NULL if the list contains no inactive Racks.
+	 * @return		value in range [0,1] (i.e., percentage)
 	 */
-	protected RackData getInactiveRack(ArrayList<RackData> racks) {
-		for (RackData rack : racks) {
-			if (rack.getCurrentStatus().getActiveHosts() == 0)
-				return rack;
+	protected double calculateHostAvgCpuUtilization(HostData host) {
+		double avgCpuInUse = 0;
+		int count = 0;
+		for (HostStatus status : host.getHistory()) {
+			// Only consider times when the host is powered ON.
+			if (status.getState() == Host.HostState.ON) {
+				avgCpuInUse += status.getResourcesInUse().getCpu();
+				++count;
+			}
+			else
+				break;
+		}
+		if (count != 0) {
+			avgCpuInUse = avgCpuInUse / count;
 		}
 		
-		return null;
+		return Utility.roundDouble(avgCpuInUse / host.getHostDescription().getResourceCapacity().getCpu());
 	}
 	
+	/* (non-Javadoc)
+	 * @see edu.uwo.csd.dcsim.management.Policy#onInstall()
+	 */
 	@Override
 	public void onInstall() {
 		// TODO Auto-generated method stub
 	}
-	
+
+	/* (non-Javadoc)
+	 * @see edu.uwo.csd.dcsim.management.Policy#onManagerStart()
+	 */
 	@Override
 	public void onManagerStart() {
 		// TODO Auto-generated method stub
 	}
-	
+
+	/* (non-Javadoc)
+	 * @see edu.uwo.csd.dcsim.management.Policy#onManagerStop()
+	 */
 	@Override
 	public void onManagerStop() {
 		// TODO Auto-generated method stub

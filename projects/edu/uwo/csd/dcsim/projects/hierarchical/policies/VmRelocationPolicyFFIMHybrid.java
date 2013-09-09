@@ -20,7 +20,7 @@ import edu.uwo.csd.dcsim.management.*;
  * @author Gaston Keller
  *
  */
-public class VmRelocationPolicyFFIMHybrid extends VmRelocationPolicyLevel0 {
+public class VmRelocationPolicyFFIMHybrid extends VmRelocationPolicyLevel1 {
 
 	/**
 	 * Creates a new instance of VmRelocationPolicyFFIMHybrid.

@@ -17,7 +17,7 @@ import edu.uwo.csd.dcsim.management.*;
  * @author Gaston Keller
  *
  */
-public class VmPlacementPolicyFFMHybrid extends VmPlacementPolicyLevel0 {
+public class VmPlacementPolicyFFMHybrid extends VmPlacementPolicyLevel1 {
 
 	/**
 	 * Creates an instance of VmPlacementPolicyFFMHybrid.
