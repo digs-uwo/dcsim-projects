@@ -9,7 +9,7 @@ public class RackStatus {
 	private long timeStamp;
 	private int id;
 	
-	//private Rack.RackState state;
+	private Rack.RackState state = Rack.RackState.OFF;
 	
 	private int activeHosts = 0;
 	private int suspendedHosts = 0;
@@ -62,11 +62,20 @@ public class RackStatus {
 		// Add power consumption of the Rack's switches.
 		powerConsumption += rack.getDataNetworkSwitch().getPowerConsumption();
 		powerConsumption += rack.getMgmtNetworkSwitch().getPowerConsumption();
+		
+		// Determine whether the Rack is active (i.e., ON) or inactive (i.e., SUSPENDED or OFF).
+		if (activeHosts > 0)
+			state = Rack.RackState.ON;
+		else if (suspendedHosts > 0)
+			state = Rack.RackState.SUSPENDED;
+		else
+			state = Rack.RackState.OFF;
 	}
 	
 	public RackStatus(RackStatus status) {
 		timeStamp = status.timeStamp;
 		id = status.id;
+		state = status.state;
 		activeHosts = status.activeHosts;
 		suspendedHosts = status.suspendedHosts;
 		poweredOffHosts = status.poweredOffHosts;
@@ -84,6 +93,10 @@ public class RackStatus {
 	
 	public int getId() {
 		return id;
+	}
+	
+	public Rack.RackState getState() {
+		return state;
 	}
 	
 	public int getActiveHosts() {

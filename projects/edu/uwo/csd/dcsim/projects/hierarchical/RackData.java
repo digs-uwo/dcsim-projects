@@ -16,6 +16,8 @@ public class RackData {
 	private boolean statusValid = true;
 	private long invalidationTime = -1;
 	
+	private boolean active = false;
+	
 	private ArrayList<RackStatus> history = new ArrayList<RackStatus>();
 	
 	public RackData(Rack rack, AutonomicManager rackManager) {
@@ -30,6 +32,12 @@ public class RackData {
 	
 	public void addRackStatus(RackStatus rackStatus, int historyWindowSize) {
 		currentStatus = rackStatus;
+		
+		if (rackStatus.getState() == Rack.RackState.ON)
+			active = true;
+		else
+			active = false;
+		
 //		if (sandboxStatus == null) {
 //			resetSandboxStatusToCurrent();
 //		}
@@ -54,6 +62,14 @@ public class RackData {
 	public void invalidateStatus(long time) {
 		statusValid = false;
 		invalidationTime = time;
+	}
+	
+	public boolean isRackActive() {
+		return active;
+	}
+	
+	public void activateRack() {
+		active = true;
 	}
 	
 	public int getId() {

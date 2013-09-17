@@ -103,10 +103,12 @@ public class VmPlacementPolicyLevel3 extends Policy {
 		if (active.size() == 0) {
 			targetCluster = this.getInactiveCluster(clusters);
 		}
-		// If there is only one active Rack, check if the Rack can host the VM; otherwise, activate a new Rack.
+		// If there is only one active Cluster (and its status is valid), check if the Rack can host 
+		// the VM; otherwise, activate a new Rack.
 		else if (active.size() == 1) {
-			if (this.canHost(request, active.get(0))) {
-				targetCluster = active.get(0);
+			ClusterData cluster = active.get(0);
+			if (cluster.isStatusValid() && this.canHost(request, cluster)) {
+				targetCluster = cluster;
 			}
 			else {
 				targetCluster = this.getInactiveCluster(clusters);
@@ -206,6 +208,9 @@ public class VmPlacementPolicyLevel3 extends Policy {
 			// Invalidate target Cluster's status, as we know it to be incorrect until the next status update arrives.
 			targetCluster.invalidateStatus(simulation.getSimulationTime());
 			
+			// Mark Cluster as active (if it was previously inactive).
+			targetCluster.activateCluster();
+			
 			return true;
 		}
 		
@@ -245,7 +250,7 @@ public class VmPlacementPolicyLevel3 extends Policy {
 	protected ArrayList<ClusterData> getActiveClustersSublist(ArrayList<ClusterData> clusters) {
 		ArrayList<ClusterData> active = new ArrayList<ClusterData>();
 		for (ClusterData cluster : clusters) {
-			if (cluster.getCurrentStatus().getActiveRacks() > 0)
+			if (cluster.isClusterActive())
 				active.add(cluster);
 		}
 		
@@ -253,14 +258,13 @@ public class VmPlacementPolicyLevel3 extends Policy {
 	}
 	
 	/**
-	 * Returns the first inactive Cluster found in the given list. A Cluster is considered inactive 
-	 * if it has no active Racks. Otherwise, it's consider active.
+	 * Returns the first inactive Cluster found in the given list.
 	 * 
 	 * This method may return NULL if the list contains no inactive Clusters.
 	 */
 	protected ClusterData getInactiveCluster(ArrayList<ClusterData> clusters) {
 		for (ClusterData cluster : clusters) {
-			if (cluster.getCurrentStatus().getActiveRacks() == 0)
+			if (!cluster.isClusterActive())
 				return cluster;
 		}
 		

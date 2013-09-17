@@ -181,6 +181,9 @@ public class VmRelocationPolicyLevel3 extends Policy {
 			
 			// Invalidate target Cluster's status, as we know it to be incorrect until the next status update arrives.
 			targetCluster.invalidateStatus(simulation.getSimulationTime());
+			
+			// Mark Cluster as active (if it was previously inactive).
+			targetCluster.activateCluster();
 		}
 		// Could not find suitable target Cluster in the Data Centre.
 		else {
@@ -225,7 +228,7 @@ public class VmRelocationPolicyLevel3 extends Policy {
 	protected ArrayList<ClusterData> getActiveClustersSublist(ArrayList<ClusterData> clusters) {
 		ArrayList<ClusterData> active = new ArrayList<ClusterData>();
 		for (ClusterData cluster : clusters) {
-			if (cluster.getCurrentStatus().getActiveRacks() > 0)
+			if (cluster.isClusterActive())
 				active.add(cluster);
 		}
 		
@@ -233,14 +236,13 @@ public class VmRelocationPolicyLevel3 extends Policy {
 	}
 	
 	/**
-	 * Returns the first inactive Cluster found in the given list. A Cluster is considered inactive 
-	 * if it has no active Racks. Otherwise, it's consider active.
+	 * Returns the first inactive Cluster found in the given list.
 	 * 
 	 * This method may return NULL if the list contains no inactive Clusters.
 	 */
 	protected ClusterData getInactiveCluster(ArrayList<ClusterData> clusters) {
 		for (ClusterData cluster : clusters) {
-			if (cluster.getCurrentStatus().getActiveRacks() == 0)
+			if (!cluster.isClusterActive())
 				return cluster;
 		}
 		

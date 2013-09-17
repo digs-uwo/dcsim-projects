@@ -16,6 +16,8 @@ public class ClusterData {
 	private boolean statusValid = true;
 	private long invalidationTime = -1;
 	
+	private boolean active = false;
+	
 	private ArrayList<ClusterStatus> history = new ArrayList<ClusterStatus>();
 	
 	public ClusterData(Cluster cluster, AutonomicManager clusterManager) {
@@ -30,6 +32,12 @@ public class ClusterData {
 	
 	public void addClusterStatus(ClusterStatus clusterStatus, int historyWindowSize) {
 		currentStatus = clusterStatus;
+		
+		if (clusterStatus.getState() == Cluster.ClusterState.ON)
+			active = true;
+		else
+			active = false;
+		
 //		if (sandboxStatus == null) {
 //			resetSandboxStatusToCurrent();
 //		}
@@ -54,6 +62,14 @@ public class ClusterData {
 	public void invalidateStatus(long time) {
 		statusValid = false;
 		invalidationTime = time;
+	}
+	
+	public boolean isClusterActive() {
+		return active;
+	}
+	
+	public void activateCluster() {
+		active = true;
 	}
 	
 	public int getId() {

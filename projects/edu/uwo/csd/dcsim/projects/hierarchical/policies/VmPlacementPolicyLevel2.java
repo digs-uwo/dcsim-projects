@@ -71,10 +71,12 @@ public class VmPlacementPolicyLevel2 extends Policy {
 		if (active.size() == 0) {
 			targetRack = this.getInactiveRack(racks);
 		}
-		// If there is only one active Rack, check if the Rack can host the VM; otherwise, activate a new Rack.
+		// If there is only one active Rack (and its status is valid), check if the Rack can host 
+		// the VM; otherwise, activate a new Rack.
 		else if (active.size() == 1) {
-			if (this.canHost(request, active.get(0))) {
-				targetRack = active.get(0);
+			RackData rack = active.get(0);
+			if (rack.isStatusValid() && this.canHost(request, rack)) {
+				targetRack = rack;
 			}
 			else {
 				targetRack = this.getInactiveRack(racks);
@@ -140,6 +142,9 @@ public class VmPlacementPolicyLevel2 extends Policy {
 			
 			// Invalidate target Rack's status, as we know it to be incorrect until the next status update arrives.
 			targetRack.invalidateStatus(simulation.getSimulationTime());
+			
+			// Mark Rack as active (if it was previously inactive).
+			targetRack.activateRack();
 		}
 		// Could not find suitable target Rack in the Cluster.
 		else {
@@ -182,7 +187,7 @@ public class VmPlacementPolicyLevel2 extends Policy {
 	protected ArrayList<RackData> getActiveRacksSublist(ArrayList<RackData> racks) {
 		ArrayList<RackData> active = new ArrayList<RackData>();
 		for (RackData rack : racks) {
-			if (rack.getCurrentStatus().getActiveHosts() > 0)
+			if (rack.isRackActive())
 				active.add(rack);
 		}
 		
@@ -190,14 +195,13 @@ public class VmPlacementPolicyLevel2 extends Policy {
 	}
 	
 	/**
-	 * Returns the first inactive Rack found in the given list. A Rack is considered inactive 
-	 * if it has no active Hosts. Otherwise, it's consider active.
+	 * Returns the first inactive Rack found in the given list.
 	 * 
 	 * This method may return NULL if the list contains no inactive Racks.
 	 */
 	protected RackData getInactiveRack(ArrayList<RackData> racks) {
 		for (RackData rack : racks) {
-			if (rack.getCurrentStatus().getActiveHosts() == 0)
+			if (!rack.isRackActive())
 				return rack;
 		}
 		

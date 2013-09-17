@@ -28,7 +28,7 @@ public final class Cluster implements SimulationEventListener {
 	private Switch mainDataSwitch = null;					// Data network main (top-level) switch.
 	private Switch mainMgmtSwitch = null;					// Management network main (top-level) switch.
 	
-	// Do we want a _state_ attribute ???
+	public enum ClusterState {ON, SUSPENDED, OFF;}
 	
 	private Cluster(Builder builder) {
 		

@@ -25,7 +25,7 @@ public final class Rack implements SimulationEventListener {
 	private Switch dataNetworkSwitch = null;				// Data network switch.
 	private Switch mgmtNetworkSwitch = null;				// Management network switch.
 	
-	//public enum RackState {ON, SUSPENDED, OFF, POWERING_ON, SUSPENDING, POWERING_OFF, FAILED;}
+	public enum RackState {ON, SUSPENDED, OFF;}
 	//private RackState state;
 	
 	private Rack(Builder builder) {

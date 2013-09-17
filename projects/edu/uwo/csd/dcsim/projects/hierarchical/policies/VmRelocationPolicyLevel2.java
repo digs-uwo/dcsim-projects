@@ -75,11 +75,13 @@ public class VmRelocationPolicyLevel2 extends Policy {
 		if (active.size() == 0) {
 			targetRack = this.getInactiveRack(racks);
 		}
-		// If there is only one active Rack and the Rack is not the sender of the migration request, 
+		// If there is only one active Rack, the Rack is not the sender of the migration request 
+		// (i.e., the request came from outside the Cluster), and the Rack's status is valid, 
 		// then check if the Rack can host the VM; otherwise, activate a new Rack.
 		else if (active.size() == 1) {
-			if (active.get(0).getId() != entry.getSender() && this.canHost(entry.getVm(), active.get(0))) {
-				targetRack = active.get(0);
+			RackData rack = active.get(0);
+			if (rack.getId() != entry.getSender() && rack.isStatusValid() && this.canHost(entry.getVm(), rack)) {
+				targetRack = rack;
 			}
 			else {
 				targetRack = this.getInactiveRack(racks);
@@ -144,6 +146,9 @@ public class VmRelocationPolicyLevel2 extends Policy {
 			
 			// Invalidate target Rack's status, as we know it to be incorrect until the next status update arrives.
 			targetRack.invalidateStatus(simulation.getSimulationTime());
+			
+			// Mark Rack as active (if it was previously inactive).
+			targetRack.activateRack();
 		}
 		// Could not find suitable target Rack in the Cluster.
 		else {
@@ -200,7 +205,7 @@ public class VmRelocationPolicyLevel2 extends Policy {
 	protected ArrayList<RackData> getActiveRacksSublist(ArrayList<RackData> racks) {
 		ArrayList<RackData> active = new ArrayList<RackData>();
 		for (RackData rack : racks) {
-			if (rack.getCurrentStatus().getActiveHosts() > 0)
+			if (rack.isRackActive())
 				active.add(rack);
 		}
 		
@@ -208,14 +213,13 @@ public class VmRelocationPolicyLevel2 extends Policy {
 	}
 	
 	/**
-	 * Returns the first inactive Rack found in the given list. A Rack is considered inactive 
-	 * if it has no active Hosts. Otherwise, it's consider active.
+	 * Returns the first inactive Rack found in the given list.
 	 * 
 	 * This method may return NULL if the list contains no inactive Racks.
 	 */
 	protected RackData getInactiveRack(ArrayList<RackData> racks) {
 		for (RackData rack : racks) {
-			if (rack.getCurrentStatus().getActiveHosts() == 0)
+			if (!rack.isRackActive())
 				return rack;
 		}
 		
