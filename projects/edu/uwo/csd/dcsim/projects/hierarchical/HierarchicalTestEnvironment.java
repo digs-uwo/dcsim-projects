@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.math3.distribution.*;
-import org.apache.log4j.Logger;
 
 import edu.uwo.csd.dcsim.DataCentre;
 import edu.uwo.csd.dcsim.application.*;
@@ -49,8 +48,6 @@ public class HierarchicalTestEnvironment {
 		"traces/google_cores_job_type_3"};	
 	public static final long[] OFFSET_MAX = {200000000, 40000000, 40000000, 15000000, 15000000, 15000000, 15000000};
 	public static final double[] TRACE_AVG = {0.32, 0.25, 0.32, 0.72, 0.74, 0.77, 0.83};
-	
-	private static Logger logger = Logger.getLogger(HierarchicalTestEnvironment.class);
 	
 	public HierarchicalTestEnvironment() {
 		// TODO Auto-generated constructor stub

@@ -184,7 +184,7 @@ public class VmRelocationPolicyLevel2 extends Policy {
 			return false;
 		
 		// Check available resources.
-		Resources availableResources = AverageVmSizes.convertCapacityToResources(rack.getCurrentStatus().getMaxSpareCapacity());
+		Resources availableResources = StandardVmSizes.convertCapacityToResources(rack.getCurrentStatus().getMaxSpareCapacity());
 		Resources vmResources = vm.getResourcesInUse();
 		if (availableResources.getCpu() < vmResources.getCpu())
 			return false;

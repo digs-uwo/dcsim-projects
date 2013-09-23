@@ -207,7 +207,7 @@ public class VmRelocationPolicyLevel3 extends Policy {
 			return false;
 		
 		// Check available resources.
-		Resources availableResources = AverageVmSizes.convertCapacityToResources(cluster.getCurrentStatus().getMaxSpareCapacity());
+		Resources availableResources = StandardVmSizes.convertCapacityToResources(cluster.getCurrentStatus().getMaxSpareCapacity());
 		Resources vmResources = vm.getResourcesInUse();
 		if (availableResources.getCpu() < vmResources.getCpu())
 			return false;

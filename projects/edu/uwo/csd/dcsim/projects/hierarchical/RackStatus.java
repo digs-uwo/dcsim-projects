@@ -42,7 +42,7 @@ public class RackStatus {
 				// Calculate spare capacity for each active Host.
 				// Check Host status. If invalid, we cannot make any assertions.
 				if (host.isStatusValid()) {
-					double capacity = AverageVmSizes.calculateSpareCapacity(host);
+					double capacity = StandardVmSizes.calculateSpareCapacity(host);
 					if (capacity > maxSpareCapacity)
 						maxSpareCapacity = capacity;
 				}

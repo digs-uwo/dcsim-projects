@@ -10,43 +10,40 @@ import edu.uwo.csd.dcsim.management.HostData;
  * @author Gaston Keller
  *
  */
-public final class AverageVmSizes {
+public final class StandardVmSizes {
 
-	// Average-sized VM.
+	// Standard VM.
 	// TODO: This value should be obtained from a config file.
-	private static double cpu = 2500;		// 1 core * 2500 cpu units 
-	private static double mem = 1024;		// 1 GB
-	private static double bw = 12800;		// 100 Mb/s
-	private static long storage = 1024;	// 1 GB
+	private static int cpu = 2500;		// 1 core * 2500 cpu units 
+	private static int mem = 1024;		// 1 GB
+	private static int bw = 12800;		// 100 Mb/s
+	private static int storage = 1024;	// 1 GB
 	
 	/**
 	 * Enforce non-instantiable class.
 	 */
-	private AverageVmSizes() {}
+	private StandardVmSizes() {}
 	
 	/**
-	 * Calculates the spare capacity of a Host, measured as the number of "average-sized VMs"
-	 * that can be placed in the Host to use up that spare capacity.
+	 * Calculates the spare capacity of a Host, measured as the number of "standard VMs" that 
+	 * can be placed in the Host to use up that spare capacity.
 	 * 
-	 * The Host must have a valid current status and be powered on (or powering on). Otherwise, 
-	 * the method returns 0.
+	 * The Host must powered on (or powering on). Otherwise, the method returns 0.
+	 * 
+	 * This method does not check whether the Host's status is valid or not.
 	 */
 	public static double calculateSpareCapacity(HostData host) {
-		// Check Host status. If invalid, we cannot calculate spare capacity.
-		if (!host.isStatusValid())
-			return 0;
-		
 		Host.HostState state = host.getCurrentStatus().getState();
 		if (state != Host.HostState.ON && state != Host.HostState.POWERING_ON)
 			return 0;
 		
 		Resources spare = host.getHostDescription().getResourceCapacity().subtract(host.getCurrentStatus().getResourcesInUse());
-		return Math.min(spare.getCpu() / cpu, Math.min(spare.getMemory() / mem, spare.getBandwidth() / bw));
+		return Math.min(spare.getCpu() / ((double) cpu), Math.min(spare.getMemory() / ((double) mem), spare.getBandwidth() / ((double) bw)));
 	}
 	
 	/**
 	 * Converts a (resource) capacity value to its corresponding values of CPU, memory, 
-	 * bandwidth and storage, based on the amount of resources required by an "average-sized VM".
+	 * bandwidth and storage, based on the amount of resources required by a "standard VM".
 	 */
 	public static Resources convertCapacityToResources(double capacity) {
 		return new Resources((int) (cpu * capacity), (int) (mem * capacity), (int) (bw * capacity), (int) (storage * capacity));

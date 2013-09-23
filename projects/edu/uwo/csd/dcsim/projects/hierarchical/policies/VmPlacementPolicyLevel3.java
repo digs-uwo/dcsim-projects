@@ -234,7 +234,7 @@ public class VmPlacementPolicyLevel3 extends Policy {
 			return false;
 		
 		// Check available resources.
-		Resources availableResources = AverageVmSizes.convertCapacityToResources(cluster.getCurrentStatus().getMaxSpareCapacity());
+		Resources availableResources = StandardVmSizes.convertCapacityToResources(cluster.getCurrentStatus().getMaxSpareCapacity());
 		if (availableResources.getCpu() < request.getCpu())
 			return false;
 		if (availableResources.getMemory() < request.getMemory())
