@@ -1,18 +1,15 @@
 package edu.uwo.csd.dcsim.projects.centralized;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 
 import org.apache.commons.math3.distribution.*;
-import org.apache.log4j.Logger;
 
 import edu.uwo.csd.dcsim.DataCentre;
 import edu.uwo.csd.dcsim.application.*;
 import edu.uwo.csd.dcsim.application.workload.*;
 import edu.uwo.csd.dcsim.common.*;
 import edu.uwo.csd.dcsim.core.Simulation;
-import edu.uwo.csd.dcsim.core.metrics.Metric;
 import edu.uwo.csd.dcsim.host.*;
 import edu.uwo.csd.dcsim.host.resourcemanager.DefaultResourceManagerFactory;
 import edu.uwo.csd.dcsim.host.scheduler.DefaultResourceSchedulerFactory;
@@ -54,9 +51,7 @@ public class CentralizedTestEnvironment {
 		"traces/google_cores_job_type_3"};	
 	public static final long[] OFFSET_MAX = {200000000, 40000000, 40000000, 15000000, 15000000, 15000000, 15000000};
 	public static final double[] TRACE_AVG = {0.32, 0.25, 0.32, 0.72, 0.74, 0.77, 0.83};
-	
-	private static Logger logger = Logger.getLogger(CentralizedTestEnvironment.class);
-	
+		
 	/**
 	 * Creates a DataCentre object and its corresponding AutonomicManager 
 	 * object. The data centre consists of a collection of hosts.
@@ -137,7 +132,7 @@ public class CentralizedTestEnvironment {
 		serviceRates.add(new Tuple<Long, Double>(144000000l, 0d));	// 40 hours
 		serviceRates.add(new Tuple<Long, Double>(864000000l, 0d));	// 10 days
 		
-		ServiceProducer serviceProducer = new IMServiceProducer(simulation, dcAM, null, serviceRates);
+		ApplicationGeneratorLegacy serviceProducer = new IMServiceProducer(simulation, dcAM, null, serviceRates);
 		serviceProducer.start();
 	}
 	
@@ -171,7 +166,7 @@ public class CentralizedTestEnvironment {
 		serviceRates.add(new Tuple<Long, Double>(SimTime.hours(40), 0d));		// over 40 hours
 		serviceRates.add(new Tuple<Long, Double>(SimTime.days(10), 0d));		// 10 days
 		
-		ServiceProducer serviceProducer = new IMServiceProducer(simulation, dcAM, null, serviceRates);
+		ApplicationGeneratorLegacy serviceProducer = new IMServiceProducer(simulation, dcAM, null, serviceRates);
 		serviceProducer.start();
 
 		/*
@@ -223,7 +218,7 @@ public class CentralizedTestEnvironment {
 		serviceRates.add(new Tuple<Long, Double>(SimTime.hours(40), 0d));		
 		serviceRates.add(new Tuple<Long, Double>(SimTime.days(10), 0d));		// 10 days
 		
-		ServiceProducer serviceProducer = new IMServiceProducer(simulation, dcAM, null, serviceRates);
+		ApplicationGeneratorLegacy serviceProducer = new IMServiceProducer(simulation, dcAM, null, serviceRates);
 		serviceProducer.start();
 		
 		//Create a uniform random distribution to generate the number of services within the data centre.
@@ -265,27 +260,14 @@ public class CentralizedTestEnvironment {
 		serviceProducer = new IMServiceProducer(simulation, dcAM, new NormalDistribution(SimTime.days(1) / changesPerDay, SimTime.hours(1)), serviceRates);
 		serviceProducer.start();
 	}
-	
-	/**
-	 * Formats a simulation run results for output.
-	 * 
-	 * @param metrics	simulation run results
-	 */
-	public static void printMetrics(Collection<Metric> metrics) {
-		for (Metric metric : metrics) {
-			logger.info(metric.getName() +
-					" = " +
-					metric.toString());
-		}
-	}
-	
+		
 	/**
 	 * Creates services for the IM 2013 Test Environment.
 	 * 
 	 * @author Michael Tighe
 	 *
 	 */
-	public static class IMServiceProducer extends ServiceProducer {
+	public static class IMServiceProducer extends ApplicationGeneratorLegacy {
 
 		private int counter = 0;
 		
@@ -294,7 +276,7 @@ public class CentralizedTestEnvironment {
 		}
 
 		@Override
-		public Service buildService() {
+		public Application buildApplication() {
 			++counter;
 			
 			String trace = TRACES[counter % N_TRACES];
@@ -304,13 +286,15 @@ public class CentralizedTestEnvironment {
 			int coreCapacity = VM_SIZES[counter % N_VM_SIZES];
 			int memory = VM_RAM[counter % N_VM_SIZES];
 			int bandwidth = 12800;	// 100 Mb/s
-			long storage = 1024;	// 1 GB
+			int storage = 1024;	// 1 GB
 			
 			// Create workload (external) for the service.
-			Workload workload = new TraceWorkload(simulation, trace, (coreCapacity * cores) - CPU_OVERHEAD, offset); //scale to n replicas
-			simulation.addWorkload(workload);
+			TraceWorkload workload = new TraceWorkload(simulation, trace, offset); //scale to n replicas
 			
-			return Services.singleTierInteractiveService(workload, cores, coreCapacity, memory, bandwidth, storage, 1, CPU_OVERHEAD, 1, Integer.MAX_VALUE);
+			InteractiveApplication application = Applications.singleTaskInteractiveApplication(simulation, workload, cores, coreCapacity, memory, bandwidth, storage, 0.01);
+			workload.setScaleFactor(application.calculateMaxWorkloadUtilizationLimit(0.98));
+			
+			return application;
 		}
 		
 	}

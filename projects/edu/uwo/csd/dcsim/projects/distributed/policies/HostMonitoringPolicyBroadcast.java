@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 
 import edu.uwo.csd.dcsim.common.SimTime;
-import edu.uwo.csd.dcsim.core.metrics.CountMetric;
 import edu.uwo.csd.dcsim.host.Host;
 import edu.uwo.csd.dcsim.host.Resources;
 import edu.uwo.csd.dcsim.host.comparator.HostComparator;
@@ -16,6 +15,8 @@ import edu.uwo.csd.dcsim.projects.distributed.actions.AcceptOfferAction;
 import edu.uwo.csd.dcsim.projects.distributed.actions.RejectOfferAction;
 import edu.uwo.csd.dcsim.projects.distributed.actions.UpdatePowerStateListAction;
 import edu.uwo.csd.dcsim.projects.distributed.capabilities.*;
+import edu.uwo.csd.dcsim.projects.distributed.DistributedMetrics;
+import edu.uwo.csd.dcsim.projects.distributed.DistributedTestEnvironment;
 import edu.uwo.csd.dcsim.projects.distributed.Eviction;
 import edu.uwo.csd.dcsim.projects.distributed.capabilities.HostManagerBroadcast.ManagementState;
 import edu.uwo.csd.dcsim.projects.distributed.capabilities.HostManagerBroadcast.ShutdownState;
@@ -35,17 +36,7 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 	private static final long EVICTION_FREEZE_DURATION = SimTime.minutes(30);
 	private static final long OFFER_FREEZE_DURATION = SimTime.minutes(30);
 	
-	public static final String STRESS_EVICT_FAIL = "stressEvictionFailed";
-	public static final String SHUTDOWN_EVICT_FAIL = "shutdownFailed";
-	public static final String STRESS_EVICT = "stressEviction";
-	public static final String SHUTDOWN_EVICT = "shutdownEviction";
-	public static final String SHUTDOWN_TRIGGERED = "shutdownTriggered";
-	
-	public static final String RESOURCE_REQUEST_RECEIVED = "receivedResourceRequest";
-	public static final String POWER_STATE_MSG_RECEIVED = "receivedPowerStateMessage";
-	public static final String RESOURCE_MSG = "msgResource";
-	public static final String BASIC_MSG = "msgBasic";
-	public static final String SINGLE_MSG = "msgSingle";
+	private static DistributedMetrics distributedMetrics = null;
 	
 	private double lower;
 	private double upper;
@@ -63,6 +54,11 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 	 * Execute on a regular interval, handling the operation of the host
 	 */
 	public void execute() {
+		
+		if (distributedMetrics == null) {
+			distributedMetrics = DistributedTestEnvironment.getDistributedMetrics(simulation);
+		}
+		
 		HostManagerBroadcast hostManager = manager.getCapability(HostManagerBroadcast.class);
 		
 		/*
@@ -98,7 +94,7 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 				//evict first VM in list
 				if (!vmList.isEmpty()) {
 					if (simulation.isRecordingMetrics())
-						CountMetric.getMetric(simulation, STRESS_EVICT).incrementCount();
+						distributedMetrics.stressEvict++;
 					evict(hostManager, vmList, RequestResourcesEvent.AdvertiseReason.STRESS);	
 					
 					//freeze VM bidding
@@ -178,6 +174,11 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 }
 	
 	public void execute(ShutdownElectionEvent event) {
+		
+		if (distributedMetrics == null) {
+			distributedMetrics = DistributedTestEnvironment.getDistributedMetrics(simulation);
+		}
+		
 		HostManagerBroadcast hostManager = manager.getCapability(HostManagerBroadcast.class);
 		
 		//choose shutdown claim to accept (there will be at least one, from this host)
@@ -197,14 +198,6 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 			}
 		}
 		
-		if (winner.getCandidateAM() == manager) {
-			if (simulation.isRecordingMetrics())
-				CountMetric.getMetric(simulation, "shutdownSelectedCoordinator").incrementCount();
-		} else {
-			if (simulation.isRecordingMetrics())
-				CountMetric.getMetric(simulation, "shutdownSelectedAlternate").incrementCount();
-		}
-		
 		simulation.sendEvent(new AwardShutdownEvent(winner.getCandidateAM()));
 		for (ShutdownClaimEvent claim : hostManager.getShutdownClaims()) {
 			simulation.sendEvent(new DenyShutdownEvent(claim.getCandidateAM()));
@@ -214,6 +207,11 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 	}
 	
 	public void execute(ShutdownClaimEvent event) {
+		
+		if (distributedMetrics == null) {
+			distributedMetrics = DistributedTestEnvironment.getDistributedMetrics(simulation);
+		}
+		
 		HostManagerBroadcast hostManager = manager.getCapability(HostManagerBroadcast.class);
 		
 		if (hostManager.getShutdownState() == ShutdownState.COORDINATING) {
@@ -223,16 +221,21 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 		}
 		
 		if (simulation.isRecordingMetrics())
-			CountMetric.getMetric(simulation, BASIC_MSG).incrementCount(); //only using the CPU value
+			distributedMetrics.msgBasic++; //only using CPU value
 	}
 	
 	public void execute(TriggerShutdownEvent event) {
+		
+		if (distributedMetrics == null) {
+			distributedMetrics = DistributedTestEnvironment.getDistributedMetrics(simulation);
+		}
+		
 		//decide if we want to send a claim
 		HostManagerBroadcast hostManager = manager.getCapability(HostManagerBroadcast.class);
 		HostStatus hostStatus = new HostStatus(hostManager.getHost(), simulation.getSimulationTime());
 		
 		if (simulation.isRecordingMetrics())
-			CountMetric.getMetric(simulation, BASIC_MSG).incrementCount(); //only using the CPU value
+			distributedMetrics.msgBasic++; //only using CPU value
 		
 		//if a migration is pending, wait until it is complete
 		if ((hostStatus.getIncomingMigrationCount() > 0) || (hostStatus.getOutgoingMigrationCount() > 0)) return;
@@ -256,6 +259,11 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 	}
 	
 	public void execute(AwardShutdownEvent event) {
+		
+		if (distributedMetrics == null) {
+			distributedMetrics = DistributedTestEnvironment.getDistributedMetrics(simulation);
+		}
+		
 		HostManagerBroadcast hostManager = manager.getCapability(HostManagerBroadcast.class);
 		HostStatus hostStatus = new HostStatus(hostManager.getHost(), simulation.getSimulationTime());
 		
@@ -264,15 +272,20 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 		ArrayList<VmStatus> vmList = orderVmsUnderUtilized(hostStatus.getVms());
 		
 		if (simulation.isRecordingMetrics())
-			CountMetric.getMetric(simulation, SHUTDOWN_TRIGGERED).incrementCount();
+			distributedMetrics.shutdownTriggered++;
 	
 		evict(hostManager, vmList, RequestResourcesEvent.AdvertiseReason.SHUTDOWN);	
 		
 		if (simulation.isRecordingMetrics())
-			CountMetric.getMetric(simulation, BASIC_MSG).incrementCount();
+			distributedMetrics.msgBasic++;
 	}
 	
 	public void execute(DenyShutdownEvent event) {
+		
+		if (distributedMetrics == null) {
+			distributedMetrics = DistributedTestEnvironment.getDistributedMetrics(simulation);
+		}
+		
 		HostManagerBroadcast hostManager = manager.getCapability(HostManagerBroadcast.class);
 		hostManager.setShutdownState(ShutdownState.NONE);
 		
@@ -280,7 +293,7 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 		hostManager.enactShutdownFreeze(simulation.getSimulationTime() + SHUTDOWN_SUBSEQUENT_FREEZE_DURATION);
 		
 		if (simulation.isRecordingMetrics())
-			CountMetric.getMetric(simulation, BASIC_MSG).incrementCount();
+			distributedMetrics.msgBasic++;
 	}
 	
 	public void execute(ShutdownFailedEvent event) {
@@ -291,6 +304,11 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 	}
 	
 	public void execute(EvictionEvent event) {
+		
+		if (distributedMetrics == null) {
+			distributedMetrics = DistributedTestEnvironment.getDistributedMetrics(simulation);
+		}
+		
 		HostManagerBroadcast hostManager = manager.getCapability(HostManagerBroadcast.class);
 		
 		if (event.getEviction() != hostManager.getEviction())
@@ -303,10 +321,11 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 		}
 		
 		if (simulation.isRecordingMetrics())
-			CountMetric.getMetric(simulation, BASIC_MSG).incrementCount();
+			distributedMetrics.msgBasic++;
 	}
 	
 	private void completeStressEviction(EvictionEvent event) {
+		
 		HostManagerBroadcast hostManager = manager.getCapability(HostManagerBroadcast.class);
 		
 		Eviction eviction = hostManager.getEviction();
@@ -434,11 +453,11 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 				actions.execute(simulation, this);
 
 				if (simulation.isRecordingMetrics())
-					CountMetric.getMetric(simulation, VmPlacementPolicyBroadcast.HOST_POWER_ON_METRIC + "-" + this.getClass().getSimpleName()).incrementCount();
+					distributedMetrics.hostPowerOn++;
 				
 			} else {
 				if (simulation.isRecordingMetrics())
-					CountMetric.getMetric(simulation, STRESS_EVICT_FAIL).incrementCount();
+					distributedMetrics.stressEventionFailed++;
 			}
 
 		}
@@ -568,7 +587,7 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 				
 				if (acceptedOffers.contains(e)) {
 					if (simulation.isRecordingMetrics())
-						CountMetric.getMetric(simulation, SHUTDOWN_EVICT).incrementCount();
+						distributedMetrics.shutdownEviction++;
 				} else {
 					RejectOfferAction rejectAction = new RejectOfferAction(e.getHostManager(), e);
 					rejectAction.execute(simulation, this);
@@ -595,7 +614,7 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 			simulation.sendEvent(new ShutdownFailedEvent(hostManager.getBroadcastingGroup()));
 			
 			if (simulation.isRecordingMetrics())
-				CountMetric.getMetric(simulation, SHUTDOWN_EVICT_FAIL).incrementCount();
+				distributedMetrics.shutdownFailed++;
 
 		}
 	}
@@ -606,6 +625,11 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 	 * 
 	 */
 	public void execute(AcceptOfferEvent event) {
+		
+		if (distributedMetrics == null) {
+			distributedMetrics = DistributedTestEnvironment.getDistributedMetrics(simulation);
+		}
+		
 		HostManagerBroadcast hostManager = manager.getCapability(HostManagerBroadcast.class);
 			
 		hostManager.setManagementState(ManagementState.NORMAL);
@@ -615,17 +639,22 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 		hostManager.enactEvictionFreeze(simulation.getSimulationTime() + EVICTION_FREEZE_DURATION);
 		
 		if (simulation.isRecordingMetrics())
-			CountMetric.getMetric(simulation, BASIC_MSG).incrementCount();
+			distributedMetrics.msgBasic++;
 	}
 	
 	public void execute(RejectOfferEvent event) {
+		
+		if (distributedMetrics == null) {
+			distributedMetrics = DistributedTestEnvironment.getDistributedMetrics(simulation);
+		}
+		
 		HostManagerBroadcast hostManager = manager.getCapability(HostManagerBroadcast.class);
 		
 		hostManager.setManagementState(ManagementState.NORMAL);
 		hostManager.clearCurrentOffer();
 		
 		if (simulation.isRecordingMetrics())
-			CountMetric.getMetric(simulation, BASIC_MSG).incrementCount();
+			distributedMetrics.msgBasic++;
 	}
 	
 
@@ -635,16 +664,21 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 	 * @param event
 	 */
 	public void execute(RequestResourcesEvent event) {	
+		
+		if (distributedMetrics == null) {
+			distributedMetrics = DistributedTestEnvironment.getDistributedMetrics(simulation);
+		}
+		
 		//received a VM advertisement
 		HostManagerBroadcast hostManager = manager.getCapability(HostManagerBroadcast.class);
 		Host host = hostManager.getHost();
 		HostStatus hostStatus = new HostStatus(hostManager.getHost(), simulation.getSimulationTime());
 		
 		if (simulation.isRecordingMetrics())
-			CountMetric.getMetric(simulation, RESOURCE_REQUEST_RECEIVED).incrementCount();
+			distributedMetrics.receivedResourceRequest++;
 		
 		if (simulation.isRecordingMetrics())
-			CountMetric.getMetric(simulation, SINGLE_MSG).incrementCount();
+			distributedMetrics.msgSingle++;
 		
 		//check if offers are frozen
 		if (offersFrozen(hostManager) ||  manager == event.getHostManager()) {
@@ -683,7 +717,7 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 					Resources resourcesOffered = new Resources();
 					
 					
-					resourcesOffered.setCpu((host.getResourceManager().getTotalCpu() * target) - resourcesInUse.getCpu());
+					resourcesOffered.setCpu((int)(host.getResourceManager().getTotalCpu() * target) - resourcesInUse.getCpu());
 					resourcesOffered.setMemory(host.getResourceManager().getTotalMemory() - resourcesInUse.getMemory());
 					resourcesOffered.setBandwidth(host.getResourceManager().getTotalBandwidth() - resourcesInUse.getBandwidth());
 					resourcesOffered.setStorage(host.getResourceManager().getTotalStorage() - resourcesInUse.getStorage());
@@ -705,6 +739,11 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 	 * @param event
 	 */
 	public void execute(ResourceOfferEvent event) {
+		
+		if (distributedMetrics == null) {
+			distributedMetrics = DistributedTestEnvironment.getDistributedMetrics(simulation);
+		}
+		
 		//a Host has accepted your advertised VM
 		HostManagerBroadcast hostManager = manager.getCapability(HostManagerBroadcast.class);
 		
@@ -718,7 +757,7 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 		}
 		
 		if (simulation.isRecordingMetrics())
-			CountMetric.getMetric(simulation, RESOURCE_MSG).incrementCount();
+			distributedMetrics.msgResource++;
 
 	}
 	
@@ -728,6 +767,11 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 	 * @param event
 	 */
 	public void execute(HostShuttingDownEvent event) {
+		
+		if (distributedMetrics == null) {
+			distributedMetrics = DistributedTestEnvironment.getDistributedMetrics(simulation);
+		}
+		
 		//store in list of powered off hosts
 		HostManagerBroadcast hostManager = manager.getCapability(HostManagerBroadcast.class);
 		
@@ -746,10 +790,10 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 		}
 
 		if (simulation.isRecordingMetrics())
-			CountMetric.getMetric(simulation, POWER_STATE_MSG_RECEIVED).incrementCount();
+			distributedMetrics.receivedPowerStateMessage++;
 		
 		if (simulation.isRecordingMetrics())
-			CountMetric.getMetric(simulation, BASIC_MSG).incrementCount();
+			distributedMetrics.msgBasic++;
 
 	}
 	
@@ -759,20 +803,30 @@ public class HostMonitoringPolicyBroadcast extends Policy {
 	 * @param event
 	 */
 	public void execute(HostPowerOnEvent event) {
+		
+		if (distributedMetrics == null) {
+			distributedMetrics = DistributedTestEnvironment.getDistributedMetrics(simulation);
+		}
+		
 		//remove from list of powered off hosts
 		HostManagerBroadcast hostManager = manager.getCapability(HostManagerBroadcast.class);
 		
 		hostManager.getPoweredOffHosts().remove(event.getHost());
 		
 		if (simulation.isRecordingMetrics())
-			CountMetric.getMetric(simulation, POWER_STATE_MSG_RECEIVED).incrementCount();
+			distributedMetrics.receivedPowerStateMessage++;
 		
 		if (simulation.isRecordingMetrics())
-			CountMetric.getMetric(simulation, BASIC_MSG).incrementCount();
+			distributedMetrics.msgBasic++;
 		
 	}
 	
 	public void execute(UpdatePowerStateListEvent event) {
+		
+		if (distributedMetrics == null) {
+			distributedMetrics = DistributedTestEnvironment.getDistributedMetrics(simulation);
+		}
+		
 		HostManagerBroadcast hostManager = manager.getCapability(HostManagerBroadcast.class);
 		
 		hostManager.getPoweredOffHosts().clear();

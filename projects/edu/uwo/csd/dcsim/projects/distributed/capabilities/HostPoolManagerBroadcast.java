@@ -6,7 +6,7 @@ import edu.uwo.csd.dcsim.core.SimulationEventBroadcastGroup;
 import edu.uwo.csd.dcsim.host.Host;
 import edu.uwo.csd.dcsim.management.capabilities.HostPoolManager;
 import edu.uwo.csd.dcsim.projects.distributed.Eviction;
-import edu.uwo.csd.dcsim.vm.VMAllocationRequest;
+import edu.uwo.csd.dcsim.vm.VmAllocationRequest;
 
 public class HostPoolManagerBroadcast extends HostPoolManager {
 
@@ -15,7 +15,7 @@ public class HostPoolManagerBroadcast extends HostPoolManager {
 	private long lastBoot = -1000000000;
 	
 	private ArrayList<Eviction> evictions = new ArrayList<Eviction>();
-	private Map<Eviction, VMAllocationRequest> requestMap = new HashMap<Eviction, VMAllocationRequest>();
+	private Map<Eviction, VmAllocationRequest> requestMap = new HashMap<Eviction, VmAllocationRequest>();
 	
 	private ArrayList<Host> poweredOffHosts = new ArrayList<Host>();
 	
@@ -47,11 +47,11 @@ public class HostPoolManagerBroadcast extends HostPoolManager {
 		this.lastBoot = lastBoot;
 	}
 	
-	public void addRequest(VMAllocationRequest request, Eviction eviction) {
+	public void addRequest(VmAllocationRequest request, Eviction eviction) {
 		requestMap.put(eviction, request);
 	}
 	
-	public VMAllocationRequest getRequest(Eviction eviction) {
+	public VmAllocationRequest getRequest(Eviction eviction) {
 		return requestMap.get(eviction);
 	}
 	
@@ -59,7 +59,7 @@ public class HostPoolManagerBroadcast extends HostPoolManager {
 		requestMap.remove(eviction);
 	}
 	
-	public void addEviction(Eviction eviction, VMAllocationRequest request) {
+	public void addEviction(Eviction eviction, VmAllocationRequest request) {
 		evictions.add(eviction);
 		requestMap.put(eviction, request);
 	}

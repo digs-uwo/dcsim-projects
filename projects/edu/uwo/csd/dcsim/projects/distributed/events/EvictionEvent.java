@@ -2,7 +2,6 @@ package edu.uwo.csd.dcsim.projects.distributed.events;
 
 import edu.uwo.csd.dcsim.core.Event;
 import edu.uwo.csd.dcsim.core.SimulationEventListener;
-import edu.uwo.csd.dcsim.management.VmStatus;
 import edu.uwo.csd.dcsim.projects.distributed.Eviction;
 
 public class EvictionEvent extends Event {

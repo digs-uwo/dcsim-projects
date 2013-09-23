@@ -97,9 +97,14 @@ public abstract class VmConsolidationPolicyGreedy extends Policy {
 			// Ensure that the host is not involved in any migrations and is not powering on.
 			if (host.getCurrentStatus().getIncomingMigrationCount() == 0 && 
 				host.getCurrentStatus().getOutgoingMigrationCount() == 0 && 
-				host.getCurrentStatus().getState() != HostState.POWERING_ON)
+				host.getCurrentStatus().getStartingVmAllocations().size() == 0 &&
+				host.getCurrentStatus().getState() != HostState.POWERING_ON &&
+				host.getCurrentStatus().getState() != HostState.OFF &&
+				host.getCurrentStatus().getState() != HostState.SUSPENDED) {
 				
-				shutdownActions.addAction(new ShutdownHostAction(host.getHost()));
+				shutdownActions.addAction(new ShutdownHostAction(host.getHost()));					
+				
+			}
 		}
 		actionExecutor.addAction(shutdownActions);
 		
