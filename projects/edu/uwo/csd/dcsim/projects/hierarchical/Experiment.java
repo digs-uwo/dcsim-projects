@@ -169,13 +169,12 @@ public class Experiment extends SimulationTask {
 		
 		completedTasks = executor.execute();
 		
+		
 		for(SimulationTask task : completedTasks) {
 			logger.info(task.getName());
-			HierarchicalTestEnvironment.printMetrics(task.getResults());
-			
-			SimulationTraceWriter traceWriter = new SimulationTraceWriter(task);
-			traceWriter.writeTrace();
+			task.getMetrics().printDefault(logger);
 		}
+
 	}
 
 }

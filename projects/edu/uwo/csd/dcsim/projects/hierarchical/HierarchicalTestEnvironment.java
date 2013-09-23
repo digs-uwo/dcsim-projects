@@ -1,7 +1,6 @@
 package edu.uwo.csd.dcsim.projects.hierarchical;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 
 import org.apache.commons.math3.distribution.*;
@@ -12,7 +11,6 @@ import edu.uwo.csd.dcsim.application.*;
 import edu.uwo.csd.dcsim.application.workload.*;
 import edu.uwo.csd.dcsim.common.*;
 import edu.uwo.csd.dcsim.core.Simulation;
-import edu.uwo.csd.dcsim.core.metrics.Metric;
 import edu.uwo.csd.dcsim.host.*;
 import edu.uwo.csd.dcsim.host.resourcemanager.DefaultResourceManagerFactory;
 import edu.uwo.csd.dcsim.host.scheduler.DefaultResourceSchedulerFactory;
@@ -57,6 +55,19 @@ public class HierarchicalTestEnvironment {
 	public HierarchicalTestEnvironment() {
 		// TODO Auto-generated constructor stub
 	}
+	
+	public static HierarchicalMetrics getHierarchicalMetrics(Simulation simulation) {
+		HierarchicalMetrics metrics = simulation.getSimulationMetrics().getCustomMetricCollection(HierarchicalMetrics.class);
+		
+		if (metrics == null) {
+			metrics = new HierarchicalMetrics(simulation);
+			simulation.getSimulationMetrics().addCustomMetricCollection(metrics);
+			return metrics;
+		} else {
+			return (HierarchicalMetrics)metrics;
+		}
+	}
+	
 	
 	/**
 	 * Creates a data centre. The data centre is organized in Clusters, which consist of Racks, 
@@ -127,7 +138,7 @@ public class HierarchicalTestEnvironment {
 //		serviceRates.add(new Tuple<Long, Double>(SimTime.days(10), 0d));
 		
 		
-		ServiceProducer serviceProducer = new NOMSServiceProducer(simulation, dcAM, null, serviceRates);
+		ApplicationGeneratorLegacy serviceProducer = new NOMSServiceProducer(simulation, dcAM, null, serviceRates);
 		serviceProducer.start();
 	}
 	
@@ -159,7 +170,7 @@ public class HierarchicalTestEnvironment {
 		serviceRates.add(new Tuple<Long, Double>(SimTime.hours(40), 0d));		// over 40 hours
 		serviceRates.add(new Tuple<Long, Double>(SimTime.days(10), 0d));		// 10 days
 		
-		ServiceProducer serviceProducer = new NOMSServiceProducer(simulation, dcAM, null, serviceRates);
+		ApplicationGeneratorLegacy serviceProducer = new NOMSServiceProducer(simulation, dcAM, null, serviceRates);
 		serviceProducer.start();
 
 		/*
@@ -211,7 +222,7 @@ public class HierarchicalTestEnvironment {
 		serviceRates.add(new Tuple<Long, Double>(SimTime.hours(40), 0d));		
 		serviceRates.add(new Tuple<Long, Double>(SimTime.days(10), 0d));		// 10 days
 		
-		ServiceProducer serviceProducer = new NOMSServiceProducer(simulation, dcAM, null, serviceRates);
+		ApplicationGeneratorLegacy serviceProducer = new NOMSServiceProducer(simulation, dcAM, null, serviceRates);
 		serviceProducer.start();
 		
 		//Create a uniform random distribution to generate the number of services within the data centre.
@@ -257,7 +268,7 @@ public class HierarchicalTestEnvironment {
 	/**
 	 * Creates services to submit and deploy in the data centre.
 	 */
-	public static class NOMSServiceProducer extends ServiceProducer {
+	public static class NOMSServiceProducer extends ApplicationGeneratorLegacy {
 
 		private int counter = 0;
 		
@@ -266,7 +277,7 @@ public class HierarchicalTestEnvironment {
 		}
 
 		@Override
-		public Service buildService() {
+		public Application buildApplication() {
 			++counter;
 			
 			String trace = TRACES[counter % N_TRACES];
@@ -276,28 +287,17 @@ public class HierarchicalTestEnvironment {
 			int coreCapacity = VM_SIZES[counter % N_VM_SIZES];
 			int memory = VM_RAM[counter % N_VM_SIZES];
 			int bandwidth = 12800;	// 100 Mb/s
-			long storage = 1024;	// 1 GB
+			int storage = 1024;	// 1 GB
 			
 			// Create workload (external) for the service.
-			Workload workload = new TraceWorkload(simulation, trace, (coreCapacity * cores) - CPU_OVERHEAD, offset); //scale to n replicas
-			simulation.addWorkload(workload);
+			TraceWorkload workload = new TraceWorkload(simulation, trace, offset); //scale to n replicas
 			
-			return Services.singleTierInteractiveService(workload, cores, coreCapacity, memory, bandwidth, storage, 1, CPU_OVERHEAD, 1, Integer.MAX_VALUE);
+			InteractiveApplication application = Applications.singleTaskInteractiveApplication(simulation, workload, cores, coreCapacity, memory, bandwidth, storage, 0.01);
+			workload.setScaleFactor(application.calculateMaxWorkloadUtilizationLimit(0.98));
+			
+			return application;
 		}
 		
-	}
-	
-	/**
-	 * Formats a simulation run results for output.
-	 * 
-	 * @param metrics	simulation run results
-	 */
-	public static void printMetrics(Collection<Metric> metrics) {
-		for (Metric metric : metrics) {
-			logger.info(metric.getName() +
-					" = " +
-					metric.toString());
-		}
 	}
 
 }

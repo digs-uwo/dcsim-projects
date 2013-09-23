@@ -9,7 +9,7 @@ import edu.uwo.csd.dcsim.management.events.VmPlacementEvent;
 import edu.uwo.csd.dcsim.projects.hierarchical.*;
 import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.*;
 import edu.uwo.csd.dcsim.projects.hierarchical.events.*;
-import edu.uwo.csd.dcsim.vm.VMAllocationRequest;
+import edu.uwo.csd.dcsim.vm.VmAllocationRequest;
 
 /**
  * 
@@ -58,7 +58,7 @@ public class VmPlacementPolicyLevel2 extends Policy {
 	/**
 	 * 
 	 */
-	protected void searchForVmPlacementTarget(VMAllocationRequest request) {
+	protected void searchForVmPlacementTarget(VmAllocationRequest request) {
 		RackPoolManager rackPool = manager.getCapability(RackPoolManager.class);
 		ArrayList<RackData> racks = new ArrayList<RackData>(rackPool.getRacks());
 		
@@ -136,7 +136,7 @@ public class VmPlacementPolicyLevel2 extends Policy {
 		
 		if (null != targetRack) {
 			// Found target. Send placement request.
-			ArrayList<VMAllocationRequest> requests = new ArrayList<VMAllocationRequest>();
+			ArrayList<VmAllocationRequest> requests = new ArrayList<VmAllocationRequest>();
 			requests.add(request);
 			simulation.sendEvent(new VmPlacementEvent(targetRack.getRackManager(), requests));
 			
@@ -158,7 +158,7 @@ public class VmPlacementPolicyLevel2 extends Policy {
 	/**
 	 * Verifies whether the given Rack can meet the resource requirements of the VM.
 	 */
-	protected boolean canHost(VMAllocationRequest request, RackData rack) {
+	protected boolean canHost(VmAllocationRequest request, RackData rack) {
 		// Check Host capabilities (e.g. core count, core capacity).
 		HostDescription hostDescription = rack.getRackDescription().getHostDescription();
 		if (hostDescription.getCpuCount() * hostDescription.getCoreCount() < request.getVMDescription().getCores())

@@ -4,12 +4,13 @@ import java.util.ArrayList;
 import java.util.Collection;
 
 import edu.uwo.csd.dcsim.common.Utility;
-import edu.uwo.csd.dcsim.core.metrics.CountMetric;
 import edu.uwo.csd.dcsim.host.*;
 import edu.uwo.csd.dcsim.management.*;
 import edu.uwo.csd.dcsim.management.action.MigrationAction;
 import edu.uwo.csd.dcsim.management.capabilities.HostPoolManager;
 import edu.uwo.csd.dcsim.projects.centralized.events.VmRelocationEvent;
+import edu.uwo.csd.dcsim.projects.hierarchical.HierarchicalMetrics;
+import edu.uwo.csd.dcsim.projects.hierarchical.HierarchicalTestEnvironment;
 import edu.uwo.csd.dcsim.projects.hierarchical.MigRequestEntry;
 import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.*;
 import edu.uwo.csd.dcsim.projects.hierarchical.events.*;
@@ -37,16 +38,14 @@ import edu.uwo.csd.dcsim.projects.hierarchical.events.*;
  *
  */
 public abstract class VmRelocationPolicyLevel1 extends Policy {
-
-	private static final String INTRARACK_MIGRATION_COUNT_METRIC = "migrationCount-IntraRack";
-	private static final String INTRACLUSTER_MIGRATION_COUNT_METRIC = "migrationCount-IntraCluster";
-	private static final String INTERCLUSTER_MIGRATION_COUNT_METRIC = "migrationCount-InterCluster";
 	
 	protected AutonomicManager target;
 	
 	protected double lowerThreshold;
 	protected double upperThreshold;
 	protected double targetUtilization;
+	
+	private static HierarchicalMetrics hierarchicalMetrics = null;
 	
 	/**
 	 * Creates an instance of VmRelocationPolicyLevel1.
@@ -118,6 +117,9 @@ public abstract class VmRelocationPolicyLevel1 extends Policy {
 	 * This event can only come from another Rack Manager with information about the selected target Host.
 	 */
 	public void execute(MigAcceptEvent event) {
+		
+		if (hierarchicalMetrics == null) hierarchicalMetrics = HierarchicalTestEnvironment.getHierarchicalMetrics(simulation);
+		
 		// Get entry from migration requests record.
 		MigRequestEntry entry = manager.getCapability(MigRequestRecord.class).getEntry(event.getVm(), manager);
 		
@@ -139,9 +141,9 @@ public abstract class VmRelocationPolicyLevel1 extends Policy {
 			// Find out whether the target Host belongs in the same Cluster as the source Rack.
 			Cluster cluster = target.getCapability(ClusterManager.class).getCluster();
 			if (this.containsHost(cluster, event.getTargetHost().getId()))
-				CountMetric.getMetric(simulation, INTRACLUSTER_MIGRATION_COUNT_METRIC).incrementCount();
+				hierarchicalMetrics.migrationCountIntraCluster++;
 			else
-				CountMetric.getMetric(simulation, INTERCLUSTER_MIGRATION_COUNT_METRIC).incrementCount();
+				hierarchicalMetrics.migrationCountInterCluster++;
 		}
 	}
 	
@@ -199,6 +201,8 @@ public abstract class VmRelocationPolicyLevel1 extends Policy {
 		HostPoolManager hostPool = manager.getCapability(HostPoolManager.class);
 		Collection<HostData> hosts = hostPool.getHosts();
 		
+		if (hierarchicalMetrics == null) hierarchicalMetrics = HierarchicalTestEnvironment.getHierarchicalMetrics(simulation);
+		
 		// Reset the sandbox host status to the current host status.
 		for (HostData host : hosts) {
 			host.resetSandboxStatusToCurrent();
@@ -251,7 +255,7 @@ public abstract class VmRelocationPolicyLevel1 extends Policy {
 			
 			// Update metrics.
 			if (simulation.isRecordingMetrics()) {
-				CountMetric.getMetric(simulation, INTRARACK_MIGRATION_COUNT_METRIC).incrementCount();
+				hierarchicalMetrics.migrationCountIntraRack++;
 			}
 			
 			return true;

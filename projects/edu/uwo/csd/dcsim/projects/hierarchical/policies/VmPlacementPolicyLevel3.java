@@ -4,14 +4,13 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 
-import edu.uwo.csd.dcsim.core.metrics.CountMetric;
 import edu.uwo.csd.dcsim.host.Resources;
 import edu.uwo.csd.dcsim.management.*;
 import edu.uwo.csd.dcsim.management.events.VmPlacementEvent;
 import edu.uwo.csd.dcsim.projects.hierarchical.*;
 import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.ClusterPoolManager;
 import edu.uwo.csd.dcsim.projects.hierarchical.events.VmPlacementRejectEvent;
-import edu.uwo.csd.dcsim.vm.VMAllocationRequest;
+import edu.uwo.csd.dcsim.vm.VmAllocationRequest;
 
 /**
  * ...
@@ -22,6 +21,8 @@ import edu.uwo.csd.dcsim.vm.VMAllocationRequest;
 public class VmPlacementPolicyLevel3 extends Policy {
 
 	public static final String REJECTED_PLACEMENTS = "rejectedPlacements";
+	
+	private static HierarchicalMetrics hierarchicalMetrics = null;
 	
 	/**
 	 * Creates an instance of VmPlacementPolicyLevel3.
@@ -37,7 +38,7 @@ public class VmPlacementPolicyLevel3 extends Policy {
 	 */
 	public void execute(VmPlacementEvent event) {
 		boolean process = true;
-		for (VMAllocationRequest request : event.getVMAllocationRequests()) {
+		for (VmAllocationRequest request : event.getVMAllocationRequests()) {
 			if (process) {
 				process = false;
 				if (!this.searchForVmPlacementTarget(request))
@@ -53,6 +54,9 @@ public class VmPlacementPolicyLevel3 extends Policy {
 	 * This event can only come from a Cluster in response to a placement request sent by the DC Manager.
 	 */
 	public void execute(VmPlacementRejectEvent event) {
+		
+		if (hierarchicalMetrics == null) hierarchicalMetrics = HierarchicalTestEnvironment.getHierarchicalMetrics(simulation);
+		
 		// Mark sender's status as invalid (to avoid choosing sender again in the next step).
 		Collection<ClusterData> clusters = manager.getCapability(ClusterPoolManager.class).getClusters();
 		for (ClusterData cluster : clusters) {
@@ -66,7 +70,7 @@ public class VmPlacementPolicyLevel3 extends Policy {
 		if (!this.searchForVmPlacementTarget(event.getVmAllocationRequest())) {
 			// Record failure to complete placement request.
 			if (simulation.isRecordingMetrics()) {
-				CountMetric.getMetric(simulation, REJECTED_PLACEMENTS).incrementCount();
+				hierarchicalMetrics.rejectedPlacements++;
 			}
 		}
 	}
@@ -74,7 +78,7 @@ public class VmPlacementPolicyLevel3 extends Policy {
 	/**
 	 * 
 	 */
-	protected boolean searchForVmPlacementTarget(VMAllocationRequest request) {
+	protected boolean searchForVmPlacementTarget(VmAllocationRequest request) {
 		ClusterPoolManager clusterPool = manager.getCapability(ClusterPoolManager.class);
 		ArrayList<ClusterData> clusters = new ArrayList<ClusterData>(clusterPool.getClusters());
 		
@@ -201,7 +205,7 @@ public class VmPlacementPolicyLevel3 extends Policy {
 		
 		if (null != targetCluster) {
 			// Found target. Send placement request.
-			ArrayList<VMAllocationRequest> requests = new ArrayList<VMAllocationRequest>();
+			ArrayList<VmAllocationRequest> requests = new ArrayList<VmAllocationRequest>();
 			requests.add(request);
 			simulation.sendEvent(new VmPlacementEvent(targetCluster.getClusterManager(), requests));
 			
@@ -221,7 +225,7 @@ public class VmPlacementPolicyLevel3 extends Policy {
 	/**
 	 * Verifies whether the given Cluster can meet the resource requirements of the VM.
 	 */
-	protected boolean canHost(VMAllocationRequest request, ClusterData cluster) {
+	protected boolean canHost(VmAllocationRequest request, ClusterData cluster) {
 		// Check Host capabilities (e.g. core count, core capacity).
 		HostDescription hostDescription = cluster.getClusterDescription().getRackDescription().getHostDescription();
 		if (hostDescription.getCpuCount() * hostDescription.getCoreCount() < request.getVMDescription().getCores())

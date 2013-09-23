@@ -12,7 +12,7 @@ import edu.uwo.csd.dcsim.management.capabilities.HostPoolManager;
 import edu.uwo.csd.dcsim.management.events.*;
 import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.RackManager;
 import edu.uwo.csd.dcsim.projects.hierarchical.events.VmPlacementRejectEvent;
-import edu.uwo.csd.dcsim.vm.VMAllocationRequest;
+import edu.uwo.csd.dcsim.vm.VmAllocationRequest;
 
 /**
  * This policy implements the VM Placement process using a greedy algorithm. 
@@ -81,7 +81,7 @@ public abstract class VmPlacementPolicyLevel1 extends Policy {
 		ArrayList<HostData> targets = this.orderTargetHosts(partiallyUtilized, underUtilized, empty);
 		
 		// The event contains a single placement request.
-		VMAllocationRequest request = event.getVMAllocationRequests().get(0);
+		VmAllocationRequest request = event.getVMAllocationRequests().get(0);
 		
 		HostData targetHost = null;
 		for (HostData target : targets) {
@@ -138,7 +138,7 @@ public abstract class VmPlacementPolicyLevel1 extends Policy {
 		simulation.sendEvent(new ShutdownVmEvent(hostManager, event.getHostId(), event.getVmId()));
 	}
 	
-	private long sendVm(VMAllocationRequest vmAllocationRequest, HostData host) {
+	private long sendVm(VmAllocationRequest vmAllocationRequest, HostData host) {
 		// If the host is not ON or POWERING_ON, then send an event to power it on.
 		if (host.getCurrentStatus().getState() != Host.HostState.ON && host.getCurrentStatus().getState() != Host.HostState.POWERING_ON) {
 			simulation.sendEvent(new PowerStateEvent(host.getHost(), PowerState.POWER_ON));

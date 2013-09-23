@@ -4,10 +4,10 @@ import java.util.ArrayList;
 import java.util.Collection;
 
 import edu.uwo.csd.dcsim.management.*;
-import edu.uwo.csd.dcsim.management.capabilities.HostCapability;
+import edu.uwo.csd.dcsim.management.capabilities.*;
 import edu.uwo.csd.dcsim.projects.hierarchical.MigRequestEntry;
 
-public class MigRequestRecord extends HostCapability {
+public class MigRequestRecord extends ManagerCapability {
 
 	private Collection<MigRequestEntry> record = new ArrayList<MigRequestEntry>();
 	

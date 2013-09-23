@@ -49,7 +49,7 @@ public final class AverageVmSizes {
 	 * bandwidth and storage, based on the amount of resources required by an "average-sized VM".
 	 */
 	public static Resources convertCapacityToResources(double capacity) {
-		return new Resources(cpu * capacity, (int) (mem * capacity), bw * capacity, (long) (storage * capacity));
+		return new Resources((int) (cpu * capacity), (int) (mem * capacity), (int) (bw * capacity), (int) (storage * capacity));
 	}
 	
 }
