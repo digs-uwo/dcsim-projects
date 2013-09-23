@@ -43,8 +43,8 @@ import edu.uwo.csd.dcsim.vm.VmDescription;
 
 public class ApplicationManagementPolicy extends Policy {
 
-	private static final double STRESS_WINDOW = 4; //* 5 min intervals = 10 min
-	private static final double UNDERUTIL_WINDOW = 12; //* 5 min intervals = 60 min
+	private double stressWindow = 2; //* 5 min intervals = 10 min
+	private double underutilWindow = 12; //* 5 min intervals = 60 min
 	
 	private double slaWarningThreshold = 0.8;
 	private double slaSafeThreshold = 0.6;
@@ -69,12 +69,16 @@ public class ApplicationManagementPolicy extends Policy {
 	public void setParameters(double slaWarningThreshold, 
 			double slaSafeThreshold,
 			long scaleDownFreeze,
-			double cpuSafeThreshold) {
+			double cpuSafeThreshold,
+			double stressWindow,
+			double underutilWindow) {
 		
 		this.slaWarningThreshold = slaWarningThreshold;
 		this.slaSafeThreshold = slaSafeThreshold;
 		this.scaleDownFreeze = scaleDownFreeze;
 		this.cpuSafeThreshold = cpuSafeThreshold;
+		this.stressWindow = stressWindow;
+		this.underutilWindow = underutilWindow;
 	
 	}
 	
@@ -213,7 +217,7 @@ public class ApplicationManagementPolicy extends Policy {
 				
 			} else {				
 				//if we have exceeded the stress window, trigger a migration (choose VM and target at a later point in the algorithm)
-				if (stressedHostWindow.get(host) >= STRESS_WINDOW &&
+				if (stressedHostWindow.get(host) >= stressWindow &&
 						estimatedCpuRelief < cpuOverThreshold) {
 					stressedPendingMigration.add(host);
 						
@@ -456,7 +460,7 @@ public class ApplicationManagementPolicy extends Policy {
 				}
 				
 				//migrate if underutilized window exceeded, migrate remaining VMs
-				if (underutilHostWindow.get(source) >= UNDERUTIL_WINDOW) {
+				if (underutilHostWindow.get(source) >= underutilWindow) {
 					simulation.getSimulationMetrics().getCustomMetricCollection(ApplicationManagementMetrics.class).shutdownAttempts++;
 					underutilHostWindow.remove(source);
 					

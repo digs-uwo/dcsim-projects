@@ -55,7 +55,7 @@ public class BasicAutoscalingWithReallocationExperiment extends SimulationTask {
 		
 		PrintStream printStream;
 		try {
-			printStream = new PrintStream("out");
+			printStream = new PrintStream("out_seperate");
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -63,76 +63,41 @@ public class BasicAutoscalingWithReallocationExperiment extends SimulationTask {
 		}
 		
 		//use 10 minute relocation and 1 hour consolidation, as determined in previous work... try longer consolidation?
-		
+		System.out.println("Starting BasicAutoscalingWithReallocationExperiment");
 		
 		//runSimulationSet(out, slaAware, slaWarningThreshold, slaSafeThreshold, cpuSafeThreshold, cpuWarningThreshold, upper, target, lower)
 		
-//		//with SLA - Balanced (true, 0.5, 0.4, 0.3, 0.9)
+		//with SLA - SLA (true, 0.3, 0.2, 0.3, 0.9)
 //			//90 - 85 - 60
-//		runSimulationSet(printStream, true, 0.5, 0.4, 0.3, 0.9, 0.9, 0.85, 0.6);
+//		runSimulationSet(printStream, true, 0.3, 0.2, 0.3, 0.9, 0.9, 0.85, 0.6);
 //			//90 - 85 - 50
-//		runSimulationSet(printStream, true, 0.5, 0.4, 0.3, 0.9, 0.9, 0.85, 0.5);
+//		runSimulationSet(printStream, true, 0.3, 0.2, 0.3, 0.9, 0.9, 0.85, 0.5);
+//			//90 - 85 - 40
+//		runSimulationSet(printStream, true, 0.3, 0.2, 0.3, 0.9, 0.9, 0.85, 0.4);
+//			//85 - 80 - 60
+//		runSimulationSet(printStream, true, 0.3, 0.2, 0.3, 0.9, 0.85, 0.8, 0.6);
 //			//85 - 80 - 50
-//		runSimulationSet(printStream, true, 0.5, 0.4, 0.3, 0.9, 0.85, 0.8, 0.5);
+//		runSimulationSet(printStream, true, 0.3, 0.2, 0.3, 0.9, 0.85, 0.8, 0.5);
+//			//85 - 80 - 40
+//		runSimulationSet(printStream, true, 0.3, 0.2, 0.3, 0.9, 0.85, 0.8, 0.4);
+//			//80 - 75 - 60
+//		runSimulationSet(printStream, true, 0.3, 0.2, 0.3, 0.9, 0.8, 0.75, 0.6);
+//			//80 - 75 - 50
+//		runSimulationSet(printStream, true, 0.3, 0.2, 0.3, 0.9, 0.8, 0.75, 0.5);
+//			//80 - 75 - 40
+//		runSimulationSet(printStream, true, 0.3, 0.2, 0.3, 0.9, 0.8, 0.75, 0.4);
+			//75 - 70 - 60
+		runSimulationSet(printStream, true, 0.3, 0.2, 0.3, 0.9, 0.75, 0.7, 0.6);
+			//75 - 70 - 50
+		runSimulationSet(printStream, true, 0.3, 0.2, 0.3, 0.9, 0.75, 0.7, 0.5);
+			//75 - 70 - 40
+		runSimulationSet(printStream, true, 0.3, 0.2, 0.3, 0.9, 0.75, 0.7, 0.4);
 		
-		//with SLA - SLA+ (true, 0.1, 0.1, 0.3, 0.9)
-			//90 - 85 - 60
-		runSimulationSet(printStream, true, 0.1, 0.1, 0.3, 0.9, 0.9, 0.85, 0.6);
-			//90 - 85 - 50
-		runSimulationSet(printStream, true, 0.1, 0.1, 0.3, 0.9, 0.9, 0.85, 0.5);
-			//85 - 80 - 50
-		runSimulationSet(printStream, true, 0.1, 0.1, 0.3, 0.9, 0.85, 0.8, 0.5);
+	
 		
-//		//with CPU - SLA (false, 0.8, 0.6, 0.3, 0.7)
-//			//90 - 85 - 60
-//		runSimulationSet(printStream, false, 0.8, 0.6, 0.3, 0.7, 0.9, 0.85, 0.6);
-//			//90 - 85 - 50
-//		runSimulationSet(printStream, false, 0.8, 0.6, 0.3, 0.7, 0.9, 0.85, 0.5);
-//			//85 - 80 - 50
-//		runSimulationSet(printStream, false, 0.8, 0.6, 0.3, 0.7, 0.85, 0.8, 0.5);
-//		
-//		//with CPU - Balanced (false, 0.8, 0.6, 0.4, 0.8)
-//			//90 - 85 - 60
-//		runSimulationSet(printStream, false, 0.8, 0.6, 0.4, 0.8, 0.9, 0.85, 0.6);
-//			//90 - 85 - 50
-//		runSimulationSet(printStream, false, 0.8, 0.6, 0.4, 0.8, 0.9, 0.85, 0.5);
-//			//85 - 80 - 50
-//		runSimulationSet(printStream, false, 0.8, 0.6, 0.4, 0.8, 0.85, 0.8, 0.5);
-		
+		printStream.println("Done");
 		printStream.close();
 		
-//		List<SimulationTask> completedTasks;
-//		SimulationExecutor executor = new SimulationExecutor();
-//		
-//		executor.addTask(new BasicAutoscalingWithReallocationExperiment("autoscaling-allocation-1", 6198910678692541341l));
-//		executor.addTask(new BasicAutoscalingWithReallocationExperiment("autoscaling-allocation-2", 5646441053220106016l));
-//		executor.addTask(new BasicAutoscalingWithReallocationExperiment("autoscaling-allocation-3", -5705302823151233610l));
-//		executor.addTask(new BasicAutoscalingWithReallocationExperiment("autoscaling-allocation-4", 8289672009575825404l));
-//		executor.addTask(new BasicAutoscalingWithReallocationExperiment("autoscaling-allocation-5", -4637549055860880177l));
-//		executor.addTask(new BasicAutoscalingWithReallocationExperiment("autoscaling-allocation-6", -4280782692131378509l));
-//		executor.addTask(new BasicAutoscalingWithReallocationExperiment("autoscaling-allocation-7", -1699811527182374894l));
-//		executor.addTask(new BasicAutoscalingWithReallocationExperiment("autoscaling-allocation-8", -6452776964812569334l));
-//		executor.addTask(new BasicAutoscalingWithReallocationExperiment("autoscaling-allocation-9", -7148920787255940546l));
-//		executor.addTask(new BasicAutoscalingWithReallocationExperiment("autoscaling-allocation-10", 8311271444423629559l));		
-		
-		
-//		completedTasks = executor.execute(); //execute all simulations simultaneously
-//		completedTasks = executor.execute(4); //execute 4 simulations (i.e. 4 threads) at a time
-		
-//		for(SimulationTask task : completedTasks) {
-//			logger.info(task.getName());
-//			task.getMetrics().printDefault(logger);
-//		}
-//		
-//		//output CSV
-//		for(SimulationTask task : completedTasks) {
-//			if (completedTasks.indexOf(task) == 0) {
-//				task.getMetrics().printCSV(System.out);
-//			} else {
-//				task.getMetrics().printCSV(System.out, false);
-//			}
-//		}
-
 	}
 	
 	public static void runSimulationSet(PrintStream out, 
@@ -156,7 +121,7 @@ public class BasicAutoscalingWithReallocationExperiment extends SimulationTask {
 			executor.addTask(e);
 		}
 		
-		completedTasks = executor.execute(6);
+		completedTasks = executor.execute(4);
 		
 		//output CSV
 		out.println("Autoscale+Reallocation Experiment");
@@ -227,7 +192,7 @@ public class BasicAutoscalingWithReallocationExperiment extends SimulationTask {
 		
 		simulation.getSimulationMetrics().addCustomMetricCollection(new ApplicationManagementMetrics(simulation));
 		
-		Environment environment = new Environment(simulation, 30, 4);
+		Environment environment = new Environment(simulation, 40, 5);
 		environment.createDataCentre(simulation);
 			
 		ArrayList<Application> applications = new ArrayList<Application>();

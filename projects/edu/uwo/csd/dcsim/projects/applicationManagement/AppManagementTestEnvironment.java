@@ -26,7 +26,7 @@ public abstract class AppManagementTestEnvironment {
 	public static final int N_APP_TEMPLATES = 4;
 	public static final int MIN_APP_SCALE = 3;
 	public static final int MAX_APP_SCALE = 6;
-	public static final int N_TRACES = 5; 
+	public static final int N_TRACES = 3; 
 	public static final String[] TRACES = {"traces/clarknet", 
 		"traces/epa",
 		"traces/sdsc",
