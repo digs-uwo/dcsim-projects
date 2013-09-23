@@ -92,8 +92,8 @@ public class Experiment extends SimulationTask {
 		
 		// Install management policies in the autonomic manager.
 		dcManager.installPolicy(new ClusterStatusPolicy(5));
-		dcManager.installPolicy(new VmPlacementPolicyLevel2());
-		dcManager.installPolicy(new VmRelocationPolicyLevel2());
+		dcManager.installPolicy(new VmPlacementPolicyLevel3());
+		dcManager.installPolicy(new VmRelocationPolicyLevel3());
 		
 		// TODO: Autonomic manager is NOT installed anywhere.
 		
@@ -106,8 +106,8 @@ public class Experiment extends SimulationTask {
 			// Install management policies in the autonomic manager.
 			clusterManager.installPolicy(new ClusterMonitoringPolicy(dcManager), SimTime.minutes(5), SimTime.minutes(simulation.getRandom().nextInt(5)));
 			clusterManager.installPolicy(new RackStatusPolicy(5));
-			clusterManager.installPolicy(new VmPlacementPolicyLevel1(dcManager));
-			clusterManager.installPolicy(new VmRelocationPolicyLevel1(dcManager));
+			clusterManager.installPolicy(new VmPlacementPolicyLevel2(dcManager));
+			clusterManager.installPolicy(new VmRelocationPolicyLevel2(dcManager));
 			
 			// TODO: Autonomic manager is NOT installed anywhere.
 			
