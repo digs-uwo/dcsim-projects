@@ -84,6 +84,9 @@ public class ApplicationManagementPolicy extends Policy {
 	
 	public void execute() {
 			
+		/*
+		 * Setup and Updates
+		 */
 		ApplicationPoolManager appPool = manager.getCapability(ApplicationPoolManager.class);
 		HostPoolManager hostPool = manager.getCapability(HostPoolManager.class);
 		Collection<HostData> hosts = new ArrayList<HostData>();		
@@ -115,6 +118,11 @@ public class ApplicationManagementPolicy extends Policy {
 		ConcurrentManagementActionExecutor shutdownActions = new ConcurrentManagementActionExecutor();
 		ConcurrentManagementActionExecutor migrations = new ConcurrentManagementActionExecutor();
 		
+		
+		/*
+		 * Host Classification and History
+		 */
+		
 		// classify hosts.
 		ArrayList<HostData> stressed = new ArrayList<HostData>();
 		ArrayList<HostData> partiallyUtilized = new ArrayList<HostData>();
@@ -126,106 +134,21 @@ public class ApplicationManagementPolicy extends Policy {
 		//update history of stressed and underutilized hosts
 		updateHostWindows(stressed, underUtilized);
 
+		/*
+		 * Evaluate Scaling
+		 */			 
+				 
 		//build list of tasks requiring scaling operations
 		ArrayList<Task> scaleUpTasks = new ArrayList<Task>();
 		ArrayList<Task> scaleDownTasks = new ArrayList<Task>();
 		evaluateScaling(scaleUpTasks, scaleDownTasks, appPool);
 				
-		//handle stressed hosts
-		ArrayList<HostData> stressedPendingMigration = new ArrayList<HostData>();
-		ArrayList<HostData> stressedHostsAddressed = new ArrayList<HostData>();
+		/*
+		 * Handle stress
+		 */
+		ArrayList<HostData> stressedPendingMigration = handleStress(stressed, scaleUpTasks, scaleDownTasks);
 		
-		for (HostData host : stressed) {		
-			
-			//check if any scale down operations involve this host, if so, perform only enough to relieve stress
-			Resources resourcesInUse = host.getCurrentStatus().getResourcesInUse();
-			int cpuOverThreshold = resourcesInUse.getCpu() - (int)(host.getHostDescription().getResourceCapacity().getCpu() * upperThreshold);
-			
-			TaskInstance targetInstance = null;
-			int targetCpu = 0;
-			
-			//search through scaleUpTasks to find tasks with instances on this host, check if scale up will relieve stress situation
-			int estimatedCpuRelief = 0;
-			for (Task task : scaleUpTasks) {
-				int newInstanceCpu = 0;				
-				
-				//estimate new, reduced instance CPU usage
-				for (TaskInstance instance : task.getInstances()) {
-					newInstanceCpu += instance.getResourceScheduled().getCpu();
-				}
-				newInstanceCpu = newInstanceCpu / task.getInstances().size() + 1;
-				
-				for (TaskInstance instance : task.getInstances()) {
-					if (instance.getVM().getVMAllocation().getHost().getId() == host.getId()) {
-						estimatedCpuRelief += (instance.getResourceScheduled().getCpu() - newInstanceCpu);
-					}
-				}
-			}
-			
-			/* if we estimate that the stress situation will be relieved by scale up actions, we don't perform other
-			 * actions to relieve it. This allows task instances to be selected for other stressed hosts which may have a
-			 * greater need for relief 
-			 */
-			if (estimatedCpuRelief >= cpuOverThreshold) {
-				stressedHostsAddressed.add(host);
-				simulation.getSimulationMetrics().getCustomMetricCollection(ApplicationManagementMetrics.class).scaleUpRelief++;
-				
-				//reset stress window
-				stressedHostWindow.remove(host);
-				break;
-			}
-			
-			for (Task task : scaleDownTasks) {
-				
-				for (TaskInstance instance : task.getInstances()) {
-					if (instance.getVM().getVMAllocation().getHost() == host.getHost()) {
-//						if (instance.getResourceScheduled().getCpu() > targetCpu &&
-//								instance.getResourceScheduled().getCpu() >= cpuOverThreshold) {
-						if (instance.getResourceScheduled().getCpu() > targetCpu) {
-							targetInstance = instance;
-							targetCpu = instance.getResourceScheduled().getCpu();
-						}
-					}
-				}
-			}
-			
-			if (targetInstance != null) {
-				scaleDownTasks.remove(targetInstance.getTask());
-				stressedHostsAddressed.add(host); //add to the list of hosts whose stress situation has been addressed
-				RemoveTaskInstanceAction action = new RemoveTaskInstanceAction(targetInstance);
-				action.execute(simulation, this);
-				host.invalidateStatus(simulation.getSimulationTime());
-				
-				VmStatus vmToRemove = null;
-				for (VmStatus vm : host.getSandboxStatus().getVms()) {
-					if (vm.getId() == targetInstance.getVM().getId()) {
-						vmToRemove = vm;
-						break;
-					}
-				}
-				host.getSandboxStatus().getVms().remove(vmToRemove);
-				
-				simulation.getSimulationMetrics().getCustomMetricCollection(ApplicationManagementMetrics.class).scaleDownStress++;
-				
-//				System.out.println(SimTime.toHumanReadable(simulation.getSimulationTime()) + " Removing Instance from Task " + 
-//						targetInstance.getTask().getApplication().getId() + "-" + targetInstance.getTask().getId() + 
-//						" VM#" + targetInstance.getVM().getId() +
-//						" on Host #" + host.getId());
-				
-				//reset stress window
-				stressedHostWindow.remove(host);
-				
-			} else {				
-				//if we have exceeded the stress window, trigger a migration (choose VM and target at a later point in the algorithm)
-				if (stressedHostWindow.get(host) >= stressWindow &&
-						estimatedCpuRelief < cpuOverThreshold) {
-					stressedPendingMigration.add(host);
-						
-					//remove from host window to prevent triggering more migrations until the next "migration window" (to match old policies)
-					stressedHostWindow.remove(host);
-				}
-			}
-		}
+		ArrayList<HostData> usedTargets = new ArrayList<HostData>();
 		
 		//scale down other tasks located on hosts with utilization over target utilization
 		ArrayList<Task> scaleTasks = new ArrayList<Task>();
@@ -262,11 +185,6 @@ public class ApplicationManagementPolicy extends Policy {
 				scaleDownTasks.remove(task);
 				
 				simulation.getSimulationMetrics().getCustomMetricCollection(ApplicationManagementMetrics.class).scaleDown++;
-				
-//				System.out.println(SimTime.toHumanReadable(simulation.getSimulationTime()) + " Removing Instance from Task " + 
-//						targetInstance.getTask().getApplication().getId() + "-" + targetInstance.getTask().getId() + 
-//						" VM#" + targetInstance.getVM().getId() +
-//						" on Host #" + targetInstance.getVM().getVMAllocation().getHost().getId());
 			}
 		}
 		
@@ -279,7 +197,6 @@ public class ApplicationManagementPolicy extends Policy {
 		// Sort Underutilized hosts in decreasing order by <CPU utilization, power efficiency>.
 		Collections.sort(underUtilized, HostDataComparator.getComparator(HostDataComparator.CPU_UTIL, HostDataComparator.EFFICIENCY));
 		Collections.reverse(underUtilized);
-
 		
 		// Sort Empty hosts in decreasing order by <power efficiency, power state>.
 		Collections.sort(empty, HostDataComparator.getComparator(HostDataComparator.EFFICIENCY, HostDataComparator.PWR_STATE));
@@ -288,11 +205,7 @@ public class ApplicationManagementPolicy extends Policy {
 		targets.addAll(partiallyUtilized);
 		targets.addAll(underUtilized);
 		targets.addAll(empty);
-		
 
-		
-		ArrayList<HostData> usedTargets = new ArrayList<HostData>();
-		
 		for (HostData source : stressedPendingMigration) {
 			boolean found = false;
 			ArrayList<VmStatus> vmList = new ArrayList<VmStatus>(); 
@@ -370,10 +283,6 @@ public class ApplicationManagementPolicy extends Policy {
 					target.invalidateStatus(simulation.getSimulationTime());
 					
 					simulation.getSimulationMetrics().getCustomMetricCollection(ApplicationManagementMetrics.class).scaleUp++;
-					
-//					System.out.println(SimTime.toHumanReadable(simulation.getSimulationTime()) + " Adding Instance to Task " + 
-//							task.getApplication().getId() + "-" + task.getId() + 
-//							" on Host #" + target.getId());
 					
 					break;
 				 }
@@ -569,6 +478,106 @@ public class ApplicationManagementPolicy extends Policy {
 		actionExecutor.addAction(shutdownActions);
 		actionExecutor.execute(simulation, this);
 		
+	}
+	
+	private ArrayList<HostData> handleStress(ArrayList<HostData> stressed, ArrayList<Task> scaleUpTasks, ArrayList<Task> scaleDownTasks) {
+		//handle stressed hosts
+		ArrayList<HostData> stressedPendingMigration = new ArrayList<HostData>();
+		ArrayList<HostData> stressedHostsAddressed = new ArrayList<HostData>();
+		
+		for (HostData host : stressed) {		
+			
+			//check if any scale down operations involve this host, if so, perform only enough to relieve stress
+			Resources resourcesInUse = host.getCurrentStatus().getResourcesInUse();
+			int cpuOverThreshold = resourcesInUse.getCpu() - (int)(host.getHostDescription().getResourceCapacity().getCpu() * upperThreshold);
+			
+			TaskInstance targetInstance = null;
+			int targetCpu = 0;
+			
+			//search through scaleUpTasks to find tasks with instances on this host, check if scale up will relieve stress situation
+			int estimatedCpuRelief = 0;
+			for (Task task : scaleUpTasks) {
+				int newInstanceCpu = 0;				
+				
+				//estimate new, reduced instance CPU usage
+				for (TaskInstance instance : task.getInstances()) {
+					newInstanceCpu += instance.getResourceScheduled().getCpu();
+				}
+				newInstanceCpu = newInstanceCpu / task.getInstances().size() + 1;
+				
+				for (TaskInstance instance : task.getInstances()) {
+					if (instance.getVM().getVMAllocation().getHost().getId() == host.getId()) {
+						estimatedCpuRelief += (instance.getResourceScheduled().getCpu() - newInstanceCpu);
+					}
+				}
+			}
+			
+			/* if we estimate that the stress situation will be relieved by scale up actions, we don't perform other
+			 * actions to relieve it. This allows task instances to be selected for other stressed hosts which may have a
+			 * greater need for relief 
+			 */
+			if (estimatedCpuRelief >= cpuOverThreshold) {
+				stressedHostsAddressed.add(host);
+				simulation.getSimulationMetrics().getCustomMetricCollection(ApplicationManagementMetrics.class).scaleUpRelief++;
+				
+				//reset stress window
+				stressedHostWindow.remove(host);
+				break;
+			}
+			
+			for (Task task : scaleDownTasks) {
+				
+				for (TaskInstance instance : task.getInstances()) {
+					if (instance.getVM().getVMAllocation().getHost() == host.getHost()) {
+//								if (instance.getResourceScheduled().getCpu() > targetCpu &&
+//										instance.getResourceScheduled().getCpu() >= cpuOverThreshold) {
+						if (instance.getResourceScheduled().getCpu() > targetCpu) {
+							targetInstance = instance;
+							targetCpu = instance.getResourceScheduled().getCpu();
+						}
+					}
+				}
+			}
+			
+			if (targetInstance != null) {
+				scaleDownTasks.remove(targetInstance.getTask());
+				stressedHostsAddressed.add(host); //add to the list of hosts whose stress situation has been addressed
+				RemoveTaskInstanceAction action = new RemoveTaskInstanceAction(targetInstance);
+				action.execute(simulation, this);
+				host.invalidateStatus(simulation.getSimulationTime());
+				
+				VmStatus vmToRemove = null;
+				for (VmStatus vm : host.getSandboxStatus().getVms()) {
+					if (vm.getId() == targetInstance.getVM().getId()) {
+						vmToRemove = vm;
+						break;
+					}
+				}
+				host.getSandboxStatus().getVms().remove(vmToRemove);
+				
+				simulation.getSimulationMetrics().getCustomMetricCollection(ApplicationManagementMetrics.class).scaleDownStress++;
+				
+//						System.out.println(SimTime.toHumanReadable(simulation.getSimulationTime()) + " Removing Instance from Task " + 
+//								targetInstance.getTask().getApplication().getId() + "-" + targetInstance.getTask().getId() + 
+//								" VM#" + targetInstance.getVM().getId() +
+//								" on Host #" + host.getId());
+				
+				//reset stress window
+				stressedHostWindow.remove(host);
+				
+			} else {				
+				//if we have exceeded the stress window, trigger a migration (choose VM and target at a later point in the algorithm)
+				if (stressedHostWindow.get(host) >= stressWindow &&
+						estimatedCpuRelief < cpuOverThreshold) {
+					stressedPendingMigration.add(host);
+						
+					//remove from host window to prevent triggering more migrations until the next "migration window" (to match old policies)
+					stressedHostWindow.remove(host);
+				}
+			}
+		}
+		
+		return stressedPendingMigration;
 	}
 	
 	/**

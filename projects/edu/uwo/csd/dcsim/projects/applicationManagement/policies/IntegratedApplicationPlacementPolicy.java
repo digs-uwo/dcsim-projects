@@ -39,8 +39,28 @@ public class IntegratedApplicationPlacementPolicy extends Policy {
 	public void execute(ApplicationPlacementEvent event) {
 		
 		HostPoolManager hostPool = manager.getCapability(HostPoolManager.class);
+		Collection<HostData> hosts = hostPool.getHosts();
 		
 		ArrayList<Application> applications = event.getApplications();
+		
+		ArrayList<InstantiateVmAction> actions = new ArrayList<InstantiateVmAction>();
+		
+		//reset the sandbox host status to the current host status
+		for (HostData host : hosts) {
+			host.resetSandboxStatusToCurrent();
+		}
+		
+		//place each application individually
+		for (Application application : applications) {
+			placeApplication(application);
+		}
+		
+		
+		
+		
+		
+		
+		
 		
 		//get task allocation requests
 		ArrayList<ArrayList<VmAllocationRequest>> taskAllocationRequests = new ArrayList<ArrayList<VmAllocationRequest>>();
@@ -68,6 +88,10 @@ public class IntegratedApplicationPlacementPolicy extends Policy {
 			simulation.getSimulationMetrics().getApplicationMetrics().incrementApplicationPlacementsFailed();
 			event.setFailed(true);
 		}
+		
+	}
+	
+	private void placeApplication(Application application) {
 		
 	}
 	

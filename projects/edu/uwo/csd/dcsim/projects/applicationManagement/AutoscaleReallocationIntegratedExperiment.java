@@ -47,6 +47,7 @@ public class AutoscaleReallocationIntegratedExperiment extends SimulationTask {
 		-6452776964812569334l,
 		-7148920787255940546l,
 		8311271444423629559l};
+	private static final long N_SEEDS = 10;
 	
 	public static void main(String args[]) {
 		Simulation.initializeLogging();
@@ -63,52 +64,10 @@ public class AutoscaleReallocationIntegratedExperiment extends SimulationTask {
 		//runSimulationSet(out, slaWarningThreshold, slaSafeThreshold, cpuSafeThreshold, upper, target, lower)
 		
 		//with SLA - SLA (true, 0.3, 0.2, 0.3, 0.9)
-//			//90 - 85 - 60
-//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.9, 0.85, 0.6, 2, 12);
-//			//90 - 85 - 50
-//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.9, 0.85, 0.5, 2, 12);
-//			//90 - 85 - 40
-//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.9, 0.85, 0.4, 2, 12);		
-//			//85 - 80 - 60
-//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.85, 0.80, 0.6, 2, 12);
-//			//85 - 80 - 50
-//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.85, 0.80, 0.5, 2, 12);
-//			//85 - 80 - 40
-//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.85, 0.80, 0.4, 2, 12);
-//			//80 - 75 - 60
-//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.8, 0.75, 0.6, 2, 12);
-//			//80 - 75 - 50
-//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.8, 0.75, 0.5, 2, 12);
-//			//80 - 75 - 40
-//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.8, 0.75, 0.4, 2, 12);
-
-
-		//test stress and underutil windows
-		//90 - 85 - 40 : 1, 12
-		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.9, 0.85, 0.4, 1, 12);	
-		//90 - 85 - 40 : 2, 12
-		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.9, 0.85, 0.4, 2, 12);
-		//90 - 85 - 40 : 6, 12
-		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.9, 0.85, 0.4, 6, 12);
-		//90 - 85 - 40 : 12, 12
-		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.9, 0.85, 0.4, 12, 12);
-		
-		//90 - 85 - 40 : 2, 1
-		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.9, 0.85, 0.4, 2, 1);	
-		//90 - 85 - 40 : 2, 2
-		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.9, 0.85, 0.4, 2, 2);
-		//90 - 85 - 40 : 2, 5
-		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.9, 0.85, 0.4, 2, 6);
-		//90 - 85 - 40 : 2, 12
-		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.9, 0.85, 0.4, 2, 12);
-		
-		//90 - 85 - 40 : 1, 1
-		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.9, 0.85, 0.4, 1, 1);
-		//90 - 85 - 40 : 6, 6
-		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.9, 0.85, 0.4, 6, 6);		
-		//90 - 85 - 40 : 12, 2
-		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.9, 0.85, 0.4, 12, 2);
+			//90 - 85 - 40
+		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.9, 0.85, 0.4, 2, 12);		
 	
+		printStream.close();
 		
 	}
 	
@@ -127,7 +86,7 @@ public class AutoscaleReallocationIntegratedExperiment extends SimulationTask {
 		
 		List<SimulationTask> completedTasks;
 		SimulationExecutor executor = new SimulationExecutor();
-		for (int i = 0; i < 10; ++i)  {
+		for (int i = 0; i < N_SEEDS; ++i)  {
 			AutoscaleReallocationIntegratedExperiment e = new AutoscaleReallocationIntegratedExperiment("integrated-" + (i + 1), randomSeeds[i]);
 			e.setParameters(slaWarningThreshold, slaSafeThreshold, cpuSafeThreshold, upper, target, lower, stressWindow, underutilWindow);
 			executor.addTask(e);
@@ -135,30 +94,30 @@ public class AutoscaleReallocationIntegratedExperiment extends SimulationTask {
 		
 		completedTasks = executor.execute(4);
 		
-//		for(SimulationTask task : completedTasks) {
-//			logger.info(task.getName());
-//			task.getMetrics().printDefault(logger);
-//		}
-		
-		//output CSV
-		out.println("Autoscale+Reallocation Experiment");
-		out.println("upper=" + upper + " | target=" + target + " | lower=" + lower +
-				" | slaWarning=" + slaWarningThreshold + " | slaSafe=" + slaSafeThreshold + 
-				" | cpuSafe=" + cpuSafeThreshold +
-				" | stressWindow=" + stressWindow +
-				" | underutilWindow=" + underutilWindow);
-		
 		for(SimulationTask task : completedTasks) {
-			if (completedTasks.indexOf(task) == 0) {
-				task.getMetrics().printCSV(out);
-			} else {
-				task.getMetrics().printCSV(out, false);
-			}
+			logger.info(task.getName());
+			task.getMetrics().printDefault(logger);
 		}
-		out.println("");
-		out.println("");
 		
-		out.flush();
+//		//output CSV
+//		out.println("Autoscale+Reallocation Experiment");
+//		out.println("upper=" + upper + " | target=" + target + " | lower=" + lower +
+//				" | slaWarning=" + slaWarningThreshold + " | slaSafe=" + slaSafeThreshold + 
+//				" | cpuSafe=" + cpuSafeThreshold +
+//				" | stressWindow=" + stressWindow +
+//				" | underutilWindow=" + underutilWindow);
+//		
+//		for(SimulationTask task : completedTasks) {
+//			if (completedTasks.indexOf(task) == 0) {
+//				task.getMetrics().printCSV(out);
+//			} else {
+//				task.getMetrics().printCSV(out, false);
+//			}
+//		}
+//		out.println("");
+//		out.println("");
+//		
+//		out.flush();
 		
 	}
 	
