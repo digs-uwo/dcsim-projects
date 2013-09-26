@@ -20,6 +20,8 @@ public final class Rack implements SimulationEventListener {
 	private int nSlots = 0;								// Number of hosts that can be hosted in the rack.
 	private int nHosts = 0;								// Number of hosts actually hosted in the rack.
 	
+	private Cluster cluster;
+	
 	private ArrayList<Host> hosts = null;					// List of hosts.
 	
 	private Switch dataNetworkSwitch = null;				// Data network switch.
@@ -135,6 +137,14 @@ public final class Rack implements SimulationEventListener {
 	public int getHostCount() { return nHosts; }
 	
 	public int getSlotCount() { return nSlots; }
+	
+	public Cluster getCluster() {
+		return cluster;
+	}
+	
+	public void setCluster(Cluster cluster) {
+		this.cluster = cluster;
+	}
 	
 	public ArrayList<Host> getHosts() { return hosts; }
 	

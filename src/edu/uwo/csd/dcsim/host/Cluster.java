@@ -52,6 +52,7 @@ public final class Cluster implements SimulationEventListener {
 		this.racks = new ArrayList<Rack>(nRacks);
 		for (int i = 0; i < nRacks; i++) {
 			Rack rack = builder.rackBuilder.build();
+			rack.setCluster(this);
 			
 			// Set Data Network.
 			Switch rackSwitch = rack.getDataNetworkSwitch();
