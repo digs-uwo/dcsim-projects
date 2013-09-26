@@ -26,6 +26,7 @@ import edu.uwo.csd.dcsim.management.events.ApplicationPlacementEvent;
 import edu.uwo.csd.dcsim.management.policies.*;
 import edu.uwo.csd.dcsim.projects.applicationManagement.capabilities.ApplicationManager;
 import edu.uwo.csd.dcsim.projects.applicationManagement.capabilities.ApplicationPoolManager;
+import edu.uwo.csd.dcsim.projects.applicationManagement.capabilities.DataCentreManager;
 import edu.uwo.csd.dcsim.projects.applicationManagement.capabilities.TaskInstanceManager;
 import edu.uwo.csd.dcsim.projects.applicationManagement.policies.*;
 
@@ -47,7 +48,7 @@ public class AutoscaleReallocationIntegratedExperiment extends SimulationTask {
 		-6452776964812569334l,
 		-7148920787255940546l,
 		8311271444423629559l};
-	private static final long N_SEEDS = 10;
+	private static final long N_SEEDS = 1;
 	
 	public static void main(String args[]) {
 		Simulation.initializeLogging();
@@ -182,7 +183,7 @@ public class AutoscaleReallocationIntegratedExperiment extends SimulationTask {
 	
 	public class Environment extends AppManagementTestEnvironment {
 
-		HostPoolManager hostPool;
+		DataCentreManager hostPool;
 		ApplicationPoolManager applicationPool;
 		
 		public Environment(Simulation simulation, int hostsPerRack, int nRacks) {
@@ -192,14 +193,14 @@ public class AutoscaleReallocationIntegratedExperiment extends SimulationTask {
 		@Override
 		public void processDcAM(AutonomicManager dcAM) {
 			
-			hostPool = new HostPoolManager();
+			hostPool = new DataCentreManager();
 			dcAM.addCapability(hostPool);
 			hostPool.setAutonomicManager(dcAM);
 			applicationPool = new ApplicationPoolManager(shortWindow, longWindow);
 			dcAM.addCapability(applicationPool);
 			applicationPool.setAutonomicManager(dcAM);
 			
-			dcAM.installPolicy(new HostStatusPolicy(10));
+			dcAM.installPolicy(new DcHostStatusPolicy(10));
 			dcAM.installPolicy(new IntegratedApplicationPlacementPolicy(lower, upper, target));
 			
 			ApplicationManagementPolicy appManagementPolicy = new ApplicationManagementPolicy(lower, upper, target);

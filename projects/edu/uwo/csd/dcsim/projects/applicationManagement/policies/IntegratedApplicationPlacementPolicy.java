@@ -18,6 +18,7 @@ import edu.uwo.csd.dcsim.management.action.InstantiateVmAction;
 import edu.uwo.csd.dcsim.management.capabilities.HostPoolManager;
 import edu.uwo.csd.dcsim.management.events.ApplicationPlacementEvent;
 import edu.uwo.csd.dcsim.projects.applicationManagement.ApplicationManagementMetrics;
+import edu.uwo.csd.dcsim.projects.applicationManagement.capabilities.*;
 import edu.uwo.csd.dcsim.projects.applicationManagement.events.*;
 import edu.uwo.csd.dcsim.vm.VmAllocationRequest;
 import edu.uwo.csd.dcsim.vm.VmDescription;
@@ -29,7 +30,7 @@ public class IntegratedApplicationPlacementPolicy extends Policy {
 	protected double targetUtilization;
 	
 	public IntegratedApplicationPlacementPolicy(double lowerThreshold, double upperThreshold, double targetUtilization) {
-		addRequiredCapability(HostPoolManager.class);
+		addRequiredCapability(DataCentreManager.class);
 		
 		this.lowerThreshold = lowerThreshold;
 		this.upperThreshold = upperThreshold;
@@ -38,7 +39,7 @@ public class IntegratedApplicationPlacementPolicy extends Policy {
 	
 	public void execute(ApplicationPlacementEvent event) {
 		
-		HostPoolManager hostPool = manager.getCapability(HostPoolManager.class);
+		HostPoolManager hostPool = manager.getCapability(DataCentreManager.class);
 		Collection<HostData> hosts = hostPool.getHosts();
 		
 		ArrayList<Application> applications = event.getApplications();
@@ -56,42 +57,46 @@ public class IntegratedApplicationPlacementPolicy extends Policy {
 		}
 		
 		
+//		//get task allocation requests
+//		ArrayList<ArrayList<VmAllocationRequest>> taskAllocationRequests = new ArrayList<ArrayList<VmAllocationRequest>>();
+//		for (Application application : applications) {
+//			for (Task task : application.getTasks()) {
+//				taskAllocationRequests.add(task.createInitialVmRequests());
+//			}
+//		}
 		
+//		//order allocation requests by alternating Task
+//		ArrayList<VmAllocationRequest> allocationRequests = new ArrayList<VmAllocationRequest>();
+//		boolean done = false;
+//		while (!done) {
+//			done = true;
+//			for (ArrayList<VmAllocationRequest> taskRequests : taskAllocationRequests) {
+//				if (!taskRequests.isEmpty()) {
+//					allocationRequests.add(taskRequests.get(0));
+//					taskRequests.remove(0);
+//					if (!taskRequests.isEmpty()) done = false;
+//				}
+//			}
+//		}
 		
-		
-		
-		
-		
-		//get task allocation requests
-		ArrayList<ArrayList<VmAllocationRequest>> taskAllocationRequests = new ArrayList<ArrayList<VmAllocationRequest>>();
-		for (Application application : applications) {
-			for (Task task : application.getTasks()) {
-				taskAllocationRequests.add(task.createInitialVmRequests());
-			}
-		}
-		
-		//order allocation requests by alternating Task
-		ArrayList<VmAllocationRequest> allocationRequests = new ArrayList<VmAllocationRequest>();
-		boolean done = false;
-		while (!done) {
-			done = true;
-			for (ArrayList<VmAllocationRequest> taskRequests : taskAllocationRequests) {
-				if (!taskRequests.isEmpty()) {
-					allocationRequests.add(taskRequests.get(0));
-					taskRequests.remove(0);
-					if (!taskRequests.isEmpty()) done = false;
-				}
-			}
-		}
-		
-		if (!place(allocationRequests, hostPool.getHosts(), event)) {
-			simulation.getSimulationMetrics().getApplicationMetrics().incrementApplicationPlacementsFailed();
-			event.setFailed(true);
-		}
+//		if (!place(allocationRequests, hostPool.getHosts(), event)) {
+//			simulation.getSimulationMetrics().getApplicationMetrics().incrementApplicationPlacementsFailed();
+//			event.setFailed(true);
+//		}
 		
 	}
 	
 	private void placeApplication(Application application) {
+		
+		ArrayList<ArrayList<VmAllocationRequest>> taskAllocationRequests = new ArrayList<ArrayList<VmAllocationRequest>>();
+		for (Task task : application.getTasks()) {
+			taskAllocationRequests.add(task.createInitialVmRequests());
+		}
+		
+		//select Rack for deployment
+		
+		
+		//deploy into rack, spreading task instances
 		
 	}
 	

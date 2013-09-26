@@ -37,6 +37,7 @@ import edu.uwo.csd.dcsim.projects.applicationManagement.actions.RemoveTaskInstan
 import edu.uwo.csd.dcsim.projects.applicationManagement.capabilities.ApplicationManager;
 import edu.uwo.csd.dcsim.projects.applicationManagement.capabilities.ApplicationPoolManager;
 import edu.uwo.csd.dcsim.projects.applicationManagement.capabilities.ApplicationPoolManager.ApplicationData;
+import edu.uwo.csd.dcsim.projects.applicationManagement.capabilities.DataCentreManager;
 import edu.uwo.csd.dcsim.projects.applicationManagement.events.TaskInstanceStatusEvent;
 import edu.uwo.csd.dcsim.vm.VmAllocationRequest;
 import edu.uwo.csd.dcsim.vm.VmDescription;
@@ -58,7 +59,7 @@ public class ApplicationManagementPolicy extends Policy {
 	private HashMap<HostData, Integer> underutilHostWindow = new HashMap<HostData, Integer>();
 	
 	public ApplicationManagementPolicy(double lowerThreshold, double upperThreshold, double targetUtilization) {
-		addRequiredCapability(HostPoolManager.class);
+		addRequiredCapability(DataCentreManager.class);
 		addRequiredCapability(ApplicationPoolManager.class);
 		
 		this.lowerThreshold = lowerThreshold;
@@ -88,7 +89,7 @@ public class ApplicationManagementPolicy extends Policy {
 		 * Setup and Updates
 		 */
 		ApplicationPoolManager appPool = manager.getCapability(ApplicationPoolManager.class);
-		HostPoolManager hostPool = manager.getCapability(HostPoolManager.class);
+		HostPoolManager hostPool = manager.getCapability(DataCentreManager.class);
 		Collection<HostData> hosts = new ArrayList<HostData>();		
 		
 		//filter out invalid host status
