@@ -2,6 +2,7 @@ package edu.uwo.csd.dcsim.projects.hierarchical;
 
 import java.util.ArrayList;
 
+import edu.uwo.csd.dcsim.common.HashCodeUtil;
 import edu.uwo.csd.dcsim.host.*;
 import edu.uwo.csd.dcsim.management.*;
 
@@ -20,6 +21,8 @@ public class RackData {
 	
 	private ArrayList<RackStatus> history = new ArrayList<RackStatus>();
 	
+	private final int hashCode;
+	
 	public RackData(Rack rack, AutonomicManager rackManager) {
 		this.rack = rack;
 		this.rackManager = rackManager;
@@ -28,6 +31,9 @@ public class RackData {
 		
 		// Initialize current status with an *empty* record.
 		currentStatus = new RackStatus(rack, 0);
+		
+		//init hashCode
+		hashCode = generateHashCode();
 	}
 	
 	public void addRackStatus(RackStatus rackStatus, int historyWindowSize) {
@@ -100,6 +106,17 @@ public class RackData {
 			historyCopy.add(status.copy());
 		}
 		return historyCopy;
+	}
+	
+	@Override
+	public int hashCode() {
+		return hashCode;
+	}
+	
+	private int generateHashCode() {
+		int result = HashCodeUtil.SEED;
+		result = HashCodeUtil.hash(result, rack.getId());
+		return result;
 	}
 
 }

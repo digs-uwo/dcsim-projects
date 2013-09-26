@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 
 import edu.uwo.csd.dcsim.application.*;
+import edu.uwo.csd.dcsim.common.HashCodeUtil;
 import edu.uwo.csd.dcsim.common.ObjectBuilder;
 import edu.uwo.csd.dcsim.common.ObjectFactory;
 import edu.uwo.csd.dcsim.common.Utility;
@@ -36,6 +37,7 @@ public final class Host implements SimulationEventListener {
 	
 	private NetworkCard dataNetworkCard;
 	private NetworkCard mgmtNetworkCard;
+	private Rack rack;
 	
 	private ResourceManager resourceManager;
 	private ResourceScheduler resourceScheduler;
@@ -55,6 +57,8 @@ public final class Host implements SimulationEventListener {
 	private PowerStateEvent powerOffAfterMigrations = null;
 	
 	private AutonomicManager autonomicManager = null;
+	
+	private final int hashCode;
 	
 	/*
 	 * Simulation metrics
@@ -119,6 +123,9 @@ public final class Host implements SimulationEventListener {
 				this.getStorage() + "," + 
 				this.getPowerModel().getPowerConsumption(0) + "," +
 				this.getPowerModel().getPowerConsumption(1));
+		
+		//init hashCode
+		hashCode = generateHashCode();
 		
 	}
 	
@@ -747,6 +754,14 @@ public final class Host implements SimulationEventListener {
 	public NetworkCard getMgmtNetworkCard() { return mgmtNetworkCard; }
 	
 	public void setMgmtNetworkCard(NetworkCard mgmtNetworkCard) { this.mgmtNetworkCard = mgmtNetworkCard; }
+	
+	public Rack getRack() {
+		return rack;
+	}
+	
+	public void setRack(Rack rack) {
+		this.rack = rack;
+	}
 		
 	public ResourceManager getResourceManager() {	return resourceManager;	 }
 	
@@ -795,4 +810,20 @@ public final class Host implements SimulationEventListener {
 	
 	public boolean isShutdownPending() {	return powerOffAfterMigrations != null; }
 
+	@Override
+	public int hashCode() {
+		return hashCode;
+	}
+	
+	private int generateHashCode() {
+		int result = HashCodeUtil.SEED;
+		result = HashCodeUtil.hash(result, id);
+		result = HashCodeUtil.hash(result, nCores);
+		result = HashCodeUtil.hash(result, coreCapacity);
+		result = HashCodeUtil.hash(result, memory);
+		result = HashCodeUtil.hash(result, bandwidth);
+		result = HashCodeUtil.hash(result, storage);
+		return result;
+	}
+	
 }

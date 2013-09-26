@@ -2,6 +2,7 @@ package edu.uwo.csd.dcsim.projects.hierarchical;
 
 import java.util.ArrayList;
 
+import edu.uwo.csd.dcsim.common.HashCodeUtil;
 import edu.uwo.csd.dcsim.host.*;
 import edu.uwo.csd.dcsim.management.*;
 
@@ -20,6 +21,8 @@ public class ClusterData {
 	
 	private ArrayList<ClusterStatus> history = new ArrayList<ClusterStatus>();
 	
+	private final int hashCode;
+	
 	public ClusterData(Cluster cluster, AutonomicManager clusterManager) {
 		this.cluster = cluster;
 		this.clusterManager = clusterManager;
@@ -28,6 +31,9 @@ public class ClusterData {
 		
 		// Initialize current status.
 		currentStatus = new ClusterStatus(cluster, 0);
+		
+		//init hashCode
+		hashCode = generateHashCode();
 	}
 	
 	public void addClusterStatus(ClusterStatus clusterStatus, int historyWindowSize) {
@@ -100,6 +106,17 @@ public class ClusterData {
 			historyCopy.add(status.copy());
 		}
 		return historyCopy;
+	}
+	
+	@Override
+	public int hashCode() {
+		return hashCode;
+	}
+	
+	private int generateHashCode() {
+		int result = HashCodeUtil.SEED;
+		result = HashCodeUtil.hash(result, cluster.getId());
+		return result;
 	}
 
 }

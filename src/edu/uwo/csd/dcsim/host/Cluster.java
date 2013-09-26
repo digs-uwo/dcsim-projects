@@ -2,6 +2,7 @@ package edu.uwo.csd.dcsim.host;
 
 import java.util.ArrayList;
 
+import edu.uwo.csd.dcsim.common.HashCodeUtil;
 import edu.uwo.csd.dcsim.common.ObjectBuilder;
 import edu.uwo.csd.dcsim.core.*;
 
@@ -29,6 +30,8 @@ public final class Cluster implements SimulationEventListener {
 	private Switch mainMgmtSwitch = null;					// Management network main (top-level) switch.
 	
 	public enum ClusterState {ON, SUSPENDED, OFF;}
+	
+	private final int hashCode;
 	
 	private Cluster(Builder builder) {
 		
@@ -96,6 +99,9 @@ public final class Cluster implements SimulationEventListener {
 		
 		// Set default state.
 		//state = RackState.OFF;
+		
+		//init hashCode
+		hashCode = generateHashCode();
 	}
 	
 	/**
@@ -171,5 +177,18 @@ public final class Cluster implements SimulationEventListener {
 	public Switch getMainDataSwitch() {	return mainDataSwitch; }
 	
 	public Switch getMainMgmtSwitch() {	return mainMgmtSwitch; }
+	
+	@Override
+	public int hashCode() {
+		return hashCode;
+	}
+	
+	private int generateHashCode() {
+		int result = HashCodeUtil.SEED;
+		result = HashCodeUtil.hash(result, id);
+		result = HashCodeUtil.hash(result, nRacks);
+		result = HashCodeUtil.hash(result, nSwitches);
+		return result;
+	}
 	
 }
