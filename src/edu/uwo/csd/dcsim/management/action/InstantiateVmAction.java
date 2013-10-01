@@ -45,5 +45,9 @@ public class InstantiateVmAction extends ManagementAction {
 		simulation.sendEvent(instantiateEvent);
 		
 	}
+	
+	public HostData getTarget() {
+		return target;
+	}
 
 }

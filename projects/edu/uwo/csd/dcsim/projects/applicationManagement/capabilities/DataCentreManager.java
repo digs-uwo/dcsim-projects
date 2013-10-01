@@ -47,4 +47,12 @@ public class DataCentreManager extends HostPoolManager {
 		return hostData;
 	}
 	
+	public Collection<Rack> getRacks() {
+		return racks.keySet();
+	}
+	
+	public Collection<Cluster> getClusters() {
+		return clusters.keySet();
+	}
+	
 }

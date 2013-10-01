@@ -34,9 +34,13 @@ public class AutoscaleReallocationIntegratedExperiment extends SimulationTask {
 
 	private static Logger logger = Logger.getLogger(AutoscaleReallocationIntegratedExperiment.class);
 	
-	private static final long DURATION = SimTime.days(6);
+	private static final long DURATION = SimTime.days(1);
 //	private static final long DURATION = SimTime.minutes(5);
-	private static final long METRIC_RECORD_START = SimTime.days(1);
+	private static final long METRIC_RECORD_START = SimTime.days(0);
+	
+	private static final int RACK_SIZE = 5; //40
+	private static final int N_RACKS = 4; //5
+	private static final int N_APPS = 20; //50
 	
 	private static final long[] randomSeeds = {6198910678692541341l,
 		5646441053220106016l,
@@ -171,11 +175,11 @@ public class AutoscaleReallocationIntegratedExperiment extends SimulationTask {
 		
 		simulation.getSimulationMetrics().addCustomMetricCollection(new ApplicationManagementMetrics(simulation));
 		
-		Environment environment = new Environment(simulation, 40, 5);
+		Environment environment = new Environment(simulation, RACK_SIZE, N_RACKS);
 		environment.createDataCentre(simulation);
 		
 		ArrayList<Application> applications = new ArrayList<Application>();
-		for (int i = 0; i < 50; ++i) {
+		for (int i = 0; i < N_APPS; ++i) {
 			applications.add(environment.createApplication());
 		}
 		simulation.sendEvent(new ApplicationPlacementEvent(environment.getDcAM(), applications));

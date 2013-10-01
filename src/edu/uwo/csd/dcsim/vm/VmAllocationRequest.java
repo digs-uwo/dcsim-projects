@@ -1,5 +1,7 @@
 package edu.uwo.csd.dcsim.vm;
 
+import edu.uwo.csd.dcsim.host.Resources;
+
 /**
  * A request sent to a Host asking it to create a VMAllocation to host a VM, with specified properties.
  * 
@@ -79,6 +81,10 @@ public class VmAllocationRequest {
 	
 	public void setStorage(int storage) {
 		this.storage = storage;
+	}
+	
+	public Resources getResources() {
+		return new Resources(cpu, memory, bandwidth, storage);
 	}
 	
 }
