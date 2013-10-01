@@ -9,8 +9,6 @@ import edu.uwo.csd.dcsim.management.*;
 import edu.uwo.csd.dcsim.management.action.MigrationAction;
 import edu.uwo.csd.dcsim.management.capabilities.HostPoolManager;
 import edu.uwo.csd.dcsim.projects.centralized.events.VmRelocationEvent;
-import edu.uwo.csd.dcsim.projects.hierarchical.HierarchicalMetrics;
-import edu.uwo.csd.dcsim.projects.hierarchical.HierarchicalTestEnvironment;
 import edu.uwo.csd.dcsim.projects.hierarchical.MigRequestEntry;
 import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.*;
 import edu.uwo.csd.dcsim.projects.hierarchical.events.*;
@@ -44,8 +42,6 @@ public abstract class VmRelocationPolicyLevel1 extends Policy {
 	protected double lowerThreshold;
 	protected double upperThreshold;
 	protected double targetUtilization;
-	
-	private static HierarchicalMetrics hierarchicalMetrics = null;
 	
 	/**
 	 * Creates an instance of VmRelocationPolicyLevel1.
@@ -118,8 +114,6 @@ public abstract class VmRelocationPolicyLevel1 extends Policy {
 	 */
 	public void execute(MigAcceptEvent event) {
 		
-		if (hierarchicalMetrics == null) hierarchicalMetrics = HierarchicalTestEnvironment.getHierarchicalMetrics(simulation);
-		
 		// Get entry from migration requests record.
 		MigRequestEntry entry = manager.getCapability(MigRequestRecord.class).getEntry(event.getVm(), manager);
 		
@@ -135,16 +129,6 @@ public abstract class VmRelocationPolicyLevel1 extends Policy {
 		
 		// Delete entry from migration requests record.
 		manager.getCapability(MigRequestRecord.class).removeEntry(entry);
-		
-		// Update metrics.
-		if (simulation.isRecordingMetrics()) {
-			// Find out whether the target Host belongs in the same Cluster as the source Rack.
-			Cluster cluster = target.getCapability(ClusterManager.class).getCluster();
-			if (this.containsHost(cluster, event.getTargetHost().getId()))
-				hierarchicalMetrics.migrationCountIntraCluster++;
-			else
-				hierarchicalMetrics.migrationCountInterCluster++;
-		}
 	}
 	
 	/**
@@ -201,8 +185,6 @@ public abstract class VmRelocationPolicyLevel1 extends Policy {
 		HostPoolManager hostPool = manager.getCapability(HostPoolManager.class);
 		Collection<HostData> hosts = hostPool.getHosts();
 		
-		if (hierarchicalMetrics == null) hierarchicalMetrics = HierarchicalTestEnvironment.getHierarchicalMetrics(simulation);
-		
 		// Reset the sandbox host status to the current host status.
 		for (HostData host : hosts) {
 			host.resetSandboxStatusToCurrent();
@@ -252,12 +234,6 @@ public abstract class VmRelocationPolicyLevel1 extends Policy {
 		
 		if (mig != null) {		// Trigger migration.
 			mig.execute(simulation, this);
-			
-			// Update metrics.
-			if (simulation.isRecordingMetrics()) {
-				hierarchicalMetrics.migrationCountIntraRack++;
-			}
-			
 			return true;
 		}
 		
@@ -346,22 +322,6 @@ public abstract class VmRelocationPolicyLevel1 extends Policy {
 		}
 		
 		return Utility.roundDouble(avgCpuInUse / host.getHostDescription().getResourceCapacity().getCpu());
-	}
-	
-	/**
-	 * Checks whether the given Host belongs in the given Cluster.
-	 */
-	private boolean containsHost(Cluster cluster, int hostId) {
-		
-		for (Rack rack : cluster.getRacks()) {
-			for (Host host : rack.getHosts()) {
-				if (host.getId() == hostId) {
-					return true;
-				}
-			}
-		}
-		
-		return false;
 	}
 	
 	@Override
