@@ -625,7 +625,8 @@ public final class Host implements SimulationEventListener {
 				autonomicManager.onContainerStart();
 			
 			// Update Rack state.
-			rack.updateState();
+			if (null != rack)
+				rack.updateState();
 		}
 	}
 	
@@ -650,7 +651,8 @@ public final class Host implements SimulationEventListener {
 			autonomicManager.onContainerStop();
 		
 		// Update Rack state.
-		rack.updateState();
+		if (null != rack)
+			rack.updateState();
 	}
 	
 	private void completeSuspend() {
@@ -660,7 +662,8 @@ public final class Host implements SimulationEventListener {
 			autonomicManager.onContainerStop();
 		
 		// Update Rack state.
-		rack.updateState();
+		if (null != rack)
+			rack.updateState();
 	}
 	
 	public void fail() {
