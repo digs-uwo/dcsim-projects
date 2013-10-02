@@ -31,6 +31,7 @@ public class RackStatus {
 	public RackStatus(Rack rack, HostPoolManager capability, long timeStamp) {
 		this.timeStamp = timeStamp;
 		id = rack.getId();
+		state = rack.getState();
 		
 		for (HostData host : capability.getHosts()) {
 			
@@ -62,14 +63,6 @@ public class RackStatus {
 		// Add power consumption of the Rack's switches.
 		powerConsumption += rack.getDataNetworkSwitch().getPowerConsumption();
 		powerConsumption += rack.getMgmtNetworkSwitch().getPowerConsumption();
-		
-		// Determine whether the Rack is active (i.e., ON) or inactive (i.e., SUSPENDED or OFF).
-		if (activeHosts > 0)
-			state = Rack.RackState.ON;
-		else if (suspendedHosts > 0)
-			state = Rack.RackState.SUSPENDED;
-		else
-			state = Rack.RackState.OFF;
 	}
 	
 	public RackStatus(RackStatus status) {

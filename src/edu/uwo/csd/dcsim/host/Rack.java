@@ -125,7 +125,22 @@ public final class Rack implements SimulationEventListener {
 		
 	}
 	
+	public double getCurrentPowerConsumption() {
+		double power = 0;
+		
+		for (Host host : hosts)
+			power += host.getCurrentPowerConsumption();
+		
+		power += dataNetworkSwitch.getPowerConsumption();
+		power += mgmtNetworkSwitch.getPowerConsumption();
+		
+		return power;
+	}
+	
 	public void updateState() {
+		RackState oldState = state;
+		
+		// Calculate number of active and suspended Hosts -- the rest are powered-off.
 		int activeHosts = 0;
 		int suspendedHosts = 0;
 		for (Host host : hosts) {
@@ -141,13 +156,17 @@ public final class Rack implements SimulationEventListener {
 			// ELSE Host is OFF or FAILED
 		}
 		
-		// Determine Rack's state.
+		// Determine Rack's current state.
 		if (activeHosts > 0)
 			state = RackState.ON;
 		else if (suspendedHosts > 0)
 			state = RackState.SUSPENDED;
 		else
 			state = RackState.OFF;
+		
+		// If there was a change in state, update parent Cluster's state.
+		if (state != oldState)
+			cluster.updateState();
 	}
 	
 	@Override

@@ -7,12 +7,12 @@ public class ClusterStatus {
 
 	private long timeStamp;
 	private int id;
+	private Cluster.ClusterState state = Cluster.ClusterState.OFF;
+	
 	private int activeRacks = 0;				// Number of active Racks.
 	private int minInactiveHosts = 0;			// Number of inactive Hosts in the Rack with more active Hosts.
 	private double maxSpareCapacity = 0;		// Amount of spare resources available in the least loaded active Host in the Cluster.
 	private double powerConsumption = 0;		// Sum of power consumption from all Racks and Switches in the Cluster.
-	
-	private Cluster.ClusterState state = Cluster.ClusterState.OFF;
 	
 	/**
 	 * Creates an *empty* ClusterStatus instance. It only includes time stamp and ID.
@@ -28,12 +28,12 @@ public class ClusterStatus {
 	public ClusterStatus(Cluster cluster, RackPoolManager capability, long timeStamp) {
 		this.timeStamp = timeStamp;
 		id = cluster.getId();
+		state = cluster.getState();
 		
-		int suspendedRacks = 0;
 		minInactiveHosts = Integer.MAX_VALUE;
 		for (RackData rack : capability.getRacks()) {
 			
-			// Calculate number of active and suspended Racks. The rest are powered-off.
+			// Calculate number of active Racks.
 			RackStatus status = rack.getCurrentStatus();
 			if (status.getState() == Rack.RackState.ON) {
 				activeRacks++;
@@ -52,8 +52,6 @@ public class ClusterStatus {
 					
 				}
 			}
-			else if (status.getState() == Rack.RackState.SUSPENDED)
-				suspendedRacks++;
 			
 			// Calculate Cluster's total power consumption.
 			// Note: Even Racks with an invalid status are accounted for here, given that
@@ -70,24 +68,16 @@ public class ClusterStatus {
 			for (Switch s : cluster.getMgmtSwitches())
 				powerConsumption += s.getPowerConsumption();
 		}
-		
-		// Determine whether the Rack is active (i.e., ON) or inactive (i.e., SUSPENDED or OFF).
-		if (activeRacks > 0)
-			state = Cluster.ClusterState.ON;
-		else if (suspendedRacks > 0)
-			state = Cluster.ClusterState.SUSPENDED;
-		else
-			state = Cluster.ClusterState.OFF;
 	}
 	
 	public ClusterStatus(ClusterStatus status) {
 		timeStamp = status.timeStamp;
 		id = status.id;
+		state = status.state;
 		activeRacks = status.activeRacks;
 		minInactiveHosts = status.minInactiveHosts;
 		maxSpareCapacity = status.maxSpareCapacity;
 		powerConsumption = status.powerConsumption;
-		state = status.state;
 	}
 	
 	public ClusterStatus copy() {
