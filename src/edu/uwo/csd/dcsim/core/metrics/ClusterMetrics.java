@@ -114,6 +114,8 @@ public class ClusterMetrics extends MetricCollection {
 	public void printDefault(Logger out) {
 		out.info("-- CLUSTERS --");
 		out.info("   nRacks: " + nRacks);
+		out.info("   nClusters: " + nClusters);
+		
 		out.info("Active Racks");
 		out.info("   max: " + Utility.roundDouble(getActiveRacks().getMax(), Simulation.getMetricPrecision()));
 		out.info("   mean: " + Utility.roundDouble(getActiveRacks().getMean(), Simulation.getMetricPrecision()));
@@ -123,7 +125,6 @@ public class ClusterMetrics extends MetricCollection {
 		out.info("      mean: " + Utility.roundDouble(getActiveHostsPerRack().getMean(), Simulation.getMetricPrecision()));
 		out.info("      min: " + Utility.roundDouble(getActiveHostsPerRack().getMin(), Simulation.getMetricPrecision()));
 		
-		out.info("   nClusters: " + nClusters);
 		out.info("Active Clusters");
 		out.info("   max: " + Utility.roundDouble(getActiveClusters().getMax(), Simulation.getMetricPrecision()));
 		out.info("   mean: " + Utility.roundDouble(getActiveClusters().getMean(), Simulation.getMetricPrecision()));
@@ -146,6 +147,7 @@ public class ClusterMetrics extends MetricCollection {
 		List<Tuple<String, Object>> metrics = new ArrayList<Tuple<String, Object>>();
 		
 		metrics.add(new Tuple<String, Object>("nRacks", nRacks));
+		metrics.add(new Tuple<String, Object>("nClusters", nClusters));
 		
 		metrics.add(new Tuple<String, Object>("activeRacksMax", Utility.roundDouble(getActiveRacks().getMax(), Simulation.getMetricPrecision())));
 		metrics.add(new Tuple<String, Object>("activeRacksMean", Utility.roundDouble(getActiveRacks().getMean(), Simulation.getMetricPrecision())));
@@ -153,8 +155,6 @@ public class ClusterMetrics extends MetricCollection {
 		metrics.add(new Tuple<String, Object>("activeHostsPerRackMax", Utility.roundDouble(getActiveHostsPerRack().getMax(), Simulation.getMetricPrecision())));
 		metrics.add(new Tuple<String, Object>("activeHostsPerRackMean", Utility.roundDouble(getActiveHostsPerRack().getMean(), Simulation.getMetricPrecision())));
 		metrics.add(new Tuple<String, Object>("activeHostsPerRackMin", Utility.roundDouble(getActiveHostsPerRack().getMin(), Simulation.getMetricPrecision())));
-		
-		metrics.add(new Tuple<String, Object>("nClusters", nClusters));
 		
 		metrics.add(new Tuple<String, Object>("activeClustersMax", Utility.roundDouble(getActiveClusters().getMax(), Simulation.getMetricPrecision())));
 		metrics.add(new Tuple<String, Object>("activeClustersMean", Utility.roundDouble(getActiveClusters().getMean(), Simulation.getMetricPrecision())));
