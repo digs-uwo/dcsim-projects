@@ -4,11 +4,9 @@ import java.util.*;
 
 import org.apache.log4j.Logger;
 
-import edu.uwo.csd.dcsim.common.Tuple;
-import edu.uwo.csd.dcsim.common.Utility;
+import edu.uwo.csd.dcsim.common.*;
 import edu.uwo.csd.dcsim.core.Simulation;
-import edu.uwo.csd.dcsim.host.Cluster;
-import edu.uwo.csd.dcsim.host.Host;
+import edu.uwo.csd.dcsim.host.*;
 
 public class ClusterMetrics extends MetricCollection {
 
@@ -16,14 +14,13 @@ public class ClusterMetrics extends MetricCollection {
 	WeightedMetric powerEfficiency = new WeightedMetric();
 	
 	WeightedMetric activeRacks = new WeightedMetric();
-	WeightedMetric rackUtilization = new WeightedMetric();
+	//WeightedMetric rackUtilization = new WeightedMetric();
 	WeightedMetric activeHostsPerRack = new WeightedMetric();
 	
 	WeightedMetric activeClusters = new WeightedMetric();
-	WeightedMetric clusterUtilization = new WeightedMetric();
+	//WeightedMetric clusterUtilization = new WeightedMetric();
 	WeightedMetric activeRacksPerCluster = new WeightedMetric();
 	
-	long nHosts;
 	long nRacks;
 	long nClusters;
 	
@@ -33,37 +30,47 @@ public class ClusterMetrics extends MetricCollection {
 	
 	public void recordClusterMetrics(Collection<Cluster> clusters) {
 		double currentPowerConsumption = 0;
-		double currentActiveHosts = 0;
-		double currentTotalInUse = 0;
-		double currentTotalCapacity = 0;
-		double currentTotalUtilization;
+		double currentTotalCpuInUse = 0;
+		double currentActiveRacks = 0;
+		double currentActiveClusters = 0;
 		
-		nHosts = hosts.size();
+		nRacks = 0;
+		nClusters = clusters.size();
 		
 		for (Cluster cluster : clusters) {
+			nRacks += cluster.getRackCount();
 			currentPowerConsumption += cluster.getCurrentPowerConsumption();
 			
-			
-			
-		}
-		
-		for (Host host : hosts) {
-			currentPowerConsumption += host.getCurrentPowerConsumption();
-			
-			if (host.getState() == Host.HostState.ON) {
-				++currentActiveHosts;
-				hostUtilization.add(host.getResourceManager().getCpuUtilization(), simulation.getElapsedTime());
+			if (cluster.getState() == Cluster.ClusterState.ON) {
+				currentActiveClusters++;
+				
+				int activeRacksInCluster = 0;
+				for (Rack rack : cluster.getRacks()) {
+					if (rack.getState() == Rack.RackState.ON) {
+						activeRacksInCluster++;
+						
+						// Calculate number of active Hosts.
+						int activeHosts = 0;
+						for (Host host : rack.getHosts()) {
+							if (host.getState() == Host.HostState.ON)
+								activeHosts++;
+							
+							currentTotalCpuInUse += host.getResourceManager().getCpuInUse();
+						}
+						
+						activeHostsPerRack.add(activeHosts, simulation.getElapsedTime());
+					}
+				}
+				
+				activeRacksPerCluster.add(activeRacksInCluster, simulation.getElapsedTime());
+				currentActiveRacks += activeRacksInCluster;
 			}
-			
-			currentTotalInUse += host.getResourceManager().getCpuInUse();
-			currentTotalCapacity += host.getResourceManager().getTotalCpu();
 		}
-			
-		currentTotalUtilization = currentTotalInUse / currentTotalCapacity;
 		
-		activeHosts.add(currentActiveHosts, simulation.getElapsedTime());
-		totalUtilization.add(currentTotalUtilization, simulation.getElapsedTime());
-		
+		powerConsumption.add(currentPowerConsumption, simulation.getElapsedSeconds());
+		powerEfficiency.add(currentTotalCpuInUse / currentPowerConsumption, simulation.getElapsedSeconds());
+		activeRacks.add(currentActiveRacks, simulation.getElapsedTime());
+		activeClusters.add(currentActiveClusters, simulation.getElapsedTime());
 	}
 	
 	public WeightedMetric getPowerConsumption() {
@@ -78,9 +85,9 @@ public class ClusterMetrics extends MetricCollection {
 		return activeRacks;
 	}
 	
-	public WeightedMetric getRackUtilization() {
-		return rackUtilization;
-	}
+//	public WeightedMetric getRackUtilization() {
+//		return rackUtilization;
+//	}
 	
 	public WeightedMetric getActiveHostsPerRack() {
 		return activeHostsPerRack;
@@ -90,9 +97,9 @@ public class ClusterMetrics extends MetricCollection {
 		return activeClusters;
 	}
 	
-	public WeightedMetric getClusterUtilization() {
-		return clusterUtilization;
-	}
+//	public WeightedMetric getClusterUtilization() {
+//		return clusterUtilization;
+//	}
 	
 	public WeightedMetric getActiveRacksPerCluster() {
 		return activeRacksPerCluster;
@@ -105,14 +112,26 @@ public class ClusterMetrics extends MetricCollection {
 
 	@Override
 	public void printDefault(Logger out) {
-		out.info("-- HOSTS --");
-		out.info("   nHosts: " + nHosts);
-		out.info("Active Hosts");
-		out.info("   max: " + Utility.roundDouble(getActiveHosts().getMax(), Simulation.getMetricPrecision()));
-		out.info("   mean: " + Utility.roundDouble(getActiveHosts().getMean(), Simulation.getMetricPrecision()));
-		out.info("   min: " + Utility.roundDouble(getActiveHosts().getMin(), Simulation.getMetricPrecision()));
-		out.info("   util: " + Utility.roundDouble(Utility.toPercentage(getHostUtilization().getMean()), Simulation.getMetricPrecision()) + "%");
-		out.info("   total util: " + Utility.roundDouble(Utility.toPercentage(getTotalUtilization().getMean()), Simulation.getMetricPrecision()) + "%");
+		out.info("-- CLUSTERS --");
+		out.info("   nRacks: " + nRacks);
+		out.info("Active Racks");
+		out.info("   max: " + Utility.roundDouble(getActiveRacks().getMax(), Simulation.getMetricPrecision()));
+		out.info("   mean: " + Utility.roundDouble(getActiveRacks().getMean(), Simulation.getMetricPrecision()));
+		out.info("   min: " + Utility.roundDouble(getActiveRacks().getMin(), Simulation.getMetricPrecision()));
+		out.info("   Active Hosts Per Rack");
+		out.info("      max: " + Utility.roundDouble(getActiveHostsPerRack().getMax(), Simulation.getMetricPrecision()));
+		out.info("      mean: " + Utility.roundDouble(getActiveHostsPerRack().getMean(), Simulation.getMetricPrecision()));
+		out.info("      min: " + Utility.roundDouble(getActiveHostsPerRack().getMin(), Simulation.getMetricPrecision()));
+		
+		out.info("   nClusters: " + nClusters);
+		out.info("Active Clusters");
+		out.info("   max: " + Utility.roundDouble(getActiveClusters().getMax(), Simulation.getMetricPrecision()));
+		out.info("   mean: " + Utility.roundDouble(getActiveClusters().getMean(), Simulation.getMetricPrecision()));
+		out.info("   min: " + Utility.roundDouble(getActiveClusters().getMin(), Simulation.getMetricPrecision()));
+		out.info("   Active Racks Per Cluster");
+		out.info("      max: " + Utility.roundDouble(getActiveRacksPerCluster().getMax(), Simulation.getMetricPrecision()));
+		out.info("      mean: " + Utility.roundDouble(getActiveRacksPerCluster().getMean(), Simulation.getMetricPrecision()));
+		out.info("      min: " + Utility.roundDouble(getActiveRacksPerCluster().getMin(), Simulation.getMetricPrecision()));
 		
 		out.info("Power");
 		out.info("   consumed: " + Utility.roundDouble(Utility.toKWH(getPowerConsumption().getSum()), Simulation.getMetricPrecision()) + "kWh");
@@ -120,20 +139,29 @@ public class ClusterMetrics extends MetricCollection {
 		out.info("   mean: " + Utility.roundDouble(getPowerConsumption().getMean(), Simulation.getMetricPrecision()) + "Ws");
 		out.info("   min: " + Utility.roundDouble(getPowerConsumption().getMin(), Simulation.getMetricPrecision()) + "Ws");
 		out.info("   efficiency: " + Utility.roundDouble(getPowerEfficiency().getMean(), Simulation.getMetricPrecision()) + "cpu/watt");
-		
 	}
 
 	@Override
 	public List<Tuple<String, Object>> getMetricValues() {
 		List<Tuple<String, Object>> metrics = new ArrayList<Tuple<String, Object>>();
 		
-		metrics.add(new Tuple<String, Object>("nHosts", nHosts));
+		metrics.add(new Tuple<String, Object>("nRacks", nRacks));
 		
-		metrics.add(new Tuple<String, Object>("activeHostsMax", Utility.roundDouble(getActiveHosts().getMax(), Simulation.getMetricPrecision())));
-		metrics.add(new Tuple<String, Object>("activeHostsMean", Utility.roundDouble(getActiveHosts().getMean(), Simulation.getMetricPrecision())));
-		metrics.add(new Tuple<String, Object>("activeHostsMin", Utility.roundDouble(getActiveHosts().getMin(), Simulation.getMetricPrecision())));
-		metrics.add(new Tuple<String, Object>("activeHostsUtil", Utility.roundDouble(Utility.toPercentage(getHostUtilization().getMean()), Simulation.getMetricPrecision())));
-		metrics.add(new Tuple<String, Object>("totalUtil", Utility.roundDouble(Utility.toPercentage(getTotalUtilization().getMean()), Simulation.getMetricPrecision())));
+		metrics.add(new Tuple<String, Object>("activeRacksMax", Utility.roundDouble(getActiveRacks().getMax(), Simulation.getMetricPrecision())));
+		metrics.add(new Tuple<String, Object>("activeRacksMean", Utility.roundDouble(getActiveRacks().getMean(), Simulation.getMetricPrecision())));
+		metrics.add(new Tuple<String, Object>("activeRacksMin", Utility.roundDouble(getActiveRacks().getMin(), Simulation.getMetricPrecision())));
+		metrics.add(new Tuple<String, Object>("activeHostsPerRackMax", Utility.roundDouble(getActiveHostsPerRack().getMax(), Simulation.getMetricPrecision())));
+		metrics.add(new Tuple<String, Object>("activeHostsPerRackMean", Utility.roundDouble(getActiveHostsPerRack().getMean(), Simulation.getMetricPrecision())));
+		metrics.add(new Tuple<String, Object>("activeHostsPerRackMin", Utility.roundDouble(getActiveHostsPerRack().getMin(), Simulation.getMetricPrecision())));
+		
+		metrics.add(new Tuple<String, Object>("nClusters", nClusters));
+		
+		metrics.add(new Tuple<String, Object>("activeClustersMax", Utility.roundDouble(getActiveClusters().getMax(), Simulation.getMetricPrecision())));
+		metrics.add(new Tuple<String, Object>("activeClustersMean", Utility.roundDouble(getActiveClusters().getMean(), Simulation.getMetricPrecision())));
+		metrics.add(new Tuple<String, Object>("activeClustersMin", Utility.roundDouble(getActiveClusters().getMin(), Simulation.getMetricPrecision())));
+		metrics.add(new Tuple<String, Object>("activeRacksPerClusterMax", Utility.roundDouble(getActiveRacksPerCluster().getMax(), Simulation.getMetricPrecision())));
+		metrics.add(new Tuple<String, Object>("activeRacksPerClusterMean", Utility.roundDouble(getActiveRacksPerCluster().getMean(), Simulation.getMetricPrecision())));
+		metrics.add(new Tuple<String, Object>("activeRacksPerClusterMin", Utility.roundDouble(getActiveRacksPerCluster().getMin(), Simulation.getMetricPrecision())));
 		
 		metrics.add(new Tuple<String, Object>("powerConsumed", Utility.roundDouble(Utility.toKWH(getPowerConsumption().getSum()), Simulation.getMetricPrecision())));
 		metrics.add(new Tuple<String, Object>("powerMax", Utility.roundDouble(getPowerConsumption().getMax(), Simulation.getMetricPrecision())));

@@ -11,7 +11,7 @@ import edu.uwo.csd.dcsim.application.Application;
 import edu.uwo.csd.dcsim.common.Utility;
 import edu.uwo.csd.dcsim.core.events.*;
 import edu.uwo.csd.dcsim.core.metrics.*;
-import edu.uwo.csd.dcsim.host.Host;
+import edu.uwo.csd.dcsim.host.*;
 import edu.uwo.csd.dcsim.logging.*;
 
 import java.util.*;
@@ -237,6 +237,7 @@ public class Simulation implements SimulationEventListener {
 		
 		//Initialize
 		ArrayList<Host> hosts = getHostList();
+		ArrayList<Cluster> clusters = getClusterList();
 		
 		Event e;
 		
@@ -295,6 +296,10 @@ public class Simulation implements SimulationEventListener {
 				if (this.isRecordingMetrics()) {	
 					//update host metrics
 					simulationMetrics.getHostMetrics().recordHostMetrics(hosts);
+					
+					// If data centre is organized in Clusters, update Cluster metrics.
+					if (clusters.size() > 0)
+						simulationMetrics.getClusterMetrics().recordClusterMetrics(clusters);
 					
 					//update application metrics
 					simulationMetrics.getApplicationMetrics().recordApplicationMetrics(applications);
@@ -661,7 +666,25 @@ public class Simulation implements SimulationEventListener {
 		
 		return hosts;
 	}
-
+	
+	/**
+	 * Get a list of all of the Hosts within the simulation
+	 * @return
+	 */
+	private ArrayList<Cluster> getClusterList() {
+		int nClusters = 0;
+		for (DataCentre dc : datacentres)
+			nClusters += dc.getClusters().size();
+		
+		ArrayList<Cluster> clusters = new ArrayList<Cluster>(nClusters);
+		
+		for (DataCentre dc : datacentres) {
+			clusters.addAll(dc.getClusters());
+		}
+		
+		return clusters;
+	}
+	
 	public ArrayList<DataCentre> getDataCentres(){
 		return datacentres;
 	}
