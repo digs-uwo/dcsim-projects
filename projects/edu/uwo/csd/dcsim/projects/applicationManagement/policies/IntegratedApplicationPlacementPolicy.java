@@ -68,33 +68,6 @@ public class IntegratedApplicationPlacementPolicy extends Policy {
 			action.execute(simulation, this);
 		}
 		
-//		//get task allocation requests
-//		ArrayList<ArrayList<VmAllocationRequest>> taskAllocationRequests = new ArrayList<ArrayList<VmAllocationRequest>>();
-//		for (Application application : applications) {
-//			for (Task task : application.getTasks()) {
-//				taskAllocationRequests.add(task.createInitialVmRequests());
-//			}
-//		}
-		
-//		//order allocation requests by alternating Task
-//		ArrayList<VmAllocationRequest> allocationRequests = new ArrayList<VmAllocationRequest>();
-//		boolean done = false;
-//		while (!done) {
-//			done = true;
-//			for (ArrayList<VmAllocationRequest> taskRequests : taskAllocationRequests) {
-//				if (!taskRequests.isEmpty()) {
-//					allocationRequests.add(taskRequests.get(0));
-//					taskRequests.remove(0);
-//					if (!taskRequests.isEmpty()) done = false;
-//				}
-//			}
-//		}
-		
-//		if (!place(allocationRequests, hostPool.getHosts(), event)) {
-//			simulation.getSimulationMetrics().getApplicationMetrics().incrementApplicationPlacementsFailed();
-//			event.setFailed(true);
-//		}
-		
 	}
 	
 	private ArrayList<InstantiateVmAction> placeApplication(Application application, DataCentreManager dcManager, ApplicationPlacementEvent event) {
@@ -140,21 +113,6 @@ public class IntegratedApplicationPlacementPolicy extends Policy {
 			
 			if (placement != null && placement.success) break;
 		}
-		
-//		//for now, select first available
-//		for (Rack rack : dcManager.getRacks()) {
-//			placement = calculatePlacement(taskAllocationRequests, filterHosts(dcManager.getHosts(rack)), dcManager);
-//			
-//			if (placement.success) {
-//				System.out.println("Placing application #" + application.getId() + "(" + application.getMaxSize() + ") in rack #" + rack.getId());
-//				break;
-//			}
-//		}
-//
-//		if (placement == null || !placement.success) {
-//			placement = calculatePlacement(taskAllocationRequests, filterHosts(dcManager.getHosts()), dcManager);
-//			System.out.println("Placing application #" + application.getId() + "(" + application.getMaxSize() + ") across all racks");
-//		}
 		
 		//build placement actions
 		if (placement != null && placement.success) {
@@ -247,6 +205,7 @@ public class IntegratedApplicationPlacementPolicy extends Policy {
 	
 	public void execute(TaskInstancePlacementEvent event) {
 		//TODO: handle
+		System.out.println("!");
 	}
 	
 	public void execute(ShutdownApplicationEvent event) {
