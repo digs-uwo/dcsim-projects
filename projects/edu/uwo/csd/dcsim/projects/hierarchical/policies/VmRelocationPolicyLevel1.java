@@ -97,9 +97,10 @@ public abstract class VmRelocationPolicyLevel1 extends Policy {
 		
 		// If found, send message to RackManager origin accepting the migration request.
 		if (null != targetHost) {
-			simulation.sendEvent(new MigAcceptEvent(event.getOrigin(), event.getVm(), targetHost.getHost()));
+			// Invalidate target Host' status, as we know it to be incorrect until the next status update arrives.
+			targetHost.invalidateStatus(simulation.getSimulationTime());
 			
-			// TODO May have to invalidate here the status of the target Host.
+			simulation.sendEvent(new MigAcceptEvent(event.getOrigin(), event.getVm(), targetHost.getHost()));
 			
 		}
 		// Otherwise, send message to ClusterManager rejecting the migration request.
@@ -116,15 +117,12 @@ public abstract class VmRelocationPolicyLevel1 extends Policy {
 		
 		// Get entry from migration requests record.
 		MigRequestEntry entry = manager.getCapability(MigRequestRecord.class).getEntry(event.getVm(), manager);
-		
-		// Trigger migration.
 		HostData source = entry.getHost();
 		
-		// TODO Do we need to invalidate the status of the source and target Hosts here ???
-		// Invalidate source and target Hosts' status, as we know them to be incorrect until the next status update arrives.
-//		source.invalidateStatus(simulation.getSimulationTime());
-//		host.invalidateStatus(simulation.getSimulationTime());
+		// Invalidate source Host' status, as we know it to be incorrect until the next status update arrives.
+		source.invalidateStatus(simulation.getSimulationTime());
 		
+		// Trigger migration.
 		new MigrationAction(source.getHostManager(), source.getHost(), event.getTargetHost(), event.getVm().getId()).execute(simulation, this);
 		
 		// Delete entry from migration requests record.
