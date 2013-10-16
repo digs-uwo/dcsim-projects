@@ -1,13 +1,13 @@
 package edu.uwo.csd.dcsim.projects.applicationManagement.policies;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
+import java.util.*;
 
 import edu.uwo.csd.dcsim.application.*;
+import edu.uwo.csd.dcsim.common.Tuple;
 import edu.uwo.csd.dcsim.common.Utility;
 import edu.uwo.csd.dcsim.core.Event;
 import edu.uwo.csd.dcsim.host.Host;
+import edu.uwo.csd.dcsim.host.Rack;
 import edu.uwo.csd.dcsim.host.Resources;
 import edu.uwo.csd.dcsim.management.HostData;
 import edu.uwo.csd.dcsim.management.HostDataComparator;
@@ -39,8 +39,8 @@ public class IntegratedApplicationPlacementPolicy extends Policy {
 	
 	public void execute(ApplicationPlacementEvent event) {
 		
-		HostPoolManager hostPool = manager.getCapability(DataCentreManager.class);
-		Collection<HostData> hosts = hostPool.getHosts();
+		DataCentreManager dcManager = manager.getCapability(DataCentreManager.class);
+		Collection<HostData> hosts = dcManager.getHosts();
 		
 		ArrayList<Application> applications = event.getApplications();
 		
@@ -53,40 +53,26 @@ public class IntegratedApplicationPlacementPolicy extends Policy {
 		
 		//place each application individually
 		for (Application application : applications) {
-			placeApplication(application);
+			ArrayList<InstantiateVmAction> appActions = placeApplication(application, dcManager, event); 
+			if (appActions != null) {
+				actions.addAll(appActions);
+			} else {
+				System.out.println("Placement failed for application #" + application.getId());
+				event.setFailed(true);
+			}
 		}
 		
-		
-//		//get task allocation requests
-//		ArrayList<ArrayList<VmAllocationRequest>> taskAllocationRequests = new ArrayList<ArrayList<VmAllocationRequest>>();
-//		for (Application application : applications) {
-//			for (Task task : application.getTasks()) {
-//				taskAllocationRequests.add(task.createInitialVmRequests());
-//			}
-//		}
-		
-//		//order allocation requests by alternating Task
-//		ArrayList<VmAllocationRequest> allocationRequests = new ArrayList<VmAllocationRequest>();
-//		boolean done = false;
-//		while (!done) {
-//			done = true;
-//			for (ArrayList<VmAllocationRequest> taskRequests : taskAllocationRequests) {
-//				if (!taskRequests.isEmpty()) {
-//					allocationRequests.add(taskRequests.get(0));
-//					taskRequests.remove(0);
-//					if (!taskRequests.isEmpty()) done = false;
-//				}
-//			}
-//		}
-		
-//		if (!place(allocationRequests, hostPool.getHosts(), event)) {
-//			simulation.getSimulationMetrics().getApplicationMetrics().incrementApplicationPlacementsFailed();
-//			event.setFailed(true);
-//		}
+		//execute actions
+		for (InstantiateVmAction action : actions) {
+			action.getTarget().invalidateStatus(simulation.getSimulationTime());
+			action.execute(simulation, this);
+		}
 		
 	}
 	
-	private void placeApplication(Application application) {
+	private ArrayList<InstantiateVmAction> placeApplication(Application application, DataCentreManager dcManager, ApplicationPlacementEvent event) {
+		
+		ArrayList<InstantiateVmAction> actions = new ArrayList<InstantiateVmAction>();
 		
 		ArrayList<ArrayList<VmAllocationRequest>> taskAllocationRequests = new ArrayList<ArrayList<VmAllocationRequest>>();
 		for (Task task : application.getTasks()) {
@@ -94,41 +80,69 @@ public class IntegratedApplicationPlacementPolicy extends Policy {
 		}
 		
 		//select Rack for deployment
+		ApplicationPlacement placement = null;
 		
-		
-		//deploy into rack, spreading task instances
-		
-	}
-	
-	public void execute(TaskInstancePlacementEvent event) {
-		HostPoolManager hostPool = manager.getCapability(HostPoolManager.class);
-		
-		Task task = event.getTask();
-		
-		VmAllocationRequest request = new VmAllocationRequest(new VmDescription(task));
-		
-		if (!place(request, hostPool.getHosts(), event)) {
-			simulation.getSimulationMetrics().getCustomMetricCollection(ApplicationManagementMetrics.class).instancePlacementsFailed++;
-		}
-		
-	}
-	
-	private boolean place(VmAllocationRequest request, Collection<HostData> hosts, Event placementEvent) {
-		ArrayList<VmAllocationRequest> requests = new ArrayList<VmAllocationRequest>();
-		requests.add(request);
-		return place(requests, hosts, placementEvent);
-	}
-	
-	private boolean place(Collection<VmAllocationRequest> requests, Collection<HostData> hosts, Event placementEvent) {
-		
-		ArrayList<InstantiateVmAction> actions = new ArrayList<InstantiateVmAction>();
+		//attempt to place in the fewest number of racks possible
+		ArrayList<Rack> targetRacks = new ArrayList<Rack>();
+		targetRacks.addAll(dcManager.getRacks()); //create an ordered version of the rack collection
+//		System.out.println("racks.size = " + targetRacks.size());
+		for (int nRacks = 1; nRacks <= targetRacks.size(); ++nRacks) {
+//			System.out.println("nRacks = " + nRacks);
+			for (int i = 0; i <= targetRacks.size() - nRacks; ++i) {
+//				System.out.println("    i = " + i);
+				//build host set to attempt placement
+				ArrayList<HostData> targetHosts = new ArrayList<HostData>();
+				for (int j = i; j < i + nRacks; ++j) {
+//					System.out.println("          j = " + j);
+					targetHosts.addAll(dcManager.getHosts(targetRacks.get(j))); //get the HostData collection of the hosts belonging to this rack
+				}
 				
-		//reset the sandbox host status to the current host status
-		for (HostData host : hosts) {
-			host.resetSandboxStatusToCurrent();
+				placement = calculatePlacement(taskAllocationRequests, filterHosts(targetHosts), dcManager);
+				
+				if (placement.success) {
+					//debugging output
+//					String out = "Placing application #" + application.getId() + " in rack(s)";
+//					for (int j = i; j < i + nRacks; ++j) {
+//						out = out + " - " + j;
+//					}
+//					System.out.println(out);
+					
+					break;
+				}
+			}
+			
+			if (placement != null && placement.success) break;
 		}
 		
-		// Categorize hosts.
+		//build placement actions
+		if (placement != null && placement.success) {
+			for (Tuple<VmAllocationRequest, HostData> vmPlacement : placement.placements) {
+				actions.add(new InstantiateVmAction(vmPlacement.b, vmPlacement.a, event));
+				
+				vmPlacement.b.getSandboxStatus().instantiateVm(
+						new VmStatus(vmPlacement.a.getVMDescription().getCores(),
+								vmPlacement.a.getVMDescription().getCoreCapacity(),
+						vmPlacement.a.getResources()));
+			}
+			
+			return actions;
+		}
+		
+		return null;		
+	}
+	
+	private ApplicationPlacement calculatePlacement(ArrayList<ArrayList<VmAllocationRequest>> taskAllocationRequests, Collection<HostData> hosts, DataCentreManager dcManager) {
+		
+		ApplicationPlacement placement = new ApplicationPlacement();
+		
+		Map<HostData, HostStatus> hostStatusMap = new HashMap<HostData, HostStatus>(); 
+		
+		//build a copy of all host status info to use for our temporary placement calculations. We don't want to modify the host sandbox status,
+		//as it may be already modified by previous action and these placements may not be executed
+		for (HostData host : hosts) {
+			hostStatusMap.put(host, host.getSandboxStatus().copy());
+		}
+		
 		ArrayList<HostData> partiallyUtilized = new ArrayList<HostData>();
 		ArrayList<HostData> underUtilized = new ArrayList<HostData>();
 		ArrayList<HostData> empty = new ArrayList<HostData>();
@@ -137,6 +151,12 @@ public class IntegratedApplicationPlacementPolicy extends Policy {
 		
 		// Create target hosts list.
 		ArrayList<HostData> targets = this.orderTargetHosts(partiallyUtilized, underUtilized, empty);
+		
+		//for now, just place all task instances in order. Later, change to spread out instances of the same task
+		ArrayList<VmAllocationRequest> requests = new ArrayList<VmAllocationRequest>();
+		for (ArrayList<VmAllocationRequest> taskRequests : taskAllocationRequests) {
+			requests.addAll(taskRequests);
+		}
 		
 		for (VmAllocationRequest request : requests) {
 
@@ -151,43 +171,57 @@ public class IntegratedApplicationPlacementPolicy extends Policy {
 				if (HostData.canHost(request.getVMDescription().getCores(), 	//target has capability and capacity to host VM 
 						request.getVMDescription().getCoreCapacity(), 
 						reqResources,
-						target.getSandboxStatus(),
+						hostStatusMap.get(target),
 						target.getHostDescription()) &&
-						(target.getSandboxStatus().getResourcesInUse().getCpu() + request.getCpu()) / target.getHostDescription().getResourceCapacity().getCpu() <= targetUtilization)
+						(hostStatusMap.get(target).getResourcesInUse().getCpu() + request.getCpu()) / target.getHostDescription().getResourceCapacity().getCpu() <= targetUtilization)
 						{
 					
 					allocatedHost = target;
 					
 					//add a dummy placeholder VM to keep track of placed VM resource requirements
-					target.getSandboxStatus().instantiateVm(
+					hostStatusMap.get(target).instantiateVm(
 							new VmStatus(request.getVMDescription().getCores(),
 									request.getVMDescription().getCoreCapacity(),
 							reqResources));
 					
-					//invalidate this host status, as we know it to be incorrect until the next status update arrives
-					target.invalidateStatus(simulation.getSimulationTime());
+					placement.placements.add(new Tuple<VmAllocationRequest, HostData>(request, target));
 					
 					break;
 				 }
 			}
 			
-			if (allocatedHost != null) {
-				//delay actions until placements have been found for all VMs
-				actions.add(new InstantiateVmAction(allocatedHost, request, placementEvent));
-			} else {
-				return false;
+			if (allocatedHost == null) {
+				placement.success = false;
 			}
 		}
 		
-		for (InstantiateVmAction action : actions) {
-			action.execute(simulation, this);
-		}
-		
-		return true;
+		return placement;
+	}
+	
+	private class ApplicationPlacement {
+		boolean success = true;
+		ArrayList<Tuple<VmAllocationRequest, HostData>> placements = new ArrayList<Tuple<VmAllocationRequest, HostData>>();
+	}
+	
+	public void execute(TaskInstancePlacementEvent event) {
+		//TODO: handle
+		System.out.println("!");
 	}
 	
 	public void execute(ShutdownApplicationEvent event) {
 		//TODO: handle
+	}
+	
+	private Collection<HostData> filterHosts(Collection<HostData> hosts) {
+		ArrayList<HostData> filteredHosts = new ArrayList<HostData>();
+		
+		for (HostData host : hosts) {
+			if (host.isStatusValid()) {
+				filteredHosts.add(host);
+			}
+		}
+		
+		return filteredHosts;
 	}
 	
 	/**
@@ -200,36 +234,31 @@ public class IntegratedApplicationPlacementPolicy extends Policy {
 			Collection<HostData> hosts) {
 		
 		for (HostData host : hosts) {
+			// Calculate host's avg CPU utilization over the last window of time.
+			double avgCpuInUse = 0;
+			int count = 0;
+			for (HostStatus status : host.getHistory()) {
+				// Only consider times when the host is powered on.
+				if (status.getState() == Host.HostState.ON) {
+					avgCpuInUse += status.getResourcesInUse().getCpu();
+					++count;
+				}
+				else
+					break;
+			}
+			if (count != 0) {
+				avgCpuInUse = avgCpuInUse / count;
+			}
 			
-			// Filter out hosts with a currently invalid status.
-			if (host.isStatusValid()) {
-				
-				// Calculate host's avg CPU utilization over the last window of time.
-				double avgCpuInUse = 0;
-				int count = 0;
-				for (HostStatus status : host.getHistory()) {
-					// Only consider times when the host is powered on.
-					if (status.getState() == Host.HostState.ON) {
-						avgCpuInUse += status.getResourcesInUse().getCpu();
-						++count;
-					}
-					else
-						break;
-				}
-				if (count != 0) {
-					avgCpuInUse = avgCpuInUse / count;
-				}
-				
-				double avgCpuUtilization = Utility.roundDouble(avgCpuInUse / host.getHostDescription().getResourceCapacity().getCpu());
-				
-				// Classify hosts.
-				if (host.getCurrentStatus().getVms().size() == 0) {
-					empty.add(host);
-				} else if (avgCpuUtilization < lowerThreshold) {
-					underUtilized.add(host);
-				} else if (avgCpuUtilization <= upperThreshold) {
-					partiallyUtilized.add(host);
-				}
+			double avgCpuUtilization = Utility.roundDouble(avgCpuInUse / host.getHostDescription().getResourceCapacity().getCpu());
+			
+			// Classify hosts.
+			if (host.getCurrentStatus().getVms().size() == 0) {
+				empty.add(host);
+			} else if (avgCpuUtilization < lowerThreshold) {
+				underUtilized.add(host);
+			} else if (avgCpuUtilization <= upperThreshold) {
+				partiallyUtilized.add(host);
 			}
 		}
 	}
