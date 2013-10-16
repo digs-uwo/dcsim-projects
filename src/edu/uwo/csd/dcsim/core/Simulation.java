@@ -7,6 +7,7 @@ import org.apache.log4j.PatternLayout;
 
 import edu.uwo.csd.dcsim.DataCentre;
 import edu.uwo.csd.dcsim.application.Application;
+import edu.uwo.csd.dcsim.common.SimTime;
 //import edu.uwo.csd.dcsim.common.SimTime;
 import edu.uwo.csd.dcsim.common.Utility;
 import edu.uwo.csd.dcsim.core.events.*;
@@ -292,6 +293,10 @@ public class Simulation implements SimulationEventListener {
 				lastUpdate = simulationTime;
 				simulationTime = e.getTime();
 				advanceSimulation(hosts);
+				
+				// Show progression over time.
+				if (simulationTime % SimTime.hours(1) == 0)
+					simLogger.info(SimTime.toHumanReadable(simulationTime));
 
 				if (this.isRecordingMetrics()) {	
 					//update host metrics
