@@ -8,6 +8,14 @@ import edu.uwo.csd.dcsim.common.*;
 import edu.uwo.csd.dcsim.core.Simulation;
 import edu.uwo.csd.dcsim.host.*;
 
+/**
+ * This class handles the collection of metrics for Racks and Clusters in a Data Centre.
+ * 
+ * Perhaps in the future, this class should be merged with HostMetrics.
+ * 
+ * @author Gaston Keller
+ *
+ */
 public class ClusterMetrics extends MetricCollection {
 
 	WeightedMetric powerConsumption = new WeightedMetric();
