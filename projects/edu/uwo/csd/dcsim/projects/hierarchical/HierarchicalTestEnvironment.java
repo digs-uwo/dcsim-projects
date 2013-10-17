@@ -125,17 +125,48 @@ public class HierarchicalTestEnvironment {
 		// Create a service rate _trace_ for the ServiceProducer.
 		ArrayList<Tuple<Long, Double>> serviceRates = new ArrayList<Tuple<Long, Double>>();
 //		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), 10d));		// Create ~400 VMs.
-		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), 30d));		// Create ~1200 VMs.
+//		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), 30d));		// Create ~1200 VMs.
 //		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), 40d));		// Create ~1600 VMs.
-		serviceRates.add(new Tuple<Long, Double>(SimTime.hours(40), 0d));
-		serviceRates.add(new Tuple<Long, Double>(SimTime.days(10), 0d));
-		
-//		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), 6d));		// Create ~240 VMs.
 //		serviceRates.add(new Tuple<Long, Double>(SimTime.hours(40), 0d));
 //		serviceRates.add(new Tuple<Long, Double>(SimTime.days(10), 0d));
 		
+		// Config for following experiments:
+		// public static final int N_CLUSTERS = 5;
+		// public static final int N_RACKS = 4;
+		// public static final int N_HOSTS = 10;
 		
-		ApplicationGeneratorLegacy serviceProducer = new NOMSServiceProducer(simulation, dcAM, null, serviceRates);
+		// EXP 1: 10-day exp. / log 6th / ~1200 VMs / failed alloc after day 3
+/*		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), 10d));
+		serviceRates.add(new Tuple<Long, Double>(SimTime.hours(120), 0d));
+		serviceRates.add(new Tuple<Long, Double>(SimTime.days(10), 0d));
+*/
+		
+		// EXP 2: 10-day exp. / log 6th / ~400 VMs / no failure
+		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), 10d));
+		serviceRates.add(new Tuple<Long, Double>(SimTime.hours(40), 0d));
+		serviceRates.add(new Tuple<Long, Double>(SimTime.days(10), 0d));
+		
+		// EXP 3: 10-day exp. / log 4th / ~700 VMs / no failure
+//		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), 10d));
+//		serviceRates.add(new Tuple<Long, Double>(SimTime.hours(70), 0d));
+//		serviceRates.add(new Tuple<Long, Double>(SimTime.days(10), 0d));
+		
+		// EXP 4: 10-day exp. / log 5th / ~900 VMs / no failure
+//		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), 10d));
+//		serviceRates.add(new Tuple<Long, Double>(SimTime.hours(90), 0d));
+//		serviceRates.add(new Tuple<Long, Double>(SimTime.days(10), 0d));
+		
+		// Config for following experiments:
+		// public static final int N_CLUSTERS = 2;
+		// public static final int N_RACKS = 3;
+		// public static final int N_HOSTS = 4;
+		
+		// EXP 5: 5-day exp. / log 2nd / ~200 VMs / ...
+//		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), 10d));
+//		serviceRates.add(new Tuple<Long, Double>(SimTime.hours(20), 0d));
+//		serviceRates.add(new Tuple<Long, Double>(SimTime.days(10), 0d));
+		
+		ApplicationGenerator serviceProducer = new ServiceProducer(simulation, dcAM, null, serviceRates);
 		serviceProducer.start();
 	}
 	
@@ -167,7 +198,8 @@ public class HierarchicalTestEnvironment {
 		serviceRates.add(new Tuple<Long, Double>(SimTime.hours(40), 0d));		// over 40 hours
 		serviceRates.add(new Tuple<Long, Double>(SimTime.days(10), 0d));		// 10 days
 		
-		ApplicationGeneratorLegacy serviceProducer = new NOMSServiceProducer(simulation, dcAM, null, serviceRates);
+		//ApplicationGeneratorLegacy serviceProducer = new NOMSServiceProducer(simulation, dcAM, null, serviceRates);
+		ApplicationGenerator serviceProducer = new ServiceProducer(simulation, dcAM, null, serviceRates);
 		serviceProducer.start();
 
 		/*
@@ -196,7 +228,8 @@ public class HierarchicalTestEnvironment {
 		//Day 10: Let servers terminate until left with base 600
 		serviceRates.add(new Tuple<Long, Double>(SimTime.days(10), 0d));
 		
-		serviceProducer = new NOMSServiceProducer(simulation, dcAM, new NormalDistribution(SimTime.days(2), SimTime.hours(2)), serviceRates);
+		//serviceProducer = new NOMSServiceProducer(simulation, dcAM, new NormalDistribution(SimTime.days(2), SimTime.hours(2)), serviceRates);
+		serviceProducer = new ServiceProducer(simulation, dcAM, new NormalDistribution(SimTime.days(2), SimTime.hours(2)), serviceRates);
 		serviceProducer.start();	
 	}
 	
@@ -219,7 +252,8 @@ public class HierarchicalTestEnvironment {
 		serviceRates.add(new Tuple<Long, Double>(SimTime.hours(40), 0d));		
 		serviceRates.add(new Tuple<Long, Double>(SimTime.days(10), 0d));		// 10 days
 		
-		ApplicationGeneratorLegacy serviceProducer = new NOMSServiceProducer(simulation, dcAM, null, serviceRates);
+		//ApplicationGeneratorLegacy serviceProducer = new NOMSServiceProducer(simulation, dcAM, null, serviceRates);
+		ApplicationGenerator serviceProducer = new ServiceProducer(simulation, dcAM, null, serviceRates);
 		serviceProducer.start();
 		
 		//Create a uniform random distribution to generate the number of services within the data centre.
@@ -258,7 +292,8 @@ public class HierarchicalTestEnvironment {
 		serviceRates.add(new Tuple<Long, Double>(SimTime.days(10), 0d));
 
 		
-		serviceProducer = new NOMSServiceProducer(simulation, dcAM, new NormalDistribution(SimTime.days(1) / changesPerDay, SimTime.hours(1)), serviceRates);
+		//serviceProducer = new NOMSServiceProducer(simulation, dcAM, new NormalDistribution(SimTime.days(1) / changesPerDay, SimTime.hours(1)), serviceRates);
+		serviceProducer = new ServiceProducer(simulation, dcAM, new NormalDistribution(SimTime.days(1) / changesPerDay, SimTime.hours(1)), serviceRates);
 		serviceProducer.start();
 	}
 	
@@ -295,6 +330,40 @@ public class HierarchicalTestEnvironment {
 			return application;
 		}
 		
+	}
+	
+	/**
+	 * Creates services (applications) to submit and deploy in the data centre.
+	 */
+	public static class ServiceProducer extends ApplicationGenerator {
+		
+		private int counter = 0;
+		
+		public ServiceProducer(Simulation simulation, AutonomicManager dcTarget, RealDistribution lifespanDist, List<Tuple<Long, Double>> servicesPerHour) {
+			super(simulation, dcTarget, lifespanDist, servicesPerHour);
+		}
+		
+		@Override
+		public Application buildApplication() {
+			++counter;
+			
+			String trace = TRACES[counter % N_TRACES];
+			long offset = (int)(simulation.getRandom().nextDouble() * OFFSET_MAX[counter % N_TRACES]);
+			
+			int cores = VM_CORES[counter % N_VM_SIZES];
+			int coreCapacity = VM_SIZES[counter % N_VM_SIZES];
+			int memory = VM_RAM[counter % N_VM_SIZES];
+			int bandwidth = 12800;	// 100 Mb/s
+			int storage = 1024;	// 1 GB
+			
+			// Create workload (external) for the service.
+			TraceWorkload workload = new TraceWorkload(simulation, trace, offset); //scale to n replicas
+			
+			InteractiveApplication application = Applications.singleTaskInteractiveApplication(simulation, workload, cores, coreCapacity, memory, bandwidth, storage, 0.01);
+			workload.setScaleFactor(application.calculateMaxWorkloadUtilizationLimit(0.98));
+			
+			return application;
+		}
 	}
 
 }

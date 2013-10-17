@@ -50,9 +50,31 @@ public class Experiment extends SimulationTask {
 	 * @param randomSeed	seed for random number generation
 	 */
 	public Experiment(String name, long randomSeed) {
-		//super(name, SimTime.days(10));					// 10-day simulation
-		super(name, SimTime.days(4));
+		
+		// EXP 1: 10-day exp. / log 6th / ~1200 VMs / failed alloc after day 3
+		// Time: 3.958 days
+		// Error: Allocation failed on Host # 143 for migrating in VM #291
+//		super(name, SimTime.days(10));					// 10-day simulation
+//		this.setMetricRecordStart(SimTime.days(5));		// start on 6th day (i.e., after 5 days)
+		
+		// EXP 2: 10-day exp. / log 6th / ~400 VMs / no failure
+		super(name, SimTime.days(10));					// 10-day simulation
 		this.setMetricRecordStart(SimTime.days(2));		// start on 3rd day (i.e., after 2 days)
+		
+		// EXP 3: 10-day exp. / log 4th / ~700 VMs / no failure
+//		super(name, SimTime.days(10));					// 10-day simulation
+//		this.setMetricRecordStart(SimTime.days(3));		// start on 4th day (i.e., after 3 days)
+		
+		// EXP 4: 10-day exp. / log 5th / ~900 VMs / no failure
+//		super(name, SimTime.days(10));					// 10-day simulation
+//		this.setMetricRecordStart(SimTime.days(4));		// start on 5th day (i.e., after 4 days)
+		
+		// EXP 5: 5-day exp. / log 2nd / ~200 VMs / ...
+		// Time: 33.0hrs
+		// Error: Allocation failed on Host # 16 for migrating in VM #110
+//		super(name, SimTime.days(5));					// 5-day simulation
+//		this.setMetricRecordStart(SimTime.days(1));		// start on 2nd day (i.e., after 1 days)
+		
 		this.setRandomSeed(randomSeed);
 	}
 	
@@ -92,7 +114,7 @@ public class Experiment extends SimulationTask {
 		
 		// Install management policies in the autonomic manager.
 		dcManager.installPolicy(new ClusterStatusPolicy(5));
-		dcManager.installPolicy(new VmPlacementPolicyLevel3());
+		dcManager.installPolicy(new SingleVmAppPlacementPolicyLevel3());
 		dcManager.installPolicy(new VmRelocationPolicyLevel3());
 		
 		// TODO: Autonomic manager is NOT installed anywhere.
