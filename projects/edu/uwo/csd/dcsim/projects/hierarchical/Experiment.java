@@ -41,10 +41,6 @@ public class Experiment extends SimulationTask {
 	/**
 	 * Creates a new instance of Experiment. Sets experiment's duration to 10 days and 
 	 * metrics recording start time at day 3.
-	 */
-	/**
-	 * Creates a new instance of Experiment. Sets experiment's duration to 10 days and 
-	 * metrics recording start time at day 3.
 	 * 
 	 * @param name			name of the simulation
 	 * @param randomSeed	seed for random number generation
@@ -98,8 +94,8 @@ public class Experiment extends SimulationTask {
 		
 		// Create and start the Services Producer.
 		HierarchicalTestEnvironment.configureStaticServices(simulation, dcManager);
-		//HierarchicalTestEnvironment.configureRandomServices(simulation, dcManager, 1, 6000, 16000);		// 10x #hosts & load
 		//HierarchicalTestEnvironment.configureRandomServices(simulation, dcManager, 1, 600, 1600);
+		//HierarchicalTestEnvironment.configureRandomServices(simulation, dcManager, 1, 6000, 16000);		// 10x #hosts & load
 	}
 	
 	/**

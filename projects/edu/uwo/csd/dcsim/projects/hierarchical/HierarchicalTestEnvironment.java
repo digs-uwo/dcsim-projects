@@ -7,6 +7,7 @@ import org.apache.commons.math3.distribution.*;
 
 import edu.uwo.csd.dcsim.DataCentre;
 import edu.uwo.csd.dcsim.application.*;
+import edu.uwo.csd.dcsim.application.sla.InteractiveServiceLevelAgreement;
 import edu.uwo.csd.dcsim.application.workload.*;
 import edu.uwo.csd.dcsim.common.*;
 import edu.uwo.csd.dcsim.core.Simulation;
@@ -360,7 +361,12 @@ public class HierarchicalTestEnvironment {
 			TraceWorkload workload = new TraceWorkload(simulation, trace, offset); //scale to n replicas
 			
 			InteractiveApplication application = Applications.singleTaskInteractiveApplication(simulation, workload, cores, coreCapacity, memory, bandwidth, storage, 0.01);
-			workload.setScaleFactor(application.calculateMaxWorkloadUtilizationLimit(0.98));
+			
+			//workload.setScaleFactor(application.calculateMaxWorkloadUtilizationLimit(0.98));
+			
+			workload.setScaleFactor(application.calculateMaxWorkloadResponseTimeLimit(0.9)); //1s response time SLA
+			InteractiveServiceLevelAgreement sla = new InteractiveServiceLevelAgreement(application).responseTime(1, 1); //sla limit at 1s response time, penalty rate of 1 per second in violation
+			application.setSla(sla);
 			
 			return application;
 		}
