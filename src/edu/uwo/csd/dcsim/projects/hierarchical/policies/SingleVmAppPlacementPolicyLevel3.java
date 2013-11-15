@@ -78,6 +78,9 @@ public class SingleVmAppPlacementPolicyLevel3 extends Policy {
 	 * 
 	 */
 	protected boolean searchForVmPlacementTarget(VmAllocationRequest request) {
+		
+		simulation.getLogger().debug(this.getClass() + " - New Placement request.");
+		
 		ClusterPoolManager clusterPool = manager.getCapability(ClusterPoolManager.class);
 		ArrayList<ClusterData> clusters = new ArrayList<ClusterData>(clusterPool.getClusters());
 		
@@ -150,7 +153,7 @@ public class SingleVmAppPlacementPolicyLevel3 extends Policy {
 				
 				if (currentPowerEff != cluster.getClusterDescription().getPowerEfficiency()) {
 					// Check if the Cluster with the most spare capacity has enough resources to take the VM.
-					if (null != maxSpareCapacityCluster && this.canHost(request, maxSpareCapacityCluster)) {
+					if (null != maxSpareCapacityCluster && this.hasEnoughCapacity(request, maxSpareCapacityCluster)) {
 						targetCluster = maxSpareCapacityCluster;
 						break;
 					}
@@ -196,6 +199,23 @@ public class SingleVmAppPlacementPolicyLevel3 extends Policy {
 				}
 			}
 			
+			// If we exited the previous loop after parsing all the Clusters in the list, then we haven't checked 
+			// whether any target Cluster had been identified during the iteration over the last PowerEff set.
+			if (null == targetCluster) {
+				// Check if the Cluster with the most spare capacity has enough resources to take the VM.
+				if (null != maxSpareCapacityCluster && this.hasEnoughCapacity(request, maxSpareCapacityCluster)) {
+					targetCluster = maxSpareCapacityCluster;
+				}
+				// Otherwise, make the Cluster with the most loaded Rack the target.
+				else if (null != mostLoadedRack) {
+					targetCluster = mostLoadedRack;
+				}
+				// Last recourse: make the most loaded Cluster the target.
+				else if (null != mostLoadedCluster) {
+					targetCluster = mostLoadedCluster;
+				}
+			}
+			
 			// If we have not found a target Cluster among the subset of active Clusters, activate a new Cluster.
 			if (null == targetCluster && active.size() < clusters.size()) {
 				targetCluster = this.getInactiveCluster(clusters);
@@ -203,6 +223,9 @@ public class SingleVmAppPlacementPolicyLevel3 extends Policy {
 		}
 		
 		if (null != targetCluster) {
+			
+			simulation.getLogger().debug(this.getClass() + " - Found placement target: Cluster #" + targetCluster.getId());
+			
 			// Found target. Send placement request.
 			ArrayList<VmAllocationRequest> requests = new ArrayList<VmAllocationRequest>();
 			requests.add(request);
@@ -218,13 +241,29 @@ public class SingleVmAppPlacementPolicyLevel3 extends Policy {
 		}
 		
 		// Could not find suitable target Cluster in the Data Centre.
+		
+		simulation.getLogger().debug(this.getClass() + " - Failed to find placement target.");
+		
+		return false;
+	}
+	
+	/**
+	 * Verifies whether the given Cluster can meet the resource requirements of the VM, 
+	 * considering the Cluster's max spare capacity and number of active Racks.
+	 */
+	protected boolean canHost(VmAllocationRequest request, ClusterData cluster) {
+		// Check is Cluster has enough spare capacity or inactive (i.e., empty) Racks.
+		if (this.hasEnoughCapacity(request, cluster) || 
+				cluster.getCurrentStatus().getActiveRacks() < cluster.getClusterDescription().getRackCount())
+			return true;
+		
 		return false;
 	}
 	
 	/**
 	 * Verifies whether the given Cluster can meet the resource requirements of the VM.
 	 */
-	protected boolean canHost(VmAllocationRequest request, ClusterData cluster) {
+	protected boolean hasEnoughCapacity(VmAllocationRequest request, ClusterData cluster) {
 		// Check Host capabilities (e.g. core count, core capacity).
 		HostDescription hostDescription = cluster.getClusterDescription().getRackDescription().getHostDescription();
 		if (hostDescription.getCpuCount() * hostDescription.getCoreCount() < request.getVMDescription().getCores())
