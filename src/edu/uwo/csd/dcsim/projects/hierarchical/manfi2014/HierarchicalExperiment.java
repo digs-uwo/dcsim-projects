@@ -47,29 +47,21 @@ public class HierarchicalExperiment extends SimulationTask {
 	 */
 	public HierarchicalExperiment(String name, long randomSeed) {
 		
-		// EXP 1: 10-day exp. / log 6th / ~1200 VMs / failed alloc after day 3
-		// Time: 3.958 days
-		// Error: Allocation failed on Host # 143 for migrating in VM #291
+		// Exp 1A
 //		super(name, SimTime.days(10));					// 10-day simulation
-//		this.setMetricRecordStart(SimTime.days(5));		// start on 6th day (i.e., after 5 days)
+//		this.setMetricRecordStart(SimTime.days(2));		// start on 3rd day (i.e., after 2 days)
 		
-		// EXP 2: 10-day exp. / log 6th / ~400 VMs / no failure
-		super(name, SimTime.days(10));					// 10-day simulation
-		this.setMetricRecordStart(SimTime.days(2));		// start on 3rd day (i.e., after 2 days)
-		
-		// EXP 3: 10-day exp. / log 4th / ~700 VMs / no failure
-//		super(name, SimTime.days(10));					// 10-day simulation
-//		this.setMetricRecordStart(SimTime.days(3));		// start on 4th day (i.e., after 3 days)
-		
-		// EXP 4: 10-day exp. / log 5th / ~900 VMs / no failure
-//		super(name, SimTime.days(10));					// 10-day simulation
+		// Exp 1B
+//		super(name, SimTime.days(12));					// 12-day simulation
 //		this.setMetricRecordStart(SimTime.days(4));		// start on 5th day (i.e., after 4 days)
 		
-		// EXP 5: 5-day exp. / log 2nd / ~200 VMs / ...
-		// Time: 33.0hrs
-		// Error: Allocation failed on Host # 16 for migrating in VM #110
-//		super(name, SimTime.days(5));					// 5-day simulation
-//		this.setMetricRecordStart(SimTime.days(1));		// start on 2nd day (i.e., after 1 days)
+		// Exp 1D
+		super(name, SimTime.days(15));					// 15-day simulation
+		this.setMetricRecordStart(SimTime.days(7));		// start on 8th day (i.e., after 7 days)
+		
+		// Exp 2A
+//		super(name, SimTime.days(12));					// 12-day simulation
+//		this.setMetricRecordStart(SimTime.days(4));		// start on 5th day (i.e., after 4 days)
 		
 		this.setRandomSeed(randomSeed);
 	}
@@ -93,7 +85,13 @@ public class HierarchicalExperiment extends SimulationTask {
 		AutonomicManager dcManager = this.createMgmtInfrastructure(simulation, dc);
 		
 		// Create and start the Services Producer.
+		
+		// Exp 1X
 		ManFI2014TestEnvironment.configureStaticServices(simulation, dcManager, false);
+		
+		// Exp 2X
+//		ManFI2014TestEnvironment.configureDynamicServices(simulation, dcManager, false);
+		
 		//HierarchicalTestEnvironment.configureRandomServices(simulation, dcManager, 1, 600, 1600, false);
 		//HierarchicalTestEnvironment.configureRandomServices(simulation, dcManager, 1, 6000, 16000, false);		// 10x #hosts & load
 	}

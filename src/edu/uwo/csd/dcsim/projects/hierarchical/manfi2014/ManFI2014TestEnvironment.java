@@ -30,7 +30,7 @@ public class ManFI2014TestEnvironment {
 	public static final int N_RACKS = 4;
 	public static final int N_HOSTS = 10;
 	
-	public static final int CPU_OVERHEAD = 200;
+//	public static final int CPU_OVERHEAD = 200;
 	public static final int[] VM_SIZES = {1500, 2500, 2500};
 	public static final int[] VM_CORES = {1, 1, 2};
 	public static final int[] VM_RAM = {512, 1024, 1024};
@@ -49,7 +49,7 @@ public class ManFI2014TestEnvironment {
 		"traces/google_cores_job_type_2",
 		"traces/google_cores_job_type_3"};	
 	public static final long[] OFFSET_MAX = {200000000, 40000000, 40000000, 15000000, 15000000, 15000000, 15000000};
-	public static final double[] TRACE_AVG = {0.32, 0.25, 0.32, 0.72, 0.74, 0.77, 0.83};
+//	public static final double[] TRACE_AVG = {0.32, 0.25, 0.32, 0.72, 0.74, 0.77, 0.83};
 	
 	public ManFI2014TestEnvironment() {
 		// TODO Auto-generated constructor stub
@@ -128,47 +128,21 @@ public class ManFI2014TestEnvironment {
 		
 		// Create a service rate _trace_ for the ServiceProducer.
 		ArrayList<Tuple<Long, Double>> serviceRates = new ArrayList<Tuple<Long, Double>>();
-//		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), 10d));		// Create ~400 VMs.
-//		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), 30d));		// Create ~1200 VMs.
-//		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), 40d));		// Create ~1600 VMs.
+		
+		// EXP 1A
+//		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), 10d));
 //		serviceRates.add(new Tuple<Long, Double>(SimTime.hours(40), 0d));
 //		serviceRates.add(new Tuple<Long, Double>(SimTime.days(10), 0d));
 		
-		// Config for following experiments:
-		// public static final int N_CLUSTERS = 5;
-		// public static final int N_RACKS = 4;
-		// public static final int N_HOSTS = 10;
+		// EXP 1B
+//		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), 10d));
+//		serviceRates.add(new Tuple<Long, Double>(SimTime.hours(80), 0d));
+//		serviceRates.add(new Tuple<Long, Double>(SimTime.days(12), 0d));
 		
-		// EXP 1: 10-day exp. / log 6th / ~1200 VMs / failed alloc after day 3
-/*		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), 10d));
-		serviceRates.add(new Tuple<Long, Double>(SimTime.hours(120), 0d));
-		serviceRates.add(new Tuple<Long, Double>(SimTime.days(10), 0d));
-*/
-		
-		// EXP 2: 10-day exp. / log 6th / ~400 VMs / no failure
+		// EXP 1D
 		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), 10d));
-		serviceRates.add(new Tuple<Long, Double>(SimTime.hours(40), 0d));
-		serviceRates.add(new Tuple<Long, Double>(SimTime.days(10), 0d));
-		
-		// EXP 3: 10-day exp. / log 4th / ~700 VMs / no failure
-//		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), 10d));
-//		serviceRates.add(new Tuple<Long, Double>(SimTime.hours(70), 0d));
-//		serviceRates.add(new Tuple<Long, Double>(SimTime.days(10), 0d));
-		
-		// EXP 4: 10-day exp. / log 5th / ~900 VMs / no failure
-//		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), 10d));
-//		serviceRates.add(new Tuple<Long, Double>(SimTime.hours(90), 0d));
-//		serviceRates.add(new Tuple<Long, Double>(SimTime.days(10), 0d));
-		
-		// Config for following experiments:
-		// public static final int N_CLUSTERS = 2;
-		// public static final int N_RACKS = 3;
-		// public static final int N_HOSTS = 4;
-		
-		// EXP 5: 5-day exp. / log 2nd / ~200 VMs / ...
-//		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), 10d));
-//		serviceRates.add(new Tuple<Long, Double>(SimTime.hours(20), 0d));
-//		serviceRates.add(new Tuple<Long, Double>(SimTime.days(10), 0d));
+		serviceRates.add(new Tuple<Long, Double>(SimTime.hours(160), 0d));
+		serviceRates.add(new Tuple<Long, Double>(SimTime.days(15), 0d));
 		
 		if (legacy) {
 			serviceProducer = new VmProducer(simulation, dcAM, null, serviceRates);
@@ -188,26 +162,24 @@ public class ManFI2014TestEnvironment {
 		Object serviceProducer = null;
 		
 		/*
-		 * 1. Create 600 Services (VMs) over first 40 hours. These Services to not terminate.
-		 * 2. Simulation recording starts after 2 days
-		 * 3. Hold on 600 Services for day 3
-		 * 4. Increase from 600 to 1200 throughout day 4
-		 * 5. Hold on 1200 for day 5
-		 * 6. Decrease from 1200 to 800 throughout day 6
-		 * 7. Hold on 800 for day 7
-		 * 8. Increase from 800 to 1600 throughout day 8
-		 * 9. Hold on 1600 for day 9
-		 * 10. Decrease from 1600 to 600 for day 10
-		 * 11. Complete 8 days of recorded simulation
+		 * 1. Create ~800 Services (VMs) over first 80 hours. These Services do not terminate.
+		 * 2. Simulation recording starts after 4 days.
+		 * 3. Hold on ~800 Services for day 5.
+		 * 4. Increase from ~800 to ~1280 throughout days 6 & 7.
+		 * 5. Hold on ~1280 for day 8.
+		 * 6. Increase from ~1280 to ~1520 throughout days 9 & 10.
+		 * 7. Hold on ~1520 for day 11.
+		 * 8. Decrease from ~1520 to ~1280 throughout day 12.
+		 * 9. Complete 8 days of recorded simulation.
 		 */
 		
 		/*
-		 * Configure and start the base 600 services which do not terminate
+		 * Configure and start the base 800 services which do not terminate
 		 */
 		ArrayList<Tuple<Long, Double>> serviceRates = new ArrayList<Tuple<Long, Double>>();
-		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), 15d));		// Create ~600 VMs.
-		serviceRates.add(new Tuple<Long, Double>(SimTime.hours(40), 0d));		// over 40 hours
-		serviceRates.add(new Tuple<Long, Double>(SimTime.days(10), 0d));		// 10 days
+		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), 10d));
+		serviceRates.add(new Tuple<Long, Double>(SimTime.hours(80), 0d));
+		serviceRates.add(new Tuple<Long, Double>(SimTime.days(12), 0d));
 		
 		if (legacy) {
 			serviceProducer = new VmProducer(simulation, dcAM, null, serviceRates);
@@ -219,37 +191,30 @@ public class ManFI2014TestEnvironment {
 		}
 		
 		/*
-		 * Create time varying service levels. Each service has a lifespan of ~2 days, normally distributed with a std. dev. of 2 hours
+		 * Create time varying service levels. Each service has a lifespan of ~6 days, normally distributed with a std. dev. of 2 hours
 		 */
 		serviceRates = new ArrayList<Tuple<Long, Double>>();
 		
-		//Day 4: Create 600 new services throughout the day
-		serviceRates.add(new Tuple<Long, Double>(SimTime.days(3), 25d));
+		//Days 6 & 7: Create ~480 new services throughout the day.
+		serviceRates.add(new Tuple<Long, Double>(SimTime.days(5), 10d));
 		
-		//Day 5: Hold at 1200
-		serviceRates.add(new Tuple<Long, Double>(SimTime.days(4), 0d));
-
-		//Day 6: Create 200 new services, which combined with the termination of previous will bring us down to 800
-		serviceRates.add(new Tuple<Long, Double>(SimTime.days(5), 8.3d));
+		//Day 8: Hold at ~1280.
+		serviceRates.add(new Tuple<Long, Double>(SimTime.days(7), 0d));
 		
-		//Day 7: Hold at 800
-		serviceRates.add(new Tuple<Long, Double>(SimTime.days(6), 0d));
+		//Days 9 & 10: Create ~480 new services throughout the day.
+		serviceRates.add(new Tuple<Long, Double>(SimTime.days(8), 10d));
 		
-		//Day 8: Create 1000 new services throughout the day
-		serviceRates.add(new Tuple<Long, Double>(SimTime.days(7), 41.6d));
-		
-		//Day 9: Hold at 1600
-		serviceRates.add(new Tuple<Long, Double>(SimTime.days(8), 0d));
-		
-		//Day 10: Let servers terminate until left with base 600
+		//Day 11: Hold at ~1520.
 		serviceRates.add(new Tuple<Long, Double>(SimTime.days(10), 0d));
 		
+		//Day 12: Let ~240 services terminate until left with ~1280.
+		
 		if (legacy) {
-			serviceProducer = new VmProducer(simulation, dcAM, new NormalDistribution(SimTime.days(2), SimTime.hours(2)), serviceRates);
+			serviceProducer = new VmProducer(simulation, dcAM, new NormalDistribution(SimTime.days(6), SimTime.hours(6)), serviceRates);
 			((ApplicationGeneratorLegacy) serviceProducer).start();
 		}
 		else {
-			serviceProducer = new ServiceProducer(simulation, dcAM, new NormalDistribution(SimTime.days(2), SimTime.hours(2)), serviceRates);
+			serviceProducer = new ServiceProducer(simulation, dcAM, new NormalDistribution(SimTime.days(6), SimTime.hours(6)), serviceRates);
 			((ApplicationGenerator) serviceProducer).start();
 		}	
 	}
@@ -356,7 +321,12 @@ public class ManFI2014TestEnvironment {
 			TraceWorkload workload = new TraceWorkload(simulation, trace, offset); //scale to n replicas
 			
 			InteractiveApplication application = Applications.singleTaskInteractiveApplication(simulation, workload, cores, coreCapacity, memory, bandwidth, storage, 0.01);
-			workload.setScaleFactor(application.calculateMaxWorkloadUtilizationLimit(0.98));
+			
+			//workload.setScaleFactor(application.calculateMaxWorkloadUtilizationLimit(0.98));
+			
+			workload.setScaleFactor(application.calculateMaxWorkloadResponseTimeLimit(0.9)); //1s response time SLA
+			InteractiveServiceLevelAgreement sla = new InteractiveServiceLevelAgreement(application).responseTime(1, 1); //sla limit at 1s response time, penalty rate of 1 per second in violation
+			application.setSla(sla);
 			
 			return application;
 		}

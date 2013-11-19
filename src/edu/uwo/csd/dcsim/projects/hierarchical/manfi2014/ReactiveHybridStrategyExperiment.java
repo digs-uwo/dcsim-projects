@@ -46,8 +46,23 @@ public class ReactiveHybridStrategyExperiment extends SimulationTask {
 	 * @param randomSeed	seed for random number generation
 	 */
 	public ReactiveHybridStrategyExperiment(String name, long randomSeed) {
-		super(name, SimTime.days(10));					// 10-day simulation
-		this.setMetricRecordStart(SimTime.days(2));		// start on 3rd day (i.e., after 2 days)
+		
+		// Exp 1A
+//		super(name, SimTime.days(10));					// 10-day simulation
+//		this.setMetricRecordStart(SimTime.days(2));		// start on 3rd day (i.e., after 2 days)
+		
+		// Exp 1B
+//		super(name, SimTime.days(12));					// 12-day simulation
+//		this.setMetricRecordStart(SimTime.days(4));		// start on 5th day (i.e., after 4 days)
+		
+		// Exp 1D
+//		super(name, SimTime.days(15));					// 15-day simulation
+//		this.setMetricRecordStart(SimTime.days(7));		// start on 8th day (i.e., after 7 days)
+		
+		// Exp 2A
+		super(name, SimTime.days(12));					// 12-day simulation
+		this.setMetricRecordStart(SimTime.days(4));		// start on 5th day (i.e., after 4 days)
+		
 		this.setRandomSeed(randomSeed);
 	}
 
@@ -70,7 +85,13 @@ public class ReactiveHybridStrategyExperiment extends SimulationTask {
 		AutonomicManager dcManager = this.createMgmtInfrastructure(simulation, dc);
 		
 		// Create and start the Services Producer.
-		ManFI2014TestEnvironment.configureStaticServices(simulation, dcManager, true);
+		
+		// Exp 1X
+//		ManFI2014TestEnvironment.configureStaticServices(simulation, dcManager, true);
+		
+		// Exp 2X
+		ManFI2014TestEnvironment.configureDynamicServices(simulation, dcManager, true);
+		
 		//ManFI2014TestEnvironment.configureRandomServices(simulation, dcManager, 1, 600, 1600, true);
 		//ManFI2014TestEnvironment.configureRandomServices(simulation, dcManager, 1, 6000, 16000, true);		// 10x #hosts & load
 	}
