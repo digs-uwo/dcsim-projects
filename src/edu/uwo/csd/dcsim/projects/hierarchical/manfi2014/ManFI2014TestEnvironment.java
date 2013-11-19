@@ -139,10 +139,15 @@ public class ManFI2014TestEnvironment {
 //		serviceRates.add(new Tuple<Long, Double>(SimTime.hours(80), 0d));
 //		serviceRates.add(new Tuple<Long, Double>(SimTime.days(12), 0d));
 		
-		// EXP 1D
+		// EXP 1C
 		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), 10d));
-		serviceRates.add(new Tuple<Long, Double>(SimTime.hours(160), 0d));
-		serviceRates.add(new Tuple<Long, Double>(SimTime.days(15), 0d));
+		serviceRates.add(new Tuple<Long, Double>(SimTime.hours(144), 0d));
+		serviceRates.add(new Tuple<Long, Double>(SimTime.days(14), 0d));
+		
+		// EXP 1D
+//		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), 10d));
+//		serviceRates.add(new Tuple<Long, Double>(SimTime.hours(160), 0d));
+//		serviceRates.add(new Tuple<Long, Double>(SimTime.days(15), 0d));
 		
 		if (legacy) {
 			serviceProducer = new VmProducer(simulation, dcAM, null, serviceRates);

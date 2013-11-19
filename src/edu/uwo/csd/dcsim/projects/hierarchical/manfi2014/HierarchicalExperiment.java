@@ -55,9 +55,13 @@ public class HierarchicalExperiment extends SimulationTask {
 //		super(name, SimTime.days(12));					// 12-day simulation
 //		this.setMetricRecordStart(SimTime.days(4));		// start on 5th day (i.e., after 4 days)
 		
+		// Exp 1C
+		super(name, SimTime.days(14));					// 14-day simulation
+		this.setMetricRecordStart(SimTime.days(6));		// start on 7th day (i.e., after 6 days)
+		
 		// Exp 1D
-		super(name, SimTime.days(15));					// 15-day simulation
-		this.setMetricRecordStart(SimTime.days(7));		// start on 8th day (i.e., after 7 days)
+//		super(name, SimTime.days(15));					// 15-day simulation
+//		this.setMetricRecordStart(SimTime.days(7));		// start on 8th day (i.e., after 7 days)
 		
 		// Exp 2A
 //		super(name, SimTime.days(12));					// 12-day simulation
