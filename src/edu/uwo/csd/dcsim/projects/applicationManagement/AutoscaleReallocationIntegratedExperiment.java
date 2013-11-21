@@ -17,6 +17,7 @@ import edu.uwo.csd.dcsim.application.TaskInstance;
 import edu.uwo.csd.dcsim.application.loadbalancer.ShareLoadBalancer;
 import edu.uwo.csd.dcsim.common.SimTime;
 import edu.uwo.csd.dcsim.core.Simulation;
+import edu.uwo.csd.dcsim.core.metrics.SimulationMetrics;
 import edu.uwo.csd.dcsim.host.Cluster;
 import edu.uwo.csd.dcsim.host.Host;
 import edu.uwo.csd.dcsim.host.Rack;
@@ -123,6 +124,12 @@ public class AutoscaleReallocationIntegratedExperiment extends SimulationTask {
 //		out.println("");
 //		
 //		out.flush();
+		
+//		ArrayList<SimulationMetrics> simMetrics = new ArrayList<SimulationMetrics>();
+//		for (SimulationTask task : completedTasks) {
+//			simMetrics.add(task.getMetrics());
+//		}
+//		SimulationMetrics.writeToODS("test", simMetrics);
 		
 	}
 	
