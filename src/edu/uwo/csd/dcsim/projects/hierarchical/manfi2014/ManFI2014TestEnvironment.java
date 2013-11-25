@@ -30,7 +30,6 @@ public class ManFI2014TestEnvironment {
 	public static final int N_RACKS = 4;
 	public static final int N_HOSTS = 10;
 	
-//	public static final int CPU_OVERHEAD = 200;
 	public static final int[] VM_SIZES = {1500, 2500, 2500};
 	public static final int[] VM_CORES = {1, 1, 2};
 	public static final int[] VM_RAM = {512, 1024, 1024};
