@@ -82,13 +82,16 @@ public class HierarchicalExperiment extends SimulationTask {
 //		runSimulationSet(printStream, SimTime.days(12), SimTime.days(4), 0.60, 0.85, 0.90, ServiceType.STATIC, false);
 		
 		// Exp 1C
-		runSimulationSet(printStream, SimTime.days(14), SimTime.days(6), 0.60, 0.85, 0.90, ServiceType.STATIC, false);
+//		runSimulationSet(printStream, SimTime.days(14), SimTime.days(6), 0.60, 0.85, 0.90, ServiceType.STATIC, false);
 		
 		// Exp 1D
 //		runSimulationSet(printStream, SimTime.days(15), SimTime.days(7), 0.60, 0.85, 0.90, ServiceType.STATIC, false);
 		
 		// Exp 2A
 //		runSimulationSet(printStream, SimTime.days(12), SimTime.days(4), 0.60, 0.85, 0.90, ServiceType.DYNAMIC, false);
+		
+		// Exp 3A
+		runSimulationSet(printStream, SimTime.days(12), SimTime.days(4), 0.60, 0.85, 0.90, ServiceType.RANDOM, false);
 		
 		printStream.println("Done");
 		printStream.close();
@@ -128,6 +131,10 @@ public class HierarchicalExperiment extends SimulationTask {
 			} else {
 				task.getMetrics().printCSV(out, false);
 			}
+			
+			// Conventional print.
+			logger.info(task.getName());
+			task.getMetrics().printDefault(logger);
 		}
 		out.println("");
 		out.println("");
@@ -173,7 +180,7 @@ public class HierarchicalExperiment extends SimulationTask {
 							break;
 			case DYNAMIC:	ManFI2014TestEnvironment.configureDynamicServices(simulation, dcManager, legacyLoadGen);
 							break;
-			case RANDOM:	ManFI2014TestEnvironment.configureRandomServices(simulation, dcManager, 1, 600, 1600, legacyLoadGen);
+			case RANDOM:	ManFI2014TestEnvironment.configureRandomServices(simulation, dcManager, 1, 800, 1600, legacyLoadGen);
 							break;
 			default:		break;
 		}
