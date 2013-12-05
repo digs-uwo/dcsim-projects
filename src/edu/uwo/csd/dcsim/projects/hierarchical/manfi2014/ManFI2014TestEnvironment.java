@@ -129,9 +129,9 @@ public class ManFI2014TestEnvironment {
 		ArrayList<Tuple<Long, Double>> serviceRates = new ArrayList<Tuple<Long, Double>>();
 		
 		// EXP 1A
-		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), 10d));
-		serviceRates.add(new Tuple<Long, Double>(SimTime.hours(40), 0d));
-		serviceRates.add(new Tuple<Long, Double>(SimTime.days(10), 0d));
+//		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), 10d));
+//		serviceRates.add(new Tuple<Long, Double>(SimTime.hours(40), 0d));
+//		serviceRates.add(new Tuple<Long, Double>(SimTime.days(10), 0d));
 		
 		// EXP 1B
 //		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), 10d));
@@ -144,9 +144,9 @@ public class ManFI2014TestEnvironment {
 //		serviceRates.add(new Tuple<Long, Double>(SimTime.days(14), 0d));
 		
 		// EXP 1D
-//		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), 10d));
-//		serviceRates.add(new Tuple<Long, Double>(SimTime.hours(160), 0d));
-//		serviceRates.add(new Tuple<Long, Double>(SimTime.days(15), 0d));
+		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), 10d));
+		serviceRates.add(new Tuple<Long, Double>(SimTime.hours(160), 0d));
+		serviceRates.add(new Tuple<Long, Double>(SimTime.days(15), 0d));
 		
 		if (legacy) {
 			serviceProducer = new VmProducer(simulation, dcAM, null, serviceRates);
@@ -253,8 +253,8 @@ public class ManFI2014TestEnvironment {
 		}
 		
 		//Create a uniform random distribution to generate the number of services within the data centre.
-//		UniformIntegerDistribution serviceCountDist = new UniformIntegerDistribution(0, (maxServices - minServices));
-		UniformIntegerDistribution serviceCountDist = new UniformIntegerDistribution(0, 150);
+		UniformIntegerDistribution serviceCountDist = new UniformIntegerDistribution(0, (maxServices - minServices));
+//		UniformIntegerDistribution serviceCountDist = new UniformIntegerDistribution(0, 150);
 		serviceCountDist.reseedRandomGenerator(simulation.getRandom().nextLong());
 		
 		/*
