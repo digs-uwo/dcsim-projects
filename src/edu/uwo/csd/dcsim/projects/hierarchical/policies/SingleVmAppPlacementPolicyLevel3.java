@@ -249,11 +249,13 @@ public class SingleVmAppPlacementPolicyLevel3 extends Policy {
 	
 	/**
 	 * Verifies whether the given Cluster can meet the resource requirements of the VM, 
-	 * considering the Cluster's max spare capacity and number of active Racks.
+	 * considering the Cluster's max spare capacity, (minimum) number of inactive Hosts, 
+	 * and number of active Racks.
 	 */
 	protected boolean canHost(VmAllocationRequest request, ClusterData cluster) {
-		// Check is Cluster has enough spare capacity or inactive (i.e., empty) Racks.
+		// Check is Cluster has enough spare capacity or inactive (i.e., empty) Hosts or Racks.
 		if (this.hasEnoughCapacity(request, cluster) || 
+				cluster.getCurrentStatus().getMinInactiveHosts() > 0 || 
 				cluster.getCurrentStatus().getActiveRacks() < cluster.getClusterDescription().getRackCount())
 			return true;
 		

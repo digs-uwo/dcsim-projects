@@ -30,7 +30,6 @@ public class ManFI2014TestEnvironment {
 	public static final int N_RACKS = 4;
 	public static final int N_HOSTS = 10;
 	
-//	public static final int CPU_OVERHEAD = 200;
 	public static final int[] VM_SIZES = {1500, 2500, 2500};
 	public static final int[] VM_CORES = {1, 1, 2};
 	public static final int[] VM_RAM = {512, 1024, 1024};
@@ -140,14 +139,14 @@ public class ManFI2014TestEnvironment {
 //		serviceRates.add(new Tuple<Long, Double>(SimTime.days(12), 0d));
 		
 		// EXP 1C
-		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), 10d));
-		serviceRates.add(new Tuple<Long, Double>(SimTime.hours(144), 0d));
-		serviceRates.add(new Tuple<Long, Double>(SimTime.days(14), 0d));
+//		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), 10d));
+//		serviceRates.add(new Tuple<Long, Double>(SimTime.hours(144), 0d));
+//		serviceRates.add(new Tuple<Long, Double>(SimTime.days(14), 0d));
 		
 		// EXP 1D
-//		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), 10d));
-//		serviceRates.add(new Tuple<Long, Double>(SimTime.hours(160), 0d));
-//		serviceRates.add(new Tuple<Long, Double>(SimTime.days(15), 0d));
+		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), 10d));
+		serviceRates.add(new Tuple<Long, Double>(SimTime.hours(160), 0d));
+		serviceRates.add(new Tuple<Long, Double>(SimTime.days(15), 0d));
 		
 		if (legacy) {
 			serviceProducer = new VmProducer(simulation, dcAM, null, serviceRates);
@@ -179,7 +178,7 @@ public class ManFI2014TestEnvironment {
 		 */
 		
 		/*
-		 * Configure and start the base 800 services which do not terminate
+		 * Configure and start the base 800 services which do not terminate.
 		 */
 		ArrayList<Tuple<Long, Double>> serviceRates = new ArrayList<Tuple<Long, Double>>();
 		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), 10d));
@@ -236,13 +235,13 @@ public class ManFI2014TestEnvironment {
 		Object serviceProducer = null;
 		
 		/*
-		 * Configure minimum service level. Create the minimum number of services over the first 40 hours,
+		 * Configure minimum service level. Create a base of ~800 services over the first 80 hours,
 		 * and leave them running for the entire simulation.
 		 */
 		ArrayList<Tuple<Long, Double>> serviceRates = new ArrayList<Tuple<Long, Double>>();
-		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), (minServices / 40d)));		
-		serviceRates.add(new Tuple<Long, Double>(SimTime.hours(40), 0d));		
-		serviceRates.add(new Tuple<Long, Double>(SimTime.days(10), 0d));		// 10 days
+		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), 10d));	
+		serviceRates.add(new Tuple<Long, Double>(SimTime.hours(80), 0d));
+		serviceRates.add(new Tuple<Long, Double>(SimTime.days(12), 0d));
 		
 		if (legacy) {
 			serviceProducer = new VmProducer(simulation, dcAM, null, serviceRates);
@@ -255,6 +254,7 @@ public class ManFI2014TestEnvironment {
 		
 		//Create a uniform random distribution to generate the number of services within the data centre.
 		UniformIntegerDistribution serviceCountDist = new UniformIntegerDistribution(0, (maxServices - minServices));
+//		UniformIntegerDistribution serviceCountDist = new UniformIntegerDistribution(0, 150);
 		serviceCountDist.reseedRandomGenerator(simulation.getRandom().nextLong());
 		
 		/*
@@ -265,10 +265,10 @@ public class ManFI2014TestEnvironment {
 		double rate;	//the current arrival rate
 		serviceRates = new ArrayList<Tuple<Long, Double>>(); //list of arrival rates
 		
-		time = SimTime.days(2); //start at beginning of 3rd day (end of 2nd)
+		time = SimTime.days(4); //start at beginning of 5th day (end of 4th)
 		
 		//loop while we still have simulation time to generate arrival rates for
-		while (time < SimTime.days(10)) {
+		while (time < SimTime.days(12)) {
 
 			//calculate the next time the rate will changes
 			nextTime = time + Math.round(SimTime.days(1) / changesPerDay);
@@ -286,7 +286,13 @@ public class ManFI2014TestEnvironment {
 			time = nextTime;
 		}
 		//add a final rate of 0 to run until the end of the simulation
-		serviceRates.add(new Tuple<Long, Double>(SimTime.days(10), 0d));
+		serviceRates.add(new Tuple<Long, Double>(SimTime.days(12), 0d));
+		
+		
+		for (Tuple<Long, Double> t : serviceRates) {
+			System.out.println(SimTime.toHours(t.a) + " - " + t.b);
+		}
+		
 		
 		if (legacy) {
 			serviceProducer = new VmProducer(simulation, dcAM, new NormalDistribution(SimTime.days(1) / changesPerDay, SimTime.hours(1)), serviceRates);

@@ -123,7 +123,7 @@ public class VmRelocationPolicyLevel3 extends Policy {
 				
 				if (currentPowerEff != cluster.getClusterDescription().getPowerEfficiency()) {
 					// Check if the Cluster with the most spare capacity has enough resources to take the VM.
-					if (null != maxSpareCapacityCluster && this.canHost(entry.getVm(), maxSpareCapacityCluster)) {
+					if (null != maxSpareCapacityCluster && this.hasEnoughCapacity(entry.getVm(), maxSpareCapacityCluster)) {
 						targetCluster = maxSpareCapacityCluster;
 						break;
 					}
@@ -169,6 +169,23 @@ public class VmRelocationPolicyLevel3 extends Policy {
 				}
 			}
 			
+			// If we exited the previous loop after parsing all the Clusters in the list, then we haven't checked 
+			// whether any target Cluster had been identified during the iteration over the last PowerEff set.
+			if (null == targetCluster) {
+				// Check if the Cluster with the most spare capacity has enough resources to take the VM.
+				if (null != maxSpareCapacityCluster && this.hasEnoughCapacity(entry.getVm(), maxSpareCapacityCluster)) {
+					targetCluster = maxSpareCapacityCluster;
+				}
+				// Otherwise, make the Cluster with the most loaded Rack the target.
+				else if (null != mostLoadedRack) {
+					targetCluster = mostLoadedRack;
+				}
+				// Last recourse: make the most loaded Cluster the target.
+				else if (null != mostLoadedCluster) {
+					targetCluster = mostLoadedCluster;
+				}
+			}
+			
 			// If we have not found a target Cluster among the subset of active Clusters, activate a new Cluster.
 			if (null == targetCluster && active.size() < clusters.size()) {
 				targetCluster = this.getInactiveCluster(clusters);
@@ -176,6 +193,9 @@ public class VmRelocationPolicyLevel3 extends Policy {
 		}
 		
 		if (null != targetCluster) {
+			
+			simulation.getLogger().debug(this.getClass() + " - Found relocation target: Cluster #" + targetCluster.getId());
+			
 			// Found target. Send migration request.
 			simulation.sendEvent(new MigRequestEvent(targetCluster.getClusterManager(), entry.getVm(), entry.getOrigin(), 0));
 			
@@ -187,6 +207,9 @@ public class VmRelocationPolicyLevel3 extends Policy {
 		}
 		// Could not find suitable target Cluster in the Data Centre.
 		else {
+			
+			simulation.getLogger().debug(this.getClass() + " - Failed to find relocation target.");
+			
 			// Contact RackManager origin to reject migration request.
 			simulation.sendEvent(new MigRejectEvent(entry.getOrigin(), entry.getVm(), entry.getOrigin(), 0));
 			
@@ -198,7 +221,7 @@ public class VmRelocationPolicyLevel3 extends Policy {
 	/**
 	 * Verifies whether the given Cluster can meet the resource requirements of the VM.
 	 */
-	protected boolean canHost(VmStatus vm, ClusterData cluster) {
+	protected boolean hasEnoughCapacity(VmStatus vm, ClusterData cluster) {
 		// Check Host capabilities (e.g. core count, core capacity).
 		HostDescription hostDescription = cluster.getClusterDescription().getRackDescription().getHostDescription();
 		if (hostDescription.getCpuCount() * hostDescription.getCoreCount() < vm.getCores())

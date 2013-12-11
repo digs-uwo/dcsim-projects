@@ -1,6 +1,8 @@
 package edu.uwo.csd.dcsim.projects.hierarchical.manfi2014;
 
-import java.util.Collection;
+import java.io.FileNotFoundException;
+import java.io.PrintStream;
+import java.util.List;
 
 import org.apache.log4j.Logger;
 
@@ -16,16 +18,23 @@ import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.*;
 import edu.uwo.csd.dcsim.projects.hierarchical.policies.*;
 
 /**
- * This class serves to evaluate the Periodic Hybrid Strategy in the test 
- * environment for the SVM 2013 paper. The strategy consists of the following 
+ * This class serves to evaluate the Hierarchical Management System in the test 
+ * environment for the ManFI 2014 paper. The strategy consists of the following 
  * policies:
  * 
- * + VmPlacementPolicyFFMHybrid
- * + VmRelocationPolicyFFIMDHybrid
- * + VmConsolidationPolicyFFDDIHybrid
+ * + Level 3
+ *   - SingleVmAppPlacementPolicyLevel3
+ *   - VmRelocationPolicyLevel3
+ * + Level 2
+ *   - VmPlacementPolicyLevel2
+ *   - VmRelocationPolicyLevel2
+ * + Level 1
+ *   - VmPlacementPolicyFFMHybrid
+ *   - VmRelocationPolicyFFIMHybrid
+ *   - VmConsolidationPolicyFFDDIHybrid
  * 
- * The VM Placement policy runs as needed, while the VM Relocation and 
- * VM Consolidation policies run periodically.
+ * The App/VM Placement policies run as needed, while the VM Relocation policies 
+ * run reactively. The VM Consolidation policy runs periodically.
  * 
  * @author Gaston Keller
  *
@@ -34,40 +43,122 @@ public class HierarchicalExperiment extends SimulationTask {
 
 	private static Logger logger = Logger.getLogger(HierarchicalExperiment.class);
 	
-	private double lower;			// Lower utilization threshold.
-	private double upper;			// Upper utilization threshold.
-	private double target;			// Target utilization threshold.
+	private static final long[] randomSeeds = {6198910678692541341l,
+		5646441053220106016l,
+		-5705302823151233610l,
+		8289672009575825404l,
+		-4637549055860880177l,
+		-4280782692131378509l,
+		-1699811527182374894l,
+		-6452776964812569334l,
+		-7148920787255940546l,
+		8311271444423629559l};
+	private static final long N_SEEDS = 1;
 	
-	/**
-	 * Creates a new instance of Experiment. Sets experiment's duration to 10 days and 
-	 * metrics recording start time at day 3.
-	 * 
-	 * @param name			name of the simulation
-	 * @param randomSeed	seed for random number generation
-	 */
-	public HierarchicalExperiment(String name, long randomSeed) {
+	private double lower;				// Lower utilization threshold.
+	private double target;				// Target utilization threshold.
+	private double upper;				// Upper utilization threshold.
+	private ServiceType serviceType;	// Type of service to generate.
+	private boolean legacyLoadGen;		// Use legacy load generator.
+	
+	private enum ServiceType {STATIC, DYNAMIC, RANDOM;}
+	
+	public static void main(String args[]) {
+		
+		Simulation.initializeLogging();
+		
+		PrintStream printStream;
+		try {
+			printStream = new PrintStream("out_hierarchical");
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+			return;
+		}
 		
 		// Exp 1A
-//		super(name, SimTime.days(10));					// 10-day simulation
-//		this.setMetricRecordStart(SimTime.days(2));		// start on 3rd day (i.e., after 2 days)
+//		runSimulationSet(printStream, SimTime.days(10), SimTime.days(2), 0.60, 0.85, 0.90, ServiceType.STATIC, false);
 		
 		// Exp 1B
-//		super(name, SimTime.days(12));					// 12-day simulation
-//		this.setMetricRecordStart(SimTime.days(4));		// start on 5th day (i.e., after 4 days)
+//		runSimulationSet(printStream, SimTime.days(12), SimTime.days(4), 0.60, 0.85, 0.90, ServiceType.STATIC, false);
 		
 		// Exp 1C
-		super(name, SimTime.days(14));					// 14-day simulation
-		this.setMetricRecordStart(SimTime.days(6));		// start on 7th day (i.e., after 6 days)
+//		runSimulationSet(printStream, SimTime.days(14), SimTime.days(6), 0.60, 0.85, 0.90, ServiceType.STATIC, false);
 		
 		// Exp 1D
-//		super(name, SimTime.days(15));					// 15-day simulation
-//		this.setMetricRecordStart(SimTime.days(7));		// start on 8th day (i.e., after 7 days)
+//		runSimulationSet(printStream, SimTime.days(15), SimTime.days(7), 0.60, 0.85, 0.90, ServiceType.STATIC, false);
 		
 		// Exp 2A
-//		super(name, SimTime.days(12));					// 12-day simulation
-//		this.setMetricRecordStart(SimTime.days(4));		// start on 5th day (i.e., after 4 days)
+		runSimulationSet(printStream, SimTime.days(12), SimTime.days(4), 0.60, 0.85, 0.90, ServiceType.DYNAMIC, false);
 		
+		// Exp 3A
+//		runSimulationSet(printStream, SimTime.days(12), SimTime.days(4), 0.60, 0.85, 0.90, ServiceType.RANDOM, false);
+		
+		printStream.println("Done");
+		printStream.close();
+	}
+	
+	private static void runSimulationSet(PrintStream out, 
+			long duration,
+			long metricRecordStart, 
+			double lower,
+			double target,
+			double upper,
+			ServiceType serviceType,
+			boolean legacyLoadGen) {
+		
+		logger.info("Started New Simulation Set");
+		logger.info(lower + "," + target + "," + upper + "," + duration + "," + metricRecordStart + "," + serviceType + "," + legacyLoadGen);
+		
+		List<SimulationTask> completedTasks;
+		SimulationExecutor executor = new SimulationExecutor();
+		for (int i = 0; i < N_SEEDS; ++i)  {
+			HierarchicalExperiment e = new HierarchicalExperiment("hierarchical-" + (i + 1), duration, metricRecordStart, randomSeeds[i]);
+			e.setParameters(lower, target, upper, serviceType, legacyLoadGen);
+			executor.addTask(e);
+		}
+		
+		completedTasks = executor.execute(4);
+		
+		//output CSV
+		out.println("Hierarchical Experiment");
+		out.println("lower=" + lower + " | target=" + target + " | upper=" + upper +
+				" | duration=" + duration + " | metricRecordStart=" + metricRecordStart +
+				" | serviceType=" + serviceType + " | legacyLoadGen=" + legacyLoadGen);
+		
+		for(SimulationTask task : completedTasks) {
+			if (completedTasks.indexOf(task) == 0) {
+				task.getMetrics().printCSV(out);
+			} else {
+				task.getMetrics().printCSV(out, false);
+			}
+			
+			// Conventional print.
+			logger.info(task.getName());
+			task.getMetrics().printDefault(logger);
+		}
+		out.println("");
+		out.println("");
+		
+		out.flush();
+	}
+	
+	public HierarchicalExperiment(String name, long duration, long metricRecordStart) {
+		super(name, duration);
+		this.setMetricRecordStart(metricRecordStart);
+	}
+	
+	public HierarchicalExperiment(String name, long duration, long metricRecordStart, long randomSeed) {
+		super(name, duration);
+		this.setMetricRecordStart(metricRecordStart);
 		this.setRandomSeed(randomSeed);
+	}
+	
+	private void setParameters(double lower, double target, double upper, ServiceType serviceType, boolean legacyLoadGen) {
+		this.lower = lower;
+		this.target = target;
+		this.upper = upper;
+		this.serviceType = serviceType;
+		this.legacyLoadGen = legacyLoadGen;
 	}
 	
 	/**
@@ -77,11 +168,6 @@ public class HierarchicalExperiment extends SimulationTask {
 	@Override
 	public void setup(Simulation simulation) {
 		
-		// Set utilization thresholds.
-		lower = 0.60;
-		upper = 0.90;
-		target = 0.85;
-		
 		// Create data centre.
 		DataCentre dc = ManFI2014TestEnvironment.createInfrastructure(simulation);
 		
@@ -89,22 +175,22 @@ public class HierarchicalExperiment extends SimulationTask {
 		AutonomicManager dcManager = this.createMgmtInfrastructure(simulation, dc);
 		
 		// Create and start the Services Producer.
-		
-		// Exp 1X
-		ManFI2014TestEnvironment.configureStaticServices(simulation, dcManager, false);
-		
-		// Exp 2X
-//		ManFI2014TestEnvironment.configureDynamicServices(simulation, dcManager, false);
-		
-		//HierarchicalTestEnvironment.configureRandomServices(simulation, dcManager, 1, 600, 1600, false);
-		//HierarchicalTestEnvironment.configureRandomServices(simulation, dcManager, 1, 6000, 16000, false);		// 10x #hosts & load
+		switch (serviceType) {
+			case STATIC:	ManFI2014TestEnvironment.configureStaticServices(simulation, dcManager, legacyLoadGen);
+							break;
+			case DYNAMIC:	ManFI2014TestEnvironment.configureDynamicServices(simulation, dcManager, legacyLoadGen);
+							break;
+			case RANDOM:	ManFI2014TestEnvironment.configureRandomServices(simulation, dcManager, 1, 800, 1600, legacyLoadGen);
+							break;
+			default:		break;
+		}
 	}
 	
 	/**
 	 * Creates the management infrastructure for the data centre, which includes creating 
 	 * autonomic managers and setting their capabilities and policies.
 	 */
-	public AutonomicManager createMgmtInfrastructure(Simulation simulation, DataCentre dc) {
+	private AutonomicManager createMgmtInfrastructure(Simulation simulation, DataCentre dc) {
 		
 		// Create DC Manager.
 		ClusterPoolManager clusterPool = new ClusterPoolManager();
@@ -172,29 +258,6 @@ public class HierarchicalExperiment extends SimulationTask {
 		}
 		
 		return dcManager;
-	}
-	
-	public static void main(String args[]) {
-		
-		Simulation.initializeLogging();
-		
-		Collection<SimulationTask> completedTasks;
-		SimulationExecutor executor = new SimulationExecutor();
-		
-		executor.addTask(new HierarchicalExperiment("hierarchical-1", 6198910678692541341l));
-//		executor.addTask(new Experiment("hierarchical-2", 5646441053220106016l));
-//		executor.addTask(new Experiment("hierarchical-3", -5705302823151233610l));
-//		executor.addTask(new Experiment("hierarchical-4", 8289672009575825404l));
-//		executor.addTask(new Experiment("hierarchical-5", -4637549055860880177l));
-		
-		completedTasks = executor.execute();
-		
-		
-		for(SimulationTask task : completedTasks) {
-			logger.info(task.getName());
-			task.getMetrics().printDefault(logger);
-		}
-
 	}
 
 }

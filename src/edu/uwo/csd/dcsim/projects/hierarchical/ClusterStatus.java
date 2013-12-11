@@ -43,7 +43,7 @@ public class ClusterStatus {
 					
 					// Find minimum number of inactive Hosts among active Racks.
 					int inactiveHosts = status.getSuspendedHosts() + status.getPoweredOffHosts();
-					if (inactiveHosts < minInactiveHosts)
+					if (inactiveHosts != 0 && inactiveHosts < minInactiveHosts)
 						minInactiveHosts = inactiveHosts;
 					
 					// Find max spare capacity value among active Racks.
@@ -58,6 +58,10 @@ public class ClusterStatus {
 			// skipping them would represent a good chunk of missing info.
 			powerConsumption += rack.getCurrentStatus().getPowerConsumption();
 		}
+		
+		// Check if minInactiveHosts was set during the iteration. Otherwise, set to 0.
+		if (Integer.MAX_VALUE == minInactiveHosts)
+			minInactiveHosts = 0;
 		
 		// Add power consumption of the Cluster's Switches.
 		powerConsumption += cluster.getMainDataSwitch().getPowerConsumption();

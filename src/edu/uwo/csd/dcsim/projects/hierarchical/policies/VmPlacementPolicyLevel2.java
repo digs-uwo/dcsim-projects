@@ -116,7 +116,7 @@ public class VmPlacementPolicyLevel2 extends Policy {
 			}
 			
 			// Check if Rack with most spare capacity has enough resources to take the VM (i.e., become target).
-			if (null != maxSpareCapacityRack && this.canHost(request, maxSpareCapacityRack)) {
+			if (null != maxSpareCapacityRack && this.hasEnoughCapacity(request, maxSpareCapacityRack)) {
 				targetRack = maxSpareCapacityRack;
 			}
 			// Otherwise, make the most loaded Rack with a suspended Host the target.
@@ -156,9 +156,23 @@ public class VmPlacementPolicyLevel2 extends Policy {
 	}
 	
 	/**
-	 * Verifies whether the given Rack can meet the resource requirements of the VM.
+	 * Verifies whether the given Rack can meet the resource requirements of the VM, 
+	 * considering the Rack's max spare capacity and number of suspended and powered off Hosts.
 	 */
 	protected boolean canHost(VmAllocationRequest request, RackData rack) {
+		// Check is Rack has enough spare capacity or inactive (i.e., empty) Hosts.
+		if (this.hasEnoughCapacity(request, rack) || 
+				rack.getCurrentStatus().getSuspendedHosts() > 0 || 
+				rack.getCurrentStatus().getPoweredOffHosts() > 0)
+			return true;
+		
+		return false;
+	}
+	
+	/**
+	 * Verifies whether the given Rack can meet the resource requirements of the VM.
+	 */
+	protected boolean hasEnoughCapacity(VmAllocationRequest request, RackData rack) {
 		// Check Host capabilities (e.g. core count, core capacity).
 		HostDescription hostDescription = rack.getRackDescription().getHostDescription();
 		if (hostDescription.getCpuCount() * hostDescription.getCoreCount() < request.getVMDescription().getCores())
