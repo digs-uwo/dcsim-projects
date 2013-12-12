@@ -75,4 +75,14 @@
             <classpath refid="digs-projects.classpath"/>
         </java>
     </target>
+    <target name="HierarchicalExperiment">
+        <java classname="edu.uwo.csd.dcsim.projects.hierarchical.manfi2014.HierarchicalExperiment" failonerror="true" fork="yes">
+            <classpath refid="digs-projects.classpath"/>
+        </java>
+    </target>
+    <target name="CentralizedExperiment">
+        <java classname="edu.uwo.csd.dcsim.projects.hierarchical.manfi2014.CentralizedExperiment" failonerror="true" fork="yes">
+            <classpath refid="digs-projects.classpath"/>
+        </java>
+    </target>
 </project>
