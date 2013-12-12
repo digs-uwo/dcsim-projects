@@ -171,9 +171,10 @@ public class ManFI2014TestEnvironment {
 		 * 3. Hold on ~800 Services for day 5.
 		 * 4. Increase from ~800 to ~1280 throughout days 6 & 7.
 		 * 5. Hold on ~1280 for day 8.
-		 * 6. Increase from ~1280 to ~1520 throughout days 9 & 10.
-		 * 7. Hold on ~1520 for day 11.
-		 * 8. Decrease from ~1520 to ~1280 throughout day 12.
+		 * 6. Increase from ~1280 to ~1520 throughout day 9.
+		 * 7. Hold on ~1520 for day 10.
+		 * 8. Decrease from ~1520 to ~1280 throughout day 11.
+		 * 9. Hold on ~1280 for day 12.
 		 * 9. Complete 8 days of recorded simulation.
 		 */
 		
@@ -199,26 +200,30 @@ public class ManFI2014TestEnvironment {
 		 */
 		serviceRates = new ArrayList<Tuple<Long, Double>>();
 		
-		//Days 6 & 7: Create ~480 new services throughout the day.
+		//Day 6: Create ~240 new services throughout the day, for a total of ~1040.
 		serviceRates.add(new Tuple<Long, Double>(SimTime.days(5), 10d));
+		
+		//Day 7: Create ~240 new services throughout the day, for a total of ~1280.
 		
 		//Day 8: Hold at ~1280.
 		serviceRates.add(new Tuple<Long, Double>(SimTime.days(7), 0d));
 		
-		//Days 9 & 10: Create ~480 new services throughout the day.
+		//Day 9: Create ~240 new services throughout the day, for a total of ~1520.
 		serviceRates.add(new Tuple<Long, Double>(SimTime.days(8), 10d));
 		
-		//Day 11: Hold at ~1520.
+		//Day 10: Create ~240 new services throughout the day, for a total of ~1520 -- services from Day 6 terminate throughout the day.
+		
+		//Day 11: Load goes down to ~1280 -- services from Day 7 terminate throughout the day.
 		serviceRates.add(new Tuple<Long, Double>(SimTime.days(10), 0d));
 		
-		//Day 12: Let ~240 services terminate until left with ~1280.
+		//Day 12: Hold at ~1280.
 		
 		if (legacy) {
-			serviceProducer = new VmProducer(simulation, dcAM, new NormalDistribution(SimTime.days(6), SimTime.hours(6)), serviceRates);
+			serviceProducer = new VmProducer(simulation, dcAM, new NormalDistribution(SimTime.days(4), SimTime.hours(6)), serviceRates);
 			((ApplicationGeneratorLegacy) serviceProducer).start();
 		}
 		else {
-			serviceProducer = new ServiceProducer(simulation, dcAM, new NormalDistribution(SimTime.days(6), SimTime.hours(6)), serviceRates);
+			serviceProducer = new ServiceProducer(simulation, dcAM, new NormalDistribution(SimTime.days(4), SimTime.hours(6)), serviceRates);
 			((ApplicationGenerator) serviceProducer).start();
 		}	
 	}

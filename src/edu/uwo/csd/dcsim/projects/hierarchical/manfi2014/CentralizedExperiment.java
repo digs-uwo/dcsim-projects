@@ -69,7 +69,7 @@ public class CentralizedExperiment extends SimulationTask {
 		}
 		
 		// Exp 1A
-		runSimulationSet(printStream, SimTime.days(10), SimTime.days(2), 0.60, 0.85, 0.90, ServiceType.STATIC, true);
+//		runSimulationSet(printStream, SimTime.days(10), SimTime.days(2), 0.60, 0.85, 0.90, ServiceType.STATIC, true);
 		
 		// Exp 1B
 //		runSimulationSet(printStream, SimTime.days(12), SimTime.days(4), 0.60, 0.85, 0.90, ServiceType.STATIC, true);
@@ -81,7 +81,7 @@ public class CentralizedExperiment extends SimulationTask {
 //		runSimulationSet(printStream, SimTime.days(15), SimTime.days(7), 0.60, 0.85, 0.90, ServiceType.STATIC, true);
 		
 		// Exp 2A
-//		runSimulationSet(printStream, SimTime.days(12), SimTime.days(4), 0.60, 0.85, 0.90, ServiceType.DYNAMIC, true);
+		runSimulationSet(printStream, SimTime.days(12), SimTime.days(4), 0.60, 0.85, 0.90, ServiceType.DYNAMIC, true);
 		
 		// Exp 3A
 //		runSimulationSet(printStream, SimTime.days(12), SimTime.days(4), 0.60, 0.85, 0.90, ServiceType.RANDOM, true);
