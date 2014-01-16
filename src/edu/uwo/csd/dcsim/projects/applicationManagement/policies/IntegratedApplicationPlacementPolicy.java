@@ -85,15 +85,15 @@ public class IntegratedApplicationPlacementPolicy extends Policy {
 		//attempt to place in the fewest number of racks possible
 		ArrayList<Rack> targetRacks = new ArrayList<Rack>();
 		targetRacks.addAll(dcManager.getRacks()); //create an ordered version of the rack collection
-//		System.out.println("racks.size = " + targetRacks.size());
+		
+		//TODO sort targetRacks collection by increasing utilization
+		
 		for (int nRacks = 1; nRacks <= targetRacks.size(); ++nRacks) {
-//			System.out.println("nRacks = " + nRacks);
+
 			for (int i = 0; i <= targetRacks.size() - nRacks; ++i) {
-//				System.out.println("    i = " + i);
 				//build host set to attempt placement
 				ArrayList<HostData> targetHosts = new ArrayList<HostData>();
 				for (int j = i; j < i + nRacks; ++j) {
-//					System.out.println("          j = " + j);
 					targetHosts.addAll(dcManager.getHosts(targetRacks.get(j))); //get the HostData collection of the hosts belonging to this rack
 				}
 				

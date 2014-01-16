@@ -41,7 +41,7 @@ public class AutoscaleReallocationIntegratedExperiment extends SimulationTask {
 	
 	private static final int RACK_SIZE = 5; //40
 	private static final int N_RACKS = 4; //5
-	private static final int N_APPS = 20; //50
+	private static final int N_APPS = 10; //50
 	
 	private static final long[] randomSeeds = {6198910678692541341l,
 		5646441053220106016l,
@@ -71,7 +71,9 @@ public class AutoscaleReallocationIntegratedExperiment extends SimulationTask {
 		
 		//with SLA - SLA (true, 0.3, 0.2, 0.3, 0.9)
 			//90 - 85 - 40
-		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.9, 0.85, 0.4, 2, 12);		
+		
+		//runSimulationSet(out, slaWarn, slaSafe, cpuSafe, upper, target, lower, stressWindow, underutilWindow)
+		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.9, 0.85, 0.4, 2, 12);
 	
 		printStream.close();
 		
