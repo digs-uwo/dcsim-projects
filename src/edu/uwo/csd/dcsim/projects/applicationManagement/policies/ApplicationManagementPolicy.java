@@ -114,6 +114,92 @@ public class ApplicationManagementPolicy extends Policy {
 	}
 	
 	/**
+	 * Main Application Management Algorithm
+	 */
+	public void execute() {
+		
+		/*
+		 * Setup and Updates
+		 */
+		ApplicationPoolManager appPool = manager.getCapability(ApplicationPoolManager.class);
+		HostPoolManager hostPool = manager.getCapability(DataCentreManager.class);
+		
+		ApplicationManagementData data = new ApplicationManagementData(appPool, hostPool);
+		
+		/*
+		 * Initialize algorithm
+		 */
+		initialize(data);
+
+		/*
+		 * Host Classification and History Windows
+		 */
+		this.classifyHosts(data);
+
+		updateHostWindows(data.stressed, data.underUtilized);
+
+		/*
+		 * Evaluate Scaling
+		 */
+		evaluateScaling(data);
+				
+		/*
+		 * Handle stress
+		 */
+		handleStressByScaling(data);
+		scaleDownOverTargetUtilization(data);
+		
+		buildTargetList(data);
+		relocate(data); //TODO target racks
+		
+		/*
+		 * Scale Up
+		 */
+		scaleUp(data); //TODO target racks
+		
+		/*
+		 * Consolidate
+		 */
+		consolidate(data); //TODO target racks, possibly "fix" application placement
+		
+		/*
+		 * Complete remaining scale down actions
+		 */
+		completeScaleDown(data);
+		
+		
+		/*
+		 * Finalize (power down hosts, trigger actions)
+		 */
+		
+		//clean up any empty hosts not powered off (resulting from terminated instances or applications)
+		for (HostData host : data.empty) {
+			// Ensure that the host is not involved in any migrations and is not powering on.
+			if (host.isStatusValid() && //indicates that no changes have been made to this host during current execution
+				host.getCurrentStatus().getIncomingMigrationCount() == 0 && 
+				host.getCurrentStatus().getOutgoingMigrationCount() == 0 && 
+				host.getCurrentStatus().getStartingVmAllocations().size() == 0 &&
+				host.getCurrentStatus().getState() != HostState.POWERING_ON &&
+				host.getCurrentStatus().getState() != HostState.OFF &&
+				host.getCurrentStatus().getState() != HostState.SUSPENDED) {
+				
+				host.invalidateStatus(simulation.getSimulationTime());
+				data.shutdownActions.addAction(new ShutdownHostAction(host.getHost()));
+				
+				simulation.getSimulationMetrics().getCustomMetricCollection(ApplicationManagementMetrics.class).emptyShutdown++;
+			}
+		}
+		
+		
+		// Trigger actions
+		SequentialManagementActionExecutor actionExecutor = new SequentialManagementActionExecutor();
+		actionExecutor.addAction(data.migrations);
+		actionExecutor.addAction(data.shutdownActions);
+		actionExecutor.execute(simulation, this);
+		
+	}
+	
+	/**
 	 * Initializes data for 
 	 * @param data
 	 */
@@ -160,40 +246,8 @@ public class ApplicationManagementPolicy extends Policy {
 		data.targets.addAll(data.empty);
 	}
 	
-	public void execute() {
-			
-		/*
-		 * Setup and Updates
-		 */
-		ApplicationPoolManager appPool = manager.getCapability(ApplicationPoolManager.class);
-		HostPoolManager hostPool = manager.getCapability(DataCentreManager.class);
-		
-		ApplicationManagementData data = new ApplicationManagementData(appPool, hostPool);
-		
-		/*
-		 * Initialize algorithm
-		 */
-		initialize(data);
-
-		/*
-		 * Host Classification and History Windows
-		 */
-		this.classifyHosts(data);
-
-		updateHostWindows(data.stressed, data.underUtilized);
-
-		/*
-		 * Evaluate Scaling
-		 */
-		evaluateScaling(data);
-				
-		/*
-		 * Handle stress
-		 */
-		handleStressByScaling(data);
-		scaleDownOverTargetUtilization(data);
-		
-		//attempt to place VMs from stressed hosts awaiting migration, first partially utilized, then underutilized
+	private void relocate(ApplicationManagementData data) {
+		//attempt to place VMs from stressed hosts awaiting migration into target list
 		for (HostData source : data.stressedPendingMigration) {
 			boolean found = false;
 			ArrayList<VmStatus> vmList = new ArrayList<VmStatus>(); 
@@ -224,8 +278,6 @@ public class ApplicationManagementPolicy extends Policy {
 						
 						simulation.getSimulationMetrics().getCustomMetricCollection(ApplicationManagementMetrics.class).stressMigration++;
 						
-//						System.out.println(SimTime.toHumanReadable(simulation.getSimulationTime()) + " stress mig VM#" + vm.getId() + " from #" + source.getId() + " to #" + target.getId());
-						
 						found = true;
 						break;
 					}
@@ -235,8 +287,10 @@ public class ApplicationManagementPolicy extends Policy {
 					break;
 			}
 		}
-
-		//attempt to place VMs from scaling up applications into same target list
+	}
+	
+	private void scaleUp(ApplicationManagementData data) {
+		//attempt to place VMs from scaling up applications into target list
 		for (Task task : data.scaleUpTasks) {
 			VmAllocationRequest request = new VmAllocationRequest(new VmDescription(task));
 			
@@ -285,8 +339,37 @@ public class ApplicationManagementPolicy extends Policy {
 			}
 		}
 		data.scaleUpTasks.clear(); //all scaling up complete
-		
-		
+	}
+	
+	
+	
+	private void completeScaleDown(ApplicationManagementData data) {
+		//complete scale down actions for applications that have not had their scaling executed in previous steps
+		for (Task task : data.scaleDownTasks) {
+			double targetHostUtil = -1;
+			TaskInstance targetInstance = null;
+			
+			//choose a task instance to shut down (instance on host with lowest utilization)
+			for (TaskInstance instance : task.getInstances()) {
+				double util = instance.getVM().getVMAllocation().getHost().getResourceManager().getCpuUtilization();
+				
+				if (util == 1)	System.out.println(simulation.getSimulationTime() + " " + util + " host#" + instance.getVM().getVMAllocation().getHost().getId());
+				
+				if (util > targetHostUtil) {
+					targetHostUtil = util;
+					targetInstance = instance;
+				}
+			}
+			
+			RemoveTaskInstanceAction action = new RemoveTaskInstanceAction(targetInstance);
+			action.execute(simulation, this);
+			data.hostPool.getHost(targetInstance.getVM().getVMAllocation().getHost().getId()).invalidateStatus(simulation.getSimulationTime());
+			
+			simulation.getSimulationMetrics().getCustomMetricCollection(ApplicationManagementMetrics.class).scaleDown++;
+		}
+	}
+	
+	private void consolidate(ApplicationManagementData data) {
 		//calculate underutilized host shutdown cost (number of required migrations)
 		HashMap<HostData, Integer> underUtilizedCost = new HashMap<HostData, Integer>();
 		for (HostData host : data.underUtilized) {
@@ -347,10 +430,10 @@ public class ApplicationManagementPolicy extends Policy {
 							
 							simulation.getSimulationMetrics().getCustomMetricCollection(ApplicationManagementMetrics.class).scaleDownShutdown++;
 							
-//							System.out.println(SimTime.toHumanReadable(simulation.getSimulationTime()) + " Removing Instance from Task " + 
-//									instance.getTask().getApplication().getId() + "-" + instance.getTask().getId() + 
-//									" VM#" + instance.getVM().getId() +
-//									" on Host #" + source.getId());
+	//									System.out.println(SimTime.toHumanReadable(simulation.getSimulationTime()) + " Removing Instance from Task " + 
+	//											instance.getTask().getApplication().getId() + "-" + instance.getTask().getId() + 
+	//											" VM#" + instance.getVM().getId() +
+	//											" on Host #" + source.getId());
 							break;
 						}
 					}
@@ -361,7 +444,7 @@ public class ApplicationManagementPolicy extends Policy {
 					simulation.getSimulationMetrics().getCustomMetricCollection(ApplicationManagementMetrics.class).shutdownAttempts++;
 					underutilHostWindow.remove(source);
 					
-//					ArrayList<VmStatus> vmList = this.orderSourceVms(source.getCurrentStatus().getVms());
+	//							ArrayList<VmStatus> vmList = this.orderSourceVms(source.getCurrentStatus().getVms());
 					ArrayList<VmStatus> vmList = new ArrayList<VmStatus>(); 
 					vmList.addAll(source.getSandboxStatus().getVms());
 				
@@ -391,7 +474,7 @@ public class ApplicationManagementPolicy extends Policy {
 								
 								simulation.getSimulationMetrics().getCustomMetricCollection(ApplicationManagementMetrics.class).underMigration++;
 								
-//								System.out.println(SimTime.toHumanReadable(simulation.getSimulationTime()) + " underutil mig VM#" + vm.getId() + " from #" + source.getId() + " to #" + target.getId();
+	//										System.out.println(SimTime.toHumanReadable(simulation.getSimulationTime()) + " underutil mig VM#" + vm.getId() + " from #" + source.getId() + " to #" + target.getId();
 								
 								// If the host will be empty after this migration, instruct it to shut down.
 								if (source.getSandboxStatus().getVms().size() == 0) {
@@ -411,62 +494,8 @@ public class ApplicationManagementPolicy extends Policy {
 				
 			}
 		}	
-			
-		//complete scale down actions for applications that have not had their scaling executed in previous steps
-		for (Task task : data.scaleDownTasks) {
-			double targetHostUtil = -1;
-			TaskInstance targetInstance = null;
-			
-			//choose a task instance to shut down (instance on host with lowest utilization)
-			for (TaskInstance instance : task.getInstances()) {
-				double util = instance.getVM().getVMAllocation().getHost().getResourceManager().getCpuUtilization();
-				
-				if (util == 1)	System.out.println(simulation.getSimulationTime() + " " + util + " host#" + instance.getVM().getVMAllocation().getHost().getId());
-				
-				if (util > targetHostUtil) {
-					targetHostUtil = util;
-					targetInstance = instance;
-				}
-			}
-			
-			RemoveTaskInstanceAction action = new RemoveTaskInstanceAction(targetInstance);
-			action.execute(simulation, this);
-			hostPool.getHost(targetInstance.getVM().getVMAllocation().getHost().getId()).invalidateStatus(simulation.getSimulationTime());
-			
-			simulation.getSimulationMetrics().getCustomMetricCollection(ApplicationManagementMetrics.class).scaleDown++;
-			
-//			System.out.println(SimTime.toHumanReadable(simulation.getSimulationTime()) + " Removing Instance from Task " + 
-//					targetInstance.getTask().getApplication().getId() + "-" + targetInstance.getTask().getId() + 
-//					" VM#" + targetInstance.getVM().getId() +
-//					" on Host #" + targetInstance.getVM().getVMAllocation().getHost().getId());
-		}
-		
-		//clean up any empty hosts not powered off (resulting from terminated instances or applications)
-		for (HostData host : data.empty) {
-			// Ensure that the host is not involved in any migrations and is not powering on.
-			if (host.isStatusValid() && //indicates that no changes have been made to this host during current execution
-				host.getCurrentStatus().getIncomingMigrationCount() == 0 && 
-				host.getCurrentStatus().getOutgoingMigrationCount() == 0 && 
-				host.getCurrentStatus().getStartingVmAllocations().size() == 0 &&
-				host.getCurrentStatus().getState() != HostState.POWERING_ON &&
-				host.getCurrentStatus().getState() != HostState.OFF &&
-				host.getCurrentStatus().getState() != HostState.SUSPENDED) {
-				
-				host.invalidateStatus(simulation.getSimulationTime());
-				data.shutdownActions.addAction(new ShutdownHostAction(host.getHost()));
-				
-				simulation.getSimulationMetrics().getCustomMetricCollection(ApplicationManagementMetrics.class).emptyShutdown++;
-			}
-		}
-		
-		
-		// Trigger actions
-		SequentialManagementActionExecutor actionExecutor = new SequentialManagementActionExecutor();
-		actionExecutor.addAction(data.migrations);
-		actionExecutor.addAction(data.shutdownActions);
-		actionExecutor.execute(simulation, this);
-		
 	}
+	
 	
 	private void scaleDownOverTargetUtilization(ApplicationManagementData data) {
 		//scale down other tasks located on hosts with utilization over target utilization

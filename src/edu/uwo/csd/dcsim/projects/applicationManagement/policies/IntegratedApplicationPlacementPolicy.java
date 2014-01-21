@@ -18,6 +18,7 @@ import edu.uwo.csd.dcsim.management.action.InstantiateVmAction;
 import edu.uwo.csd.dcsim.management.capabilities.HostPoolManager;
 import edu.uwo.csd.dcsim.management.events.ApplicationPlacementEvent;
 import edu.uwo.csd.dcsim.projects.applicationManagement.ApplicationManagementMetrics;
+import edu.uwo.csd.dcsim.projects.applicationManagement.RackComparator;
 import edu.uwo.csd.dcsim.projects.applicationManagement.capabilities.*;
 import edu.uwo.csd.dcsim.projects.applicationManagement.events.*;
 import edu.uwo.csd.dcsim.vm.VmAllocationRequest;
@@ -28,6 +29,8 @@ public class IntegratedApplicationPlacementPolicy extends Policy {
 	protected double lowerThreshold;
 	protected double upperThreshold;
 	protected double targetUtilization;
+	
+	private int rackRotation = 0; //used to rotate rack placement for applications placed at the same time
 	
 	public IntegratedApplicationPlacementPolicy(double lowerThreshold, double upperThreshold, double targetUtilization) {
 		addRequiredCapability(DataCentreManager.class);
@@ -86,7 +89,11 @@ public class IntegratedApplicationPlacementPolicy extends Policy {
 		ArrayList<Rack> targetRacks = new ArrayList<Rack>();
 		targetRacks.addAll(dcManager.getRacks()); //create an ordered version of the rack collection
 		
-		//TODO sort targetRacks collection by increasing utilization
+		//rotate initial collection to ensure that applications placed at the same time are spread despite "sort by powered on hosts" returning same order 
+		Collections.rotate(targetRacks, rackRotation++);
+		
+		//sort targetRacks collection by increasing number of powered on hosts
+		Collections.sort(targetRacks, RackComparator.HOSTS_ON);
 		
 		for (int nRacks = 1; nRacks <= targetRacks.size(); ++nRacks) {
 
@@ -101,11 +108,11 @@ public class IntegratedApplicationPlacementPolicy extends Policy {
 				
 				if (placement.success) {
 					//debugging output
-//					String out = "Placing application #" + application.getId() + " in rack(s)";
-//					for (int j = i; j < i + nRacks; ++j) {
-//						out = out + " - " + j;
-//					}
-//					System.out.println(out);
+					String out = "Placing application #" + application.getId() + " in rack(s)";
+					for (int j = i; j < i + nRacks; ++j) {
+						out = out + " - " + targetRacks.get(j).getId();
+					}
+					System.out.println(out);
 					
 					break;
 				}
