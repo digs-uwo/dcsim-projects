@@ -4,6 +4,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.TreeSet;
 
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.apache.commons.math3.stat.regression.SimpleRegression;
@@ -17,8 +20,10 @@ import edu.uwo.csd.dcsim.common.SimTime;
 import edu.uwo.csd.dcsim.common.Tuple;
 import edu.uwo.csd.dcsim.common.Utility;
 import edu.uwo.csd.dcsim.host.Host;
+import edu.uwo.csd.dcsim.host.Rack;
 import edu.uwo.csd.dcsim.host.Resources;
 import edu.uwo.csd.dcsim.host.Host.HostState;
+import edu.uwo.csd.dcsim.management.AutonomicManager;
 import edu.uwo.csd.dcsim.management.HostData;
 import edu.uwo.csd.dcsim.management.HostDataComparator;
 import edu.uwo.csd.dcsim.management.HostStatus;
@@ -38,6 +43,7 @@ import edu.uwo.csd.dcsim.projects.applicationManagement.capabilities.Application
 import edu.uwo.csd.dcsim.projects.applicationManagement.capabilities.ApplicationPoolManager;
 import edu.uwo.csd.dcsim.projects.applicationManagement.capabilities.ApplicationPoolManager.ApplicationData;
 import edu.uwo.csd.dcsim.projects.applicationManagement.capabilities.DataCentreManager;
+import edu.uwo.csd.dcsim.projects.applicationManagement.capabilities.TaskInstanceManager;
 import edu.uwo.csd.dcsim.projects.applicationManagement.events.TaskInstanceStatusEvent;
 import edu.uwo.csd.dcsim.vm.VmAllocationRequest;
 import edu.uwo.csd.dcsim.vm.VmDescription;
@@ -57,6 +63,8 @@ public class ApplicationManagementPolicy extends Policy {
 
 	private HashMap<HostData, Integer> stressedHostWindow = new HashMap<HostData, Integer>();
 	private HashMap<HostData, Integer> underutilHostWindow = new HashMap<HostData, Integer>();
+	
+	private long lastExecute = 0;
 	
 	public ApplicationManagementPolicy(double lowerThreshold, double upperThreshold, double targetUtilization) {
 		addRequiredCapability(DataCentreManager.class);
@@ -130,6 +138,11 @@ public class ApplicationManagementPolicy extends Policy {
 		 * Initialize algorithm
 		 */
 		initialize(data);
+		
+		/*
+		 * Record the penalty for spreading applications across more than one rack
+		 */
+		recordSpreadPenalty(data);
 
 		/*
 		 * Host Classification and History Windows
@@ -197,6 +210,7 @@ public class ApplicationManagementPolicy extends Policy {
 		actionExecutor.addAction(data.shutdownActions);
 		actionExecutor.execute(simulation, this);
 		
+		lastExecute = simulation.getSimulationTime();
 	}
 	
 	/**
@@ -226,6 +240,23 @@ public class ApplicationManagementPolicy extends Policy {
 		// Reset the sandbox host status to the current host status.
 		for (HostData host : data.hosts) {
 			host.resetSandboxStatusToCurrent();
+		}
+	}
+	
+	private void recordSpreadPenalty(ApplicationManagementData data) {
+		for (ApplicationData appData : data.appPool.getApplicationData().values()) {
+			Set<Rack> racks = new TreeSet<Rack>();
+			for (AutonomicManager manager : appData.getInstanceManagers().values()) {
+				TaskInstanceManager instanceManager = manager.getCapability(TaskInstanceManager.class);
+				
+				racks.add(instanceManager.getTaskInstance().getVM().getVMAllocation().getHost().getRack());
+			}
+			double penalty = 0;
+			if (racks.size() > 1) {
+				//add penalty per second
+				penalty = SimTime.toSeconds(simulation.getSimulationTime() - lastExecute);
+			}
+			simulation.getSimulationMetrics().getCustomMetricCollection(ApplicationManagementMetrics.class).addAppSpreadPenalty(appData.getApplication(), penalty);
 		}
 	}
 	

@@ -1,11 +1,16 @@
 package edu.uwo.csd.dcsim.projects.applicationManagement;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.apache.log4j.Logger;
 
+import edu.uwo.csd.dcsim.application.Application;
 import edu.uwo.csd.dcsim.common.Tuple;
+import edu.uwo.csd.dcsim.common.Utility;
 import edu.uwo.csd.dcsim.core.Simulation;
 import edu.uwo.csd.dcsim.core.metrics.MetricCollection;
 
@@ -28,6 +33,10 @@ public class ApplicationManagementMetrics extends MetricCollection {
 	public int shutdowns = 0;
 	public int emptyShutdown = 0;
 	
+	public Map<Application, Double> appSpreadPenalty = new HashMap<Application, Double>();
+	DescriptiveStatistics appSpreadPenaltyStats;
+	int nZeroSpreadPenalty;
+	
 	public ApplicationManagementMetrics(Simulation simulation) {
 		super(simulation);
 		// TODO Auto-generated constructor stub
@@ -35,8 +44,21 @@ public class ApplicationManagementMetrics extends MetricCollection {
 
 	@Override
 	public void completeSimulation() {
-		// TODO Auto-generated method stub
+		appSpreadPenaltyStats = new DescriptiveStatistics();
 		
+		nZeroSpreadPenalty = 0;
+		for (Double penalty : appSpreadPenalty.values()) {
+			appSpreadPenaltyStats.addValue(penalty);
+			if (penalty == 0) nZeroSpreadPenalty++;
+		}
+	}
+	
+	public void addAppSpreadPenalty(Application app, double penalty) {
+		double val = 0;
+		if (appSpreadPenalty.containsKey(app)) {
+			val = appSpreadPenalty.get(app);
+		}
+		appSpreadPenalty.put(app, val + penalty);
 	}
 
 	@Override
@@ -59,6 +81,16 @@ public class ApplicationManagementMetrics extends MetricCollection {
 		out.info("   shutdownAttempts: " + shutdownAttempts);
 		out.info("   shutdowns: " + shutdowns);
 		out.info("   emptyShutdown: " + emptyShutdown);
+		
+		out.info("Spread Penalties: ");
+		out.info("   total: " + (long)appSpreadPenaltyStats.getSum());
+		out.info("   mean: " + Utility.roundDouble(appSpreadPenaltyStats.getMean(), Simulation.getMetricPrecision()));
+		out.info("   stdev: " + Utility.roundDouble(appSpreadPenaltyStats.getStandardDeviation(), Simulation.getMetricPrecision()));
+		out.info("   max: " + Utility.roundDouble(appSpreadPenaltyStats.getMax(), Simulation.getMetricPrecision()));
+		out.info("   min: " + Utility.roundDouble(appSpreadPenaltyStats.getMin(), Simulation.getMetricPrecision()));
+		out.info("   zero-penalty: " + nZeroSpreadPenalty + "/" + appSpreadPenalty.size() + " = " + 
+				Utility.roundDouble(Utility.toPercentage(nZeroSpreadPenalty / (double)appSpreadPenalty.size()), Simulation.getMetricPrecision()) + "%");
+		
 	}
 
 	@Override

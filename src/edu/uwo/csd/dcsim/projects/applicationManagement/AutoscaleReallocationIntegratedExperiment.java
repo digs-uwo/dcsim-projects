@@ -39,8 +39,8 @@ public class AutoscaleReallocationIntegratedExperiment extends SimulationTask {
 //	private static final long DURATION = SimTime.minutes(5);
 	private static final long METRIC_RECORD_START = SimTime.days(0);
 	
-	private static final int RACK_SIZE = 5; //40
-	private static final int N_RACKS = 4; //5
+	private static final int RACK_SIZE = 15; //40
+	private static final int N_RACKS = 2; //5
 	private static final int N_APPS = 15; //50
 	
 	private static final long[] randomSeeds = {6198910678692541341l,
