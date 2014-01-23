@@ -163,12 +163,17 @@ public class ApplicationManagementPolicy extends Policy {
 		scaleDownOverTargetUtilization(data);
 		
 		buildTargetList(data);
-		relocate(data); //TODO target racks
+		relocate(data);
 		
 		/*
 		 * Scale Up
 		 */
-		scaleUp(data); //TODO target racks
+		scaleUp(data);
+		
+		/*
+		 * Choose scale down operations to remove instances not on the application majority rack
+		 */
+		scaleDownOutsideMajRack(data);
 		
 		/*
 		 * Consolidate
@@ -277,46 +282,125 @@ public class ApplicationManagementPolicy extends Policy {
 		data.targets.addAll(data.empty);
 	}
 	
+	private Rack getMajorityRack(VmStatus vmStatus) {
+		return vmStatus.getVm().getTaskInstance().getTask().getApplication().getMajorityRack();
+	}
+	
+	/**
+	 * Rearrange target host list so that hosts within the majority rack of the application in the VM are chosen first, with
+	 * the existing order as the secondary ordering
+	 * @param vm
+	 * @param targets
+	 * @return
+	 */
+	private ArrayList<HostData> targetRack(Rack rack, ArrayList<HostData> targets) {
+		ArrayList<HostData> sorted = new ArrayList<HostData>();
+		
+		//make a first pass to pull members of majority rack
+		for (HostData hostData : targets) {
+			if (hostData.getHost().getRack() == rack) sorted.add(hostData);
+		}
+		
+		//make a second pass to add remaining hosts
+		for (HostData hostData : targets) {
+			if (hostData.getHost().getRack() != rack) sorted.add(hostData);
+		}
+		
+		return sorted;
+	}
+	
+	/**
+	 * Filter target host list so that only hosts within the majority rack of the application in the VM are chosen, with
+	 * the existing order as the secondary ordering
+	 * @param vm
+	 * @param targets
+	 * @return
+	 */
+	private ArrayList<HostData> targetRackOnly(Rack rack, ArrayList<HostData> targets) {
+		ArrayList<HostData> sorted = new ArrayList<HostData>();
+		
+		//pull members of majority rack
+		for (HostData hostData : targets) {
+			if (hostData.getHost().getRack() == rack) sorted.add(hostData);
+		}
+
+		return sorted;
+	}
+	
 	private void relocate(ApplicationManagementData data) {
-		//attempt to place VMs from stressed hosts awaiting migration into target list
+		/*
+		 * Attempt to place VMs from stressed hosts awaiting migration into target list.
+		 * 
+		 *  We attempt to select a VM and target such that the VM task instance is migrated to the rack
+		 *  which holds the majority of the task instances in its application ('majority rack'). Otherwise,
+		 *  we choose the first VM - Target pair found, in the original greedy fashion
+		 * 
+		 */
+
 		for (HostData source : data.stressedPendingMigration) {
+			
 			boolean found = false;
+			VmStatus selectedVm = null;
+			HostData selectedTarget = null;
+			
+			//build VM list
 			ArrayList<VmStatus> vmList = new ArrayList<VmStatus>(); 
 			vmList.addAll(orderSourceVms(source.getSandboxStatus().getVms(), source));
+			
 			for (VmStatus vm : vmList) {
 				
-				for (HostData target : data.targets) {
+				//reorder target list to target application majority rack first
+				Rack majorityRack = getMajorityRack(vm);
+				ArrayList<HostData> targets = targetRack(majorityRack, data.targets);
+				
+				for (HostData target : targets) {
 					// Check that target host has at most 1 incoming migration pending, 
 					// that target host is capable and has enough capacity left to host the VM, 
 					// and also that it will not exceed the target utilization.
 					if (HostData.canHost(vm, target.getSandboxStatus(), target.getHostDescription()) && 
 						(target.getSandboxStatus().getResourcesInUse().getCpu() + vm.getResourcesInUse().getCpu()) / target.getHostDescription().getResourceCapacity().getCpu() <= targetUtilization) {
 						
-						// Modify host and vm states to record the future migration. Note that we 
-						// can do this because we are using the designated 'sandbox' host status.
-						source.getSandboxStatus().migrate(vm, target.getSandboxStatus());
+						//if we have not made a selection yet, select this VM and target (ONLY if not made yet, to maintain original greedy behaviour)
+						if (selectedVm == null) {
+							selectedVm = vm;
+							selectedTarget = target;
+						}
 						
-						// Invalidate source and target status, as we know them to be incorrect until the next status update arrives.
-						source.invalidateStatus(simulation.getSimulationTime());
-						target.invalidateStatus(simulation.getSimulationTime());
-						
-						data.usedTargets.add(target);
-						
-						data.migrations.addAction(new MigrationAction(source.getHostManager(),
-								source.getHost(),
-								target.getHost(), 
-								vm.getId()));
-						
-						simulation.getSimulationMetrics().getCustomMetricCollection(ApplicationManagementMetrics.class).stressMigration++;
-						
-						found = true;
-						break;
+						//if this VM - target combination keeps the VM task instance in its majority rack, halt the search
+						if (majorityRack.containsHost(target.getHost())) {
+							found = true;
+							break;
+						}
 					}
 				}
 				
 				if (found)
 					break;
 			}
+			
+			/*
+			 * Add migration action
+			 */
+			
+			if (selectedVm != null) {
+				// Modify host and vm states to record the future migration. Note that we 
+				// can do this because we are using the designated 'sandbox' host status.
+				source.getSandboxStatus().migrate(selectedVm, selectedTarget.getSandboxStatus());
+				
+				// Invalidate source and target status, as we know them to be incorrect until the next status update arrives.
+				source.invalidateStatus(simulation.getSimulationTime());
+				selectedTarget.invalidateStatus(simulation.getSimulationTime());
+				
+				data.usedTargets.add(selectedTarget);
+				
+				data.migrations.addAction(new MigrationAction(source.getHostManager(),
+						source.getHost(),
+						selectedTarget.getHost(), 
+						selectedVm.getId()));
+				
+				simulation.getSimulationMetrics().getCustomMetricCollection(ApplicationManagementMetrics.class).stressMigration++;
+			}
+
 		}
 	}
 	
@@ -327,7 +411,10 @@ public class ApplicationManagementPolicy extends Policy {
 			
 			HostData allocatedHost = null;
 			
-			for (HostData target : data.targets) {
+			//reorder target list to target application majority rack first
+			ArrayList<HostData> targets = targetRack(task.getApplication().getMajorityRack(), data.targets);
+			
+			for (HostData target : targets) {
 				Resources reqResources = new Resources();
 				reqResources.setCpu(request.getCpu());
 				reqResources.setMemory(request.getMemory());
@@ -372,7 +459,34 @@ public class ApplicationManagementPolicy extends Policy {
 		data.scaleUpTasks.clear(); //all scaling up complete
 	}
 	
-	
+	private void scaleDownOutsideMajRack(ApplicationManagementData data) {
+		//complete scale down actions for applications that have instances outside of their majority rack
+		ArrayList<Task> scaleDownTasks = new ArrayList<Task>();
+		scaleDownTasks.addAll(data.scaleDownTasks);
+		for (Task task : scaleDownTasks) {
+			TaskInstance targetInstance = null;
+			
+			/*
+			 * Look for an instance not on the application majority rack
+			 */
+			Rack majorityRack = task.getApplication().getMajorityRack();
+			for (TaskInstance instance : task.getInstances()) {
+				if (instance.getVM().getVMAllocation().getHost().getRack() != majorityRack) {
+					targetInstance = instance;
+					break;
+				}
+			}
+
+			if (targetInstance != null) {
+				data.scaleDownTasks.remove(targetInstance.getTask());
+				RemoveTaskInstanceAction action = new RemoveTaskInstanceAction(targetInstance);
+				action.execute(simulation, this);
+				data.hostPool.getHost(targetInstance.getVM().getVMAllocation().getHost().getId()).invalidateStatus(simulation.getSimulationTime());
+				
+				simulation.getSimulationMetrics().getCustomMetricCollection(ApplicationManagementMetrics.class).scaleDown++;	
+			}
+		}
+	}
 	
 	private void completeScaleDown(ApplicationManagementData data) {
 		//complete scale down actions for applications that have not had their scaling executed in previous steps
@@ -380,7 +494,9 @@ public class ApplicationManagementPolicy extends Policy {
 			double targetHostUtil = -1;
 			TaskInstance targetInstance = null;
 			
-			//choose a task instance to shut down (instance on host with lowest utilization)
+			/*
+			 * Choose task instance on host with lowest utilization
+			 */
 			for (TaskInstance instance : task.getInstances()) {
 				double util = instance.getVM().getVMAllocation().getHost().getResourceManager().getCpuUtilization();
 				
@@ -439,7 +555,11 @@ public class ApplicationManagementPolicy extends Policy {
 		for (HostData source : sortedUnderUtilized) {
 			if (!data.usedTargets.contains(source)) {	
 				
-				//check all remaining tasks requiring scale down, select instances on this host for shutdown
+				/*
+				 * Scale Down -
+				 * Select task instances on scaling down tasks for shut down on this host 
+				 */
+
 				ArrayList<Task> tempTasks = new ArrayList<Task>();
 				tempTasks.addAll(data.scaleDownTasks);
 				for (Task task : tempTasks) {
@@ -470,17 +590,27 @@ public class ApplicationManagementPolicy extends Policy {
 					}
 				}
 				
-				//migrate if underutilized window exceeded, migrate remaining VMs
+				
+				/*
+				 * Migrate -
+				 * If underutilized window exceeded, migrate remaining VMs
+				 */
+				
 				if (underutilHostWindow.get(source) >= underutilWindow) {
 					simulation.getSimulationMetrics().getCustomMetricCollection(ApplicationManagementMetrics.class).shutdownAttempts++;
 					underutilHostWindow.remove(source);
 					
-	//							ArrayList<VmStatus> vmList = this.orderSourceVms(source.getCurrentStatus().getVms());
 					ArrayList<VmStatus> vmList = new ArrayList<VmStatus>(); 
 					vmList.addAll(source.getSandboxStatus().getVms());
 				
 					for (VmStatus vm : vmList) {
-						for (HostData target : data.targets) {
+						
+						//reorder target list to target application majority rack first
+						Rack majorityRack = getMajorityRack(vm);
+						ArrayList<HostData> targets = targetRackOnly(majorityRack, data.targets); //Filter to place ONLY in application's majority rack
+						//ArrayList<HostData> targets = targetRack(majorityRack, data.targets); //Prefer application's majority rack
+						
+						for (HostData target : targets) {
 							// Check that source and target are different hosts, 
 							// that target host hasn't been used as source, 
 							// that target host is capable and has enough capacity left to host the VM, 
