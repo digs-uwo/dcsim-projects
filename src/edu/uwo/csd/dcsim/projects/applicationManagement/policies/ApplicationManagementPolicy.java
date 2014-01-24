@@ -139,11 +139,6 @@ public class ApplicationManagementPolicy extends Policy {
 		 * Initialize algorithm
 		 */
 		initialize(data);
-		
-		/*
-		 * Record the penalty for spreading applications across more than one rack
-		 */
-		recordSpreadPenalty(data);
 
 		/*
 		 * Host Classification and History Windows
@@ -251,23 +246,6 @@ public class ApplicationManagementPolicy extends Policy {
 		// Reset the sandbox host status to the current host status.
 		for (HostData host : data.hosts) {
 			host.resetSandboxStatusToCurrent();
-		}
-	}
-	
-	private void recordSpreadPenalty(ApplicationManagementData data) {
-		for (ApplicationData appData : data.appPool.getApplicationData().values()) {
-			Set<Rack> racks = new TreeSet<Rack>();
-			for (AutonomicManager manager : appData.getInstanceManagers().values()) {
-				TaskInstanceManager instanceManager = manager.getCapability(TaskInstanceManager.class);
-				
-				racks.add(instanceManager.getTaskInstance().getVM().getVMAllocation().getHost().getRack());
-			}
-			double penalty = 0;
-			if (racks.size() > 1) {
-				//add penalty per second
-				penalty = SimTime.toSeconds(simulation.getSimulationTime() - lastExecute);
-			}
-			simulation.getSimulationMetrics().getCustomMetricCollection(ApplicationManagementMetrics.class).addAppSpreadPenalty(appData.getApplication(), penalty);
 		}
 	}
 	

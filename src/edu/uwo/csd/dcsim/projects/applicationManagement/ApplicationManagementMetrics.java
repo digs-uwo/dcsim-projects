@@ -1,18 +1,27 @@
 package edu.uwo.csd.dcsim.projects.applicationManagement;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.apache.log4j.Logger;
 
 import edu.uwo.csd.dcsim.application.Application;
+import edu.uwo.csd.dcsim.application.VmmApplication;
+import edu.uwo.csd.dcsim.common.SimTime;
 import edu.uwo.csd.dcsim.common.Tuple;
 import edu.uwo.csd.dcsim.common.Utility;
 import edu.uwo.csd.dcsim.core.Simulation;
 import edu.uwo.csd.dcsim.core.metrics.MetricCollection;
+import edu.uwo.csd.dcsim.host.Rack;
+import edu.uwo.csd.dcsim.management.AutonomicManager;
+import edu.uwo.csd.dcsim.projects.applicationManagement.capabilities.TaskInstanceManager;
+import edu.uwo.csd.dcsim.projects.applicationManagement.capabilities.ApplicationPoolManager.ApplicationData;
 
 public class ApplicationManagementMetrics extends MetricCollection {
 
@@ -38,6 +47,9 @@ public class ApplicationManagementMetrics extends MetricCollection {
 	DescriptiveStatistics appSpreadPenaltyStats;
 	int nZeroSpreadPenalty;
 	
+	public Map<Application, Long> appVmTime = new HashMap<Application, Long>();
+	DescriptiveStatistics appVmTimeStats;
+	
 	public ApplicationManagementMetrics(Simulation simulation) {
 		super(simulation);
 		// TODO Auto-generated constructor stub
@@ -52,6 +64,11 @@ public class ApplicationManagementMetrics extends MetricCollection {
 			appSpreadPenaltyStats.addValue(penalty);
 			if (penalty == 0) nZeroSpreadPenalty++;
 		}
+		
+		appVmTimeStats = new DescriptiveStatistics();
+		
+		for (Long time : appVmTime.values()) appVmTimeStats.addValue(time);
+		
 	}
 	
 	public void addAppSpreadPenalty(Application app, double penalty) {
@@ -60,6 +77,33 @@ public class ApplicationManagementMetrics extends MetricCollection {
 			val = appSpreadPenalty.get(app);
 		}
 		appSpreadPenalty.put(app, val + penalty);
+	}
+	
+	@Override
+	public void recordApplicationMetrics(Collection<Application> applications) {
+		
+		//record application placement spread penalty
+		for (Application app : applications) {
+			if (app instanceof VmmApplication) continue;
+			
+			double penalty = 0;
+			if (app.getPlacementSpread() > 1) {
+				penalty = simulation.getElapsedSeconds();
+			}
+			addAppSpreadPenalty(app, penalty);
+		}
+		
+		//record application VM time
+		for (Application app : applications) {
+			if (app instanceof VmmApplication) continue;
+			
+			long val = 0;
+			if (appVmTime.containsKey(app)) {
+				val = appVmTime.get(app);
+			}			
+			val += simulation.getElapsedTime() * app.getSize();
+			appVmTime.put(app, val);
+		}
 	}
 
 	@Override
@@ -92,6 +136,13 @@ public class ApplicationManagementMetrics extends MetricCollection {
 		out.info("   min: " + Utility.roundDouble(appSpreadPenaltyStats.getMin(), Simulation.getMetricPrecision()));
 		out.info("   zero-penalty: " + nZeroSpreadPenalty + "/" + appSpreadPenalty.size() + " = " + 
 				Utility.roundDouble(Utility.toPercentage(nZeroSpreadPenalty / (double)appSpreadPenalty.size()), Simulation.getMetricPrecision()) + "%");
+		
+		out.info("Application VM time: ");
+		out.info("   total: " + SimTime.toHumanReadable((long)appVmTimeStats.getSum()));
+		out.info("   mean: " + SimTime.toHumanReadable((long)appVmTimeStats.getMean()));
+		out.info("   stdev: " + SimTime.toHumanReadable((long)appVmTimeStats.getStandardDeviation()));
+		out.info("   max: " + SimTime.toHumanReadable((long)appVmTimeStats.getMax()));
+		out.info("   min: " + SimTime.toHumanReadable((long)appVmTimeStats.getMin()));
 		
 	}
 
