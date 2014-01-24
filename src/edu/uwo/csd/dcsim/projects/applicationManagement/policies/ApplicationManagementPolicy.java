@@ -45,6 +45,7 @@ import edu.uwo.csd.dcsim.projects.applicationManagement.capabilities.Application
 import edu.uwo.csd.dcsim.projects.applicationManagement.capabilities.DataCentreManager;
 import edu.uwo.csd.dcsim.projects.applicationManagement.capabilities.TaskInstanceManager;
 import edu.uwo.csd.dcsim.projects.applicationManagement.events.TaskInstanceStatusEvent;
+import edu.uwo.csd.dcsim.vm.Vm;
 import edu.uwo.csd.dcsim.vm.VmAllocationRequest;
 import edu.uwo.csd.dcsim.vm.VmDescription;
 
@@ -174,6 +175,11 @@ public class ApplicationManagementPolicy extends Policy {
 		 * Choose scale down operations to remove instances not on the application majority rack
 		 */
 		scaleDownOutsideMajRack(data);
+		
+		/*
+		 * Attempt to correct application spread (placement) by migration		
+		 */
+		correctPlacement(data);
 		
 		/*
 		 * Consolidate
@@ -483,6 +489,17 @@ public class ApplicationManagementPolicy extends Policy {
 				action.execute(simulation, this);
 				data.hostPool.getHost(targetInstance.getVM().getVMAllocation().getHost().getId()).invalidateStatus(simulation.getSimulationTime());
 				
+				//Remove scaled down VM from host sandbox status
+				VmStatus vmToRemove = null;
+				HostData targetHost = data.hostPool.getHost(targetInstance.getVM().getVMAllocation().getHost().getId());
+				for (VmStatus vm : targetHost.getSandboxStatus().getVms()) {
+					if (vm.getId() == targetInstance.getVM().getId()) {
+						vmToRemove = vm;
+						break;
+					}
+				}
+				targetHost.getSandboxStatus().getVms().remove(vmToRemove);
+				
 				simulation.getSimulationMetrics().getCustomMetricCollection(ApplicationManagementMetrics.class).scaleDown++;	
 			}
 		}
@@ -512,9 +529,117 @@ public class ApplicationManagementPolicy extends Policy {
 			action.execute(simulation, this);
 			data.hostPool.getHost(targetInstance.getVM().getVMAllocation().getHost().getId()).invalidateStatus(simulation.getSimulationTime());
 			
+			//Remove scaled down VM from host sandbox status
+			VmStatus vmToRemove = null;
+			HostData targetHost = data.hostPool.getHost(targetInstance.getVM().getVMAllocation().getHost().getId());
+			for (VmStatus vm : targetHost.getSandboxStatus().getVms()) {
+				if (vm.getId() == targetInstance.getVM().getId()) {
+					vmToRemove = vm;
+					break;
+				}
+			}
+			targetHost.getSandboxStatus().getVms().remove(vmToRemove);
+			
 			simulation.getSimulationMetrics().getCustomMetricCollection(ApplicationManagementMetrics.class).scaleDown++;
 		}
 	}
+	
+	private void correctPlacement(ApplicationManagementData data) {
+		
+		//build a list of applications spread over more than one rack
+		ArrayList<ApplicationData> apps = new ArrayList<ApplicationData>();
+		for (ApplicationData appData : data.appPool.getApplicationData().values()) {
+			if (appData.getApplication().getPlacementSpread() > 1) apps.add(appData);
+		}
+		
+		//loop through applications
+		for (ApplicationData appData : apps) {
+
+			Rack majorityRack = appData.getApplication().getMajorityRack();
+			
+			//construct a list of vms to migrate
+			ArrayList<Tuple<VmStatus, HostData>> vmList = new ArrayList<Tuple<VmStatus,HostData>>();
+			
+			for (AutonomicManager manager : appData.getInstanceManagers().values()) {
+				TaskInstanceManager instanceManager = manager.getCapability(TaskInstanceManager.class);
+				
+				if (instanceManager.getTaskInstance().getVM().getVMAllocation().getHost().getRack() != majorityRack) {
+					Vm vm  = instanceManager.getTaskInstance().getVM();
+					VmStatus vmStatus = null;
+					HostData hostData = null;
+					
+					//find VM and Host status objects
+					for (HostData host : data.hosts) {
+						boolean found = false;
+						for (VmStatus i : host.getSandboxStatus().getVms()) {
+							if (i.getVm() != null && i.getVm().getId() == vm.getId()) {
+								vmStatus = i;
+								hostData = host;
+								found = true;
+							}
+						}
+						
+						if (found) break;
+					}
+					
+					if (vmStatus != null) {
+						vmList.add(new Tuple<VmStatus, HostData>(vmStatus, hostData));
+					}
+						
+				}
+			}
+			
+			//attempt to migrate VMs to the application's majority rack, IFF the VMs task is not pending a scale down
+			ArrayList<HostData> usedSources = new ArrayList<HostData>();
+			
+			for (Tuple<VmStatus, HostData> tuple : vmList) {
+				VmStatus vm = tuple.a;
+				HostData source = tuple.b;
+				
+				//if the task to which this VM/instance belongs is scheduled to scale down, don't attempt placement correction (allow correction by scale down)
+				Task task = vm.getVm().getTaskInstance().getTask();
+				if (data.scaleDownTasks.contains(task)) continue;
+				
+				//filter target list to target application majority rack
+				ArrayList<HostData> targets = targetRackOnly(majorityRack, data.targets);
+				
+				for (HostData target : targets) {
+					// Check that source and target are different hosts, 
+					// that target host hasn't been used as source, 
+					// that target host is capable and has enough capacity left to host the VM, 
+					// and also that it will not exceed the target utilization.
+					if (source != target && 
+							!usedSources.contains(target) && 
+							HostData.canHost(vm, target.getSandboxStatus(), target.getHostDescription()) &&	
+							(target.getSandboxStatus().getResourcesInUse().getCpu() + vm.getResourcesInUse().getCpu()) / target.getHostDescription().getResourceCapacity().getCpu() <= targetUtilization) {
+						
+						// Modify host and vm states to record the future migration. Note that we 
+						// can do this because we are using the designated 'sandbox' host status.
+						source.getSandboxStatus().migrate(vm, target.getSandboxStatus());
+						
+						// Invalidate source and target status, as we know them to be incorrect until the next status update arrives.
+						source.invalidateStatus(simulation.getSimulationTime());
+						target.invalidateStatus(simulation.getSimulationTime());
+						
+						data.migrations.addAction(new MigrationAction(source.getHostManager(),
+								source.getHost(),
+								target.getHost(), 
+								vm.getId()));
+						
+						simulation.getSimulationMetrics().getCustomMetricCollection(ApplicationManagementMetrics.class).placementCorrectionMigration++;
+						
+						data.usedTargets.add(target);
+						usedSources.add(source);
+						
+						break;
+					}
+				}
+			}
+			
+		}
+
+	}
+	
 	
 	private void consolidate(ApplicationManagementData data) {
 		//calculate underutilized host shutdown cost (number of required migrations)

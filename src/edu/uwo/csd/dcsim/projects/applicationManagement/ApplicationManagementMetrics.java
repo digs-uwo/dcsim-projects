@@ -27,6 +27,7 @@ public class ApplicationManagementMetrics extends MetricCollection {
 	public int scaleDownShutdown = 0;
 	public int stressMigration = 0;
 	public int underMigration = 0;
+	public int placementCorrectionMigration = 0;
 	public int scaleUp = 0;
 	public int scaleDown = 0;
 	public int shutdownAttempts = 0;
@@ -76,6 +77,7 @@ public class ApplicationManagementMetrics extends MetricCollection {
 		out.info("   scaleDownShutdown: " + scaleDownShutdown);
 		out.info("   stressMigration: " + stressMigration);
 		out.info("   underMigration: " + underMigration);
+		out.info("   placementCorrectionMigration: " + placementCorrectionMigration);
 		out.info("   scaleUp: " + scaleUp);
 		out.info("   scaleDown: " + scaleDown);
 		out.info("   shutdownAttempts: " + shutdownAttempts);
