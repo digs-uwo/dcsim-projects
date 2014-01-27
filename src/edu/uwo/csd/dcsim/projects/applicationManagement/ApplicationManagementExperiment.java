@@ -31,17 +31,17 @@ import edu.uwo.csd.dcsim.projects.applicationManagement.capabilities.DataCentreM
 import edu.uwo.csd.dcsim.projects.applicationManagement.capabilities.TaskInstanceManager;
 import edu.uwo.csd.dcsim.projects.applicationManagement.policies.*;
 
-public class AutoscaleReallocationIntegratedExperiment extends SimulationTask {
+public class ApplicationManagementExperiment extends SimulationTask {
 
-	private static Logger logger = Logger.getLogger(AutoscaleReallocationIntegratedExperiment.class);
+	private static Logger logger = Logger.getLogger(ApplicationManagementExperiment.class);
 	
 	private static final long DURATION = SimTime.days(1);
 //	private static final long DURATION = SimTime.minutes(5);
 	private static final long METRIC_RECORD_START = SimTime.days(0);
 	
-	private static final int RACK_SIZE = 15; //40
-	private static final int N_RACKS = 3; //5
-	private static final int N_APPS = 15; //50
+	private static final int RACK_SIZE = 40; //40
+	private static final int N_RACKS = 5; //5
+	private static final int N_APPS = 50; //50
 	
 	private static final long[] randomSeeds = {6198910678692541341l,
 		5646441053220106016l,
@@ -95,7 +95,7 @@ public class AutoscaleReallocationIntegratedExperiment extends SimulationTask {
 		List<SimulationTask> completedTasks;
 		SimulationExecutor executor = new SimulationExecutor();
 		for (int i = 0; i < N_SEEDS; ++i)  {
-			AutoscaleReallocationIntegratedExperiment e = new AutoscaleReallocationIntegratedExperiment("integrated-" + (i + 1), randomSeeds[i]);
+			ApplicationManagementExperiment e = new ApplicationManagementExperiment("integrated-" + (i + 1), randomSeeds[i]);
 			e.setParameters(slaWarningThreshold, slaSafeThreshold, cpuSafeThreshold, upper, target, lower, stressWindow, underutilWindow);
 			executor.addTask(e);
 		}
@@ -135,12 +135,12 @@ public class AutoscaleReallocationIntegratedExperiment extends SimulationTask {
 		
 	}
 	
-	public AutoscaleReallocationIntegratedExperiment(String name) {
+	public ApplicationManagementExperiment(String name) {
 		super(name, DURATION);
 		this.setMetricRecordStart(METRIC_RECORD_START);
 	}
 	
-	public AutoscaleReallocationIntegratedExperiment(String name, long randomSeed) {
+	public ApplicationManagementExperiment(String name, long randomSeed) {
 		super(name, DURATION);
 		this.setMetricRecordStart(METRIC_RECORD_START);
 		this.setRandomSeed(randomSeed);
