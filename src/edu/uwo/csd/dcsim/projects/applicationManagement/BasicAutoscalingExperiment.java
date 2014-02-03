@@ -32,7 +32,7 @@ public class BasicAutoscalingExperiment extends SimulationTask {
 
 	private static Logger logger = Logger.getLogger(BasicAutoscalingExperiment.class);
 	
-	private static final long DURATION = SimTime.days(6);
+	private static final long DURATION = SimTime.days(8);
 	private static final long METRIC_RECORD_START = SimTime.days(1);
 	
 	private static final long[] randomSeeds = {6198910678692541341l,
@@ -147,57 +147,11 @@ public class BasicAutoscalingExperiment extends SimulationTask {
 ////		runSimulationSet(printStream, true, 0.3, 0.2, SimTime.minutes(30), 0.8, 0.9, 5, 30, SimTime.minutes(5));
 ////		runSimulationSet(printStream, true, 0.8, 0.6, SimTime.minutes(30), 0.9, 0.9, 5, 30, SimTime.minutes(5));
 ////		runSimulationSet(printStream, true, 0.3, 0.2, SimTime.minutes(30), 0.9, 0.9, 5, 30, SimTime.minutes(5));
-//		
-//		/*
-//		 * CPU ONLY 
-//		 */
-//		
-//		//autoscaling interval
-//		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(30), 0.5, 0.9, 5, 30, SimTime.minutes(5));
-//		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(30), 0.5, 0.9, 5, 30, SimTime.minutes(10));
-//		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(30), 0.5, 0.9, 5, 30, SimTime.minutes(15));
-//		
-//		//adjust CPU warning
-//		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(30), 0.5, 0.95, 5, 30, SimTime.minutes(5));
-//		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(30), 0.5, 0.8, 5, 30, SimTime.minutes(5));
-//		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(30), 0.5, 0.7, 5, 30, SimTime.minutes(5));
-//		
-//		//adjust CPU safe
-//		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(30), 0.6, 0.8, 5, 30, SimTime.minutes(5));
-//		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(30), 0.4, 0.8, 5, 30, SimTime.minutes(5));
-//		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(30), 0.3, 0.8, 5, 30, SimTime.minutes(5));
-//		
-//		//both high
-//		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(30), 0.6, 0.95, 5, 30, SimTime.minutes(5));
-//		
-//		//both low
-//		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(30), 0.3, 0.7, 5, 30, SimTime.minutes(5));
-//		
-//		//high and low
-//		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(30), 0.3, 0.95, 5, 30, SimTime.minutes(5));
-//		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(30), 0.6, 0.7, 5, 30, SimTime.minutes(5));
-//		
-//		//adjust scale down freeze
-//		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(5), 0.5, 0.9, 5, 30, SimTime.minutes(5));
-//		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(10), 0.5, 0.9, 5, 30, SimTime.minutes(5));
-//		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(20), 0.5, 0.9, 5, 30, SimTime.minutes(5));
-//		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(45), 0.5, 0.9, 5, 30, SimTime.minutes(5));
-//		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(60), 0.5, 0.9, 5, 30, SimTime.minutes(5));
-//		
-//		//adjust window sizes
-//		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(30), 0.5, 0.9, 1, 1, SimTime.minutes(5));
-//		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(30), 0.5, 0.9, 5, 10, SimTime.minutes(5));
-//		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(30), 0.5, 0.9, 5, 20, SimTime.minutes(5));
-//		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(30), 0.5, 0.9, 10, 5, SimTime.minutes(5));
-//		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(30), 0.5, 0.9, 10, 20, SimTime.minutes(5));
-//		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(30), 0.5, 0.9, 10, 30, SimTime.minutes(5));
-//		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(30), 0.5, 0.9, 20, 30, SimTime.minutes(5));
-//		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(30), 0.5, 0.9, 30, 30, SimTime.minutes(5));
 		
 		//TODO:
 		//use long scale down freeze (60 minutes)
 		
-		
+		//runSimulationSet(out,slaWarningThreshold,slaSafeThreshold,scaleDownFreeze,cpuSafeThreshold, shortWindow, longWindow, scalingInterval)
 		
 		//Try "best" configurations
 //		runSimulationSet(printStream, true, 0.1, 0.1, SimTime.minutes(60), 0.3, 0.9, 5, 30, SimTime.minutes(5)); //SLA SLA+
@@ -206,14 +160,14 @@ public class BasicAutoscalingExperiment extends SimulationTask {
 //		runSimulationSet(printStream, true, 0.9, 0.4, SimTime.minutes(60), 0.6, 0.9, 5, 30, SimTime.minutes(5)); //SLA Power
 //		runSimulationSet(printStream, true, 0.5, 0.4, SimTime.minutes(60), 0.3, 0.9, 5, 30, SimTime.minutes(5)); //SLA Balanced
 //		runSimulationSet(printStream, true, 0.5, 0.4, SimTime.minutes(60), 0.6, 0.9, 5, 30, SimTime.minutes(5)); //SLA New Balanced
-//
-//		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(60), 0.3, 0.7, 5, 30, SimTime.minutes(5)); //CPU SLA
-//		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(60), 0.5, 0.95, 5, 30, SimTime.minutes(5)); //CPU Ops & Power
-//		runSimulationSet(printStream, false, 0.8, 0.6, SimTime.minutes(60), 0.4, 0.8, 5, 30, SimTime.minutes(5));  //CPU Balanced
 		
 		
-		runSimulationSet(printStream, true, 0.3, 0.2, SimTime.minutes(60), 0.5, 0.9, 5, 30, SimTime.minutes(5)); //SLA - SLA
-		runSimulationSet(printStream, true, 0.3, 0.2, SimTime.minutes(60), 0.3, 0.9, 5, 30, SimTime.minutes(5)); //SLA - SLA
+//		runSimulationSet(printStream, 0.3, 0.2, SimTime.minutes(60), 0.5, 5, 30, SimTime.minutes(5)); //SLA
+		
+		/*
+		 * NOMS 2014 Autoscaling Settings 
+		 */
+		runSimulationSet(printStream, 0.3, 0.2, SimTime.minutes(60), 0.3, 5, 30, SimTime.minutes(5)); //SLA - LOWER CPU SAFE 
 		
 		printStream.println("DONE!");
 		printStream.flush();
@@ -254,25 +208,23 @@ public class BasicAutoscalingExperiment extends SimulationTask {
 	}
 	
 	public static void runSimulationSet(PrintStream out, 
-			boolean slaAware,
 			double slaWarningThreshold, 
 			double slaSafeThreshold,
 			long scaleDownFreeze,
 			double cpuSafeThreshold,
-			double cpuWarningThreshold,
 			int shortWindow,
 			int longWindow,
 			long scalingInterval) {
 		
 		logger.info("Started New Simulation Set");
-		logger.info(slaAware + "," + slaWarningThreshold + "," + slaSafeThreshold + "," + SimTime.toMinutes(scaleDownFreeze) + "," + cpuSafeThreshold + "," + cpuWarningThreshold +
+		logger.info(slaWarningThreshold + "," + slaSafeThreshold + "," + SimTime.toMinutes(scaleDownFreeze) + "," + cpuSafeThreshold + "," +
 				"," + shortWindow + "," + longWindow + "," + SimTime.toMinutes(scalingInterval));
 		
 		List<SimulationTask> completedTasks;
 		SimulationExecutor executor = new SimulationExecutor();
 		for (int i = 0; i < 10; ++i)  {
 			BasicAutoscalingExperiment e = new BasicAutoscalingExperiment("autoscaling-" + (i + 1), randomSeeds[i]);
-			e.setParameters(slaAware, slaWarningThreshold, slaSafeThreshold, scaleDownFreeze, cpuSafeThreshold, cpuWarningThreshold, shortWindow, longWindow, scalingInterval);
+			e.setParameters(slaWarningThreshold, slaSafeThreshold, scaleDownFreeze, cpuSafeThreshold, shortWindow, longWindow, scalingInterval);
 			executor.addTask(e);
 		}
 		
@@ -280,9 +232,9 @@ public class BasicAutoscalingExperiment extends SimulationTask {
 		
 		//output CSV
 		out.println("Autoscale Experiment");
-		out.println("slaAware, slaWarningThreshold, slaSafeThreshold, scaleDownFreeze, cpuSafeThreshold, cpuWarningThreshold, shortWindow, longWindow, scalingInterval");
-		out.println(slaAware + "," + slaWarningThreshold + "," + slaSafeThreshold + "," + SimTime.toMinutes(scaleDownFreeze) + "," + cpuSafeThreshold + "," + cpuWarningThreshold +
-				"," + shortWindow + "," + longWindow + "," + SimTime.toMinutes(scalingInterval));
+		out.println("slaWarningThreshold, slaSafeThreshold, scaleDownFreeze, cpuSafeThreshold, shortWindow, longWindow, scalingInterval");
+		out.println(slaWarningThreshold + "," + slaSafeThreshold + "," + SimTime.toMinutes(scaleDownFreeze) + "," + cpuSafeThreshold + "," +
+				shortWindow + "," + longWindow + "," + SimTime.toMinutes(scalingInterval));
 		for(SimulationTask task : completedTasks) {
 			if (completedTasks.indexOf(task) == 0) {
 				task.getMetrics().printCSV(out);
@@ -297,14 +249,12 @@ public class BasicAutoscalingExperiment extends SimulationTask {
 		
 	}
 	
-	private boolean slaAware = true;
 	private double slaWarningThreshold = 0.8;
 	private double slaSafeThreshold = 0.6;
 	private long scaleDownFreeze = SimTime.minutes(30);
 	private double cpuSafeThreshold = 0.5;
-	private double cpuWarningThreshold = 0.9;
-	private int shortWindow = 5;
-	private int longWindow = 30;
+	private int shortWindow = 5; //small window for sliding average response time/cpu util
+	private int longWindow = 30; //large window for sliding average response time/cpu util
 	private long scalingInterval = SimTime.minutes(5);
 	
 	public BasicAutoscalingExperiment(String name) {
@@ -318,22 +268,18 @@ public class BasicAutoscalingExperiment extends SimulationTask {
 		this.setRandomSeed(randomSeed);
 	}
 
-	public void setParameters(boolean slaAware,
-			double slaWarningThreshold, 
+	public void setParameters(double slaWarningThreshold, 
 			double slaSafeThreshold,
 			long scaleDownFreeze,
 			double cpuSafeThreshold,
-			double cpuWarningThreshold,
 			int shortWindow,
 			int longWindow,
 			long scalingInterval) {
 		
-		this.slaAware = slaAware;
 		this.slaWarningThreshold = slaWarningThreshold;
 		this.slaSafeThreshold = slaSafeThreshold;
 		this.scaleDownFreeze = scaleDownFreeze;
 		this.cpuSafeThreshold = cpuSafeThreshold;
-		this.cpuWarningThreshold = cpuWarningThreshold;
 		this.shortWindow = shortWindow;
 		this.longWindow = longWindow;
 		this.scalingInterval = scalingInterval;
@@ -345,7 +291,7 @@ public class BasicAutoscalingExperiment extends SimulationTask {
 		
 		simulation.getSimulationMetrics().addCustomMetricCollection(new ApplicationManagementMetrics(simulation));
 		
-		Environment environment = new Environment(simulation, 40, 5);
+		Environment environment = new Environment(simulation, 40, 5); //40 hosts, 5 racks
 		environment.createDataCentre(simulation);
 		
 		ArrayList<Application> applications = new ArrayList<Application>();
@@ -391,8 +337,8 @@ public class BasicAutoscalingExperiment extends SimulationTask {
 			manager.addCapability(applicationManager);
 			applicationManager.setAutonomicManager(manager);
 			
-			ApplicationScalingPolicy appPolicy = new ApplicationScalingPolicy(dcAM, slaAware);
-			appPolicy.setParameters(slaWarningThreshold, slaSafeThreshold, scaleDownFreeze, cpuSafeThreshold, cpuWarningThreshold);
+			ApplicationScalingPolicy appPolicy = new ApplicationScalingPolicy(dcAM);
+			appPolicy.setParameters(slaWarningThreshold, slaSafeThreshold, scaleDownFreeze, cpuSafeThreshold);
 			manager.installPolicy(appPolicy, scalingInterval, 0);
 			
 			application.addApplicationListener(new ManagedApplicationListener(simulation, applicationManager));

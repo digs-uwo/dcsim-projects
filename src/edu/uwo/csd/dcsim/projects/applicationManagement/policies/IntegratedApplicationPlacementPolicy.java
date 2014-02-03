@@ -41,7 +41,7 @@ public class IntegratedApplicationPlacementPolicy extends Policy {
 	}
 	
 	public void execute(ApplicationPlacementEvent event) {
-		
+			
 		DataCentreManager dcManager = manager.getCapability(DataCentreManager.class);
 		Collection<HostData> hosts = dcManager.getHosts();
 		
@@ -108,11 +108,11 @@ public class IntegratedApplicationPlacementPolicy extends Policy {
 				
 				if (placement.success) {
 					//debugging output
-					String out = "Placing application #" + application.getId() + " in rack(s)";
-					for (int j = i; j < i + nRacks; ++j) {
-						out = out + " - " + targetRacks.get(j).getId();
-					}
-					System.out.println(out);
+//					String out = "Placing application #" + application.getId() + " in rack(s)";
+//					for (int j = i; j < i + nRacks; ++j) {
+//						out = out + " - " + targetRacks.get(j).getId();
+//					}
+//					System.out.println(out);
 					
 					break;
 				}
@@ -211,12 +211,13 @@ public class IntegratedApplicationPlacementPolicy extends Policy {
 	}
 	
 	public void execute(TaskInstancePlacementEvent event) {
-		//TODO: handle
-		System.out.println("!");
+		//throw an exception - for this work, we are handling new instance placement in the application management policy
+		throw new RuntimeException("Placement Policy recieved TaskInstancePlacementEvent - We aren't currently handling this here!!");
 	}
 	
 	public void execute(ShutdownApplicationEvent event) {
 		//TODO: handle
+		System.out.println("!!shutdown app event!!");
 	}
 	
 	private Collection<HostData> filterHosts(Collection<HostData> hosts) {

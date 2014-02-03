@@ -1,15 +1,23 @@
 package edu.uwo.csd.dcsim.projects.applicationManagement;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
+
+import org.apache.commons.math3.distribution.NormalDistribution;
+import org.apache.commons.math3.distribution.RealDistribution;
+import org.apache.commons.math3.distribution.UniformIntegerDistribution;
 
 import edu.uwo.csd.dcsim.DataCentre;
 import edu.uwo.csd.dcsim.application.Application;
+import edu.uwo.csd.dcsim.application.ApplicationGenerator;
 import edu.uwo.csd.dcsim.application.InteractiveApplication;
 import edu.uwo.csd.dcsim.application.loadbalancer.LoadBalancer;
-import edu.uwo.csd.dcsim.application.loadbalancer.ShareLoadBalancer;
 import edu.uwo.csd.dcsim.application.sla.InteractiveServiceLevelAgreement;
 import edu.uwo.csd.dcsim.application.workload.TraceWorkload;
 import edu.uwo.csd.dcsim.common.ObjectBuilder;
+import edu.uwo.csd.dcsim.common.SimTime;
+import edu.uwo.csd.dcsim.common.Tuple;
 import edu.uwo.csd.dcsim.core.Simulation;
 import edu.uwo.csd.dcsim.host.Cluster;
 import edu.uwo.csd.dcsim.host.Host;
@@ -20,9 +28,12 @@ import edu.uwo.csd.dcsim.host.SwitchFactory;
 import edu.uwo.csd.dcsim.host.resourcemanager.DefaultResourceManagerFactory;
 import edu.uwo.csd.dcsim.host.scheduler.DefaultResourceSchedulerFactory;
 import edu.uwo.csd.dcsim.management.AutonomicManager;
+import edu.uwo.csd.dcsim.management.events.ApplicationPlacementEvent;
 
 public abstract class AppManagementTestEnvironment {
 
+	public static final long ARRIVAL_SYNC_INTERVAL = SimTime.minutes(1);
+	
 	public static final int N_APP_TEMPLATES = 4;
 	public static final int MIN_APP_SCALE = 3;
 	public static final int MAX_APP_SCALE = 6;
@@ -196,6 +207,99 @@ public abstract class AppManagementTestEnvironment {
 	
 	public AutonomicManager getDcAM() {
 		return dcAM;
+	}
+	
+	
+	/*
+	 * APPLICATION GENERATION
+	 * 
+	 */
+	
+	public void configureStaticApplications(Simulation simulation, int nApps) {
+		ArrayList<Application> applications = new ArrayList<Application>();
+		for (int i = 0; i < nApps; ++i) {
+			applications.add(this.createApplication());
+		}
+		simulation.sendEvent(new ApplicationPlacementEvent(dcAM, applications));
+	}
+	
+	/**
+	 * Configure applications to arrive such that the overall utilization of the datacentre changes randomly.
+	 * @param simulation
+	 * @param dc
+	 * @param changesPerDay The number of utilization changes (arrival rate changes) per day
+	 * @param minServices The minimum number of services running in the data centre
+	 * @param maxServices The maximum number of services running in the data centre
+	 */
+	public void configureRandomApplications(Simulation simulation, double changesPerDay, int minServices, int maxServices, long rampUpTime, long startTime, long duration) {
+
+		/*
+		 * Configure minimum service level. Create the minimum number of services over the first 40 hours,
+		 * and leave them running for the entire simulation.
+		 */
+		ArrayList<Tuple<Long, Double>> serviceRates = new ArrayList<Tuple<Long, Double>>();
+		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), (minServices / SimTime.toHours(rampUpTime))));		
+		serviceRates.add(new Tuple<Long, Double>(rampUpTime, 0d));		
+		serviceRates.add(new Tuple<Long, Double>(duration, 0d));		// 10 days
+		
+		ApplicationGenerator appGenerator = new AppManApplicationGenerator(simulation, dcAM, null, serviceRates);
+		appGenerator.start();
+		
+		//Create a uniform random distribution to generate the number of services within the data centre.
+		UniformIntegerDistribution serviceCountDist = new UniformIntegerDistribution(0, (maxServices - minServices));
+		serviceCountDist.reseedRandomGenerator(simulation.getRandom().nextLong());
+		
+		/*
+		 * Generate the service arrival rates for the rest of the simulation
+		 */
+		long time;		//start time of the current arrival rate
+		long nextTime;	//the time of the next arrival rate change
+		double rate;	//the current arrival rate
+		serviceRates = new ArrayList<Tuple<Long, Double>>(); //list of arrival rates
+		
+		time = startTime; //start at beginning of 3rd day (end of 2nd)
+		
+		//loop while we still have simulation time to generate arrival rates for
+		while (time < duration) {
+
+			//calculate the next time the rate will changes
+			nextTime = time + Math.round(SimTime.days(1) / changesPerDay);
+			
+			//generate a target VM count to reach by the next rate change
+			double target = serviceCountDist.sample();
+			
+			//caculate the current arrival rate necessary to reach the target VM count
+			rate = target / ((nextTime - time) / 1000d / 60d / 60d);
+			
+			//add the current rate to the list of arrival rates
+			serviceRates.add(new Tuple<Long, Double>(time, rate));
+			
+			//advance to the next time interval
+			time = nextTime;
+		}
+		//add a final rate of 0 to run until the end of the simulation
+		serviceRates.add(new Tuple<Long, Double>(duration, 0d));
+		
+		appGenerator = new AppManApplicationGenerator(simulation, dcAM, new NormalDistribution(SimTime.days(1) / changesPerDay, SimTime.hours(1)), serviceRates);
+		appGenerator.start();
+	}
+	
+	public class AppManApplicationGenerator extends ApplicationGenerator {
+		
+		int id;
+		
+		public AppManApplicationGenerator(Simulation simulation, AutonomicManager dcTarget, RealDistribution lifespanDist, List<Tuple<Long, Double>> servicesPerHour) {
+			super(simulation, dcTarget, lifespanDist, servicesPerHour);
+			
+			this.setArrivalSyncInterval(ARRIVAL_SYNC_INTERVAL);
+		}
+
+		@Override
+		public Application buildApplication() {
+			return createApplication();
+		}
+		
+		
 	}
 	
 }

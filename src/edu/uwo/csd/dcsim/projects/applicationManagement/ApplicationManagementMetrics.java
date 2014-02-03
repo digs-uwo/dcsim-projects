@@ -5,8 +5,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
 
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.apache.log4j.Logger;
@@ -18,10 +16,6 @@ import edu.uwo.csd.dcsim.common.Tuple;
 import edu.uwo.csd.dcsim.common.Utility;
 import edu.uwo.csd.dcsim.core.Simulation;
 import edu.uwo.csd.dcsim.core.metrics.MetricCollection;
-import edu.uwo.csd.dcsim.host.Rack;
-import edu.uwo.csd.dcsim.management.AutonomicManager;
-import edu.uwo.csd.dcsim.projects.applicationManagement.capabilities.TaskInstanceManager;
-import edu.uwo.csd.dcsim.projects.applicationManagement.capabilities.ApplicationPoolManager.ApplicationData;
 
 public class ApplicationManagementMetrics extends MetricCollection {
 
@@ -157,7 +151,8 @@ public class ApplicationManagementMetrics extends MetricCollection {
 		
 		metrics.add(new Tuple<String, Object>("spreadPenalty", (long)appSpreadPenaltyStats.getSum()));
 		metrics.add(new Tuple<String, Object>("zeroPenalty", Utility.roundDouble(Utility.toPercentage(nZeroSpreadPenalty / (double)appSpreadPenalty.size()), Simulation.getMetricPrecision())));
-		metrics.add(new Tuple<String, Object>("appVmTime", SimTime.toMinutes((long)appVmTimeStats.getSum())));
+		metrics.add(new Tuple<String, Object>("appVmTime", SimTime.toDays((long)appVmTimeStats.getSum())));
+		metrics.add(new Tuple<String, Object>("appVmTimeAvg", SimTime.toHours((long)appVmTimeStats.getMean())));
 		
 		return metrics;
 	}

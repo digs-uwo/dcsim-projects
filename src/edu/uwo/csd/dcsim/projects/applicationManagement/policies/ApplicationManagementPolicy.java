@@ -1,12 +1,6 @@
 package edu.uwo.csd.dcsim.projects.applicationManagement.policies;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.*;
 
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.apache.commons.math3.stat.regression.SimpleRegression;
@@ -37,9 +31,7 @@ import edu.uwo.csd.dcsim.management.action.SequentialManagementActionExecutor;
 import edu.uwo.csd.dcsim.management.action.ShutdownHostAction;
 import edu.uwo.csd.dcsim.management.capabilities.HostPoolManager;
 import edu.uwo.csd.dcsim.projects.applicationManagement.ApplicationManagementMetrics;
-import edu.uwo.csd.dcsim.projects.applicationManagement.actions.AddTaskInstanceAction;
 import edu.uwo.csd.dcsim.projects.applicationManagement.actions.RemoveTaskInstanceAction;
-import edu.uwo.csd.dcsim.projects.applicationManagement.capabilities.ApplicationManager;
 import edu.uwo.csd.dcsim.projects.applicationManagement.capabilities.ApplicationPoolManager;
 import edu.uwo.csd.dcsim.projects.applicationManagement.capabilities.ApplicationPoolManager.ApplicationData;
 import edu.uwo.csd.dcsim.projects.applicationManagement.capabilities.DataCentreManager;
@@ -62,10 +54,10 @@ public class ApplicationManagementPolicy extends Policy {
 	private double upperThreshold;
 	private double targetUtilization;
 
+	private boolean topologyAware;
+	
 	private HashMap<HostData, Integer> stressedHostWindow = new HashMap<HostData, Integer>();
 	private HashMap<HostData, Integer> underutilHostWindow = new HashMap<HostData, Integer>();
-	
-	private long lastExecute = 0;
 	
 	public ApplicationManagementPolicy(double lowerThreshold, double upperThreshold, double targetUtilization) {
 		addRequiredCapability(DataCentreManager.class);
@@ -81,7 +73,8 @@ public class ApplicationManagementPolicy extends Policy {
 			long scaleDownFreeze,
 			double cpuSafeThreshold,
 			double stressWindow,
-			double underutilWindow) {
+			double underutilWindow,
+			boolean topologyAware) {
 		
 		this.slaWarningThreshold = slaWarningThreshold;
 		this.slaSafeThreshold = slaSafeThreshold;
@@ -89,7 +82,7 @@ public class ApplicationManagementPolicy extends Policy {
 		this.cpuSafeThreshold = cpuSafeThreshold;
 		this.stressWindow = stressWindow;
 		this.underutilWindow = underutilWindow;
-	
+		this.topologyAware = topologyAware;
 	}
 	
 	private class ApplicationManagementData {
@@ -169,12 +162,12 @@ public class ApplicationManagementPolicy extends Policy {
 		/*
 		 * Choose scale down operations to remove instances not on the application majority rack
 		 */
-		scaleDownOutsideMajRack(data);
+		if (topologyAware) scaleDownOutsideMajRack(data);
 		
 		/*
 		 * Attempt to correct application spread (placement) by migration		
 		 */
-		correctPlacement(data);
+		if (topologyAware) correctPlacement(data);
 		
 		/*
 		 * Consolidate
@@ -215,8 +208,6 @@ public class ApplicationManagementPolicy extends Policy {
 		actionExecutor.addAction(data.migrations);
 		actionExecutor.addAction(data.shutdownActions);
 		actionExecutor.execute(simulation, this);
-		
-		lastExecute = simulation.getSimulationTime();
 	}
 	
 	/**
@@ -335,7 +326,13 @@ public class ApplicationManagementPolicy extends Policy {
 				
 				//reorder target list to target application majority rack first
 				Rack majorityRack = getMajorityRack(vm);
-				ArrayList<HostData> targets = targetRack(majorityRack, data.targets);
+				
+				ArrayList<HostData> targets;
+				if (topologyAware) {
+					targets = targetRack(majorityRack, data.targets);
+				} else {
+					targets = data.targets;
+				}
 				
 				for (HostData target : targets) {
 					// Check that target host has at most 1 incoming migration pending, 
@@ -396,7 +393,12 @@ public class ApplicationManagementPolicy extends Policy {
 			HostData allocatedHost = null;
 			
 			//reorder target list to target application majority rack first
-			ArrayList<HostData> targets = targetRack(task.getApplication().getMajorityRack(), data.targets);
+			ArrayList<HostData> targets;
+			if (topologyAware) {
+				targets = targetRack(task.getApplication().getMajorityRack(), data.targets);
+			} else {
+				targets = data.targets;
+			}
 			
 			for (HostData target : targets) {
 				Resources reqResources = new Resources();
@@ -710,8 +712,13 @@ public class ApplicationManagementPolicy extends Policy {
 						
 						//reorder target list to target application majority rack first
 						Rack majorityRack = getMajorityRack(vm);
-						ArrayList<HostData> targets = targetRackOnly(majorityRack, data.targets); //Filter to place ONLY in application's majority rack
-						//ArrayList<HostData> targets = targetRack(majorityRack, data.targets); //Prefer application's majority rack
+						ArrayList<HostData> targets;
+						if (topologyAware) {
+							targets = targetRackOnly(majorityRack, data.targets); //Filter to place ONLY in application's majority rack
+						} else {
+							targets = data.targets;
+						}
+						
 						
 						for (HostData target : targets) {
 							// Check that source and target are different hosts, 
@@ -907,6 +914,8 @@ public class ApplicationManagementPolicy extends Policy {
 		ApplicationPoolManager appPool = manager.getCapability(ApplicationPoolManager.class);
 		TaskInstance instance = event.getTaskInstance();
 		Application application = instance.getTask().getApplication();
+		
+		//if (application.isComplete()) return; //do not process status events from tasks that are part of a completed application (can happen depending on event order)
 		
 		ApplicationData appData = appPool.getApplicationData(application);
 		if (!appPool.getApplicationData(application).getInstanceManagers().containsKey(instance)) throw new RuntimeException("Task Instance not found in ApplicationManager instance map. Should not happen.");

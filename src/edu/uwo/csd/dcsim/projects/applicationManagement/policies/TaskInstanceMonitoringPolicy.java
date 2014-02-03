@@ -23,6 +23,13 @@ public class TaskInstanceMonitoringPolicy extends Policy {
 		double cpuUtil = taskInstance.getResourceScheduled().getCpu() / (double)taskInstance.getTask().getResourceSize().getCpu();
 		double responseTime = 0;
 		
+		/* 
+		 * If the application is complete (shutting down), don't send the status message.
+		 * This can happen since task instances will shut down after "application" object due to
+		 * event ordering.
+		 */
+		if (taskInstance.getTask().getApplication().isComplete()) return; 
+		
 		if (taskInstance instanceof InteractiveTaskInstance) {
 			responseTime = ((InteractiveTaskInstance)taskInstance).getResponseTime();
 		}

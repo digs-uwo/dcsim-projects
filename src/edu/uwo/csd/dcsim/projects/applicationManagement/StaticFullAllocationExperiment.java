@@ -30,7 +30,7 @@ public class StaticFullAllocationExperiment extends SimulationTask {
 
 	private static Logger logger = Logger.getLogger(StaticFullAllocationExperiment.class);
 	
-	private static final long DURATION = SimTime.days(6);
+	private static final long DURATION = SimTime.days(8);
 	private static final long METRIC_RECORD_START = SimTime.days(1);
 	
 	private static final long[] randomSeeds = {6198910678692541341l,
