@@ -31,13 +31,15 @@ public class IntegratedApplicationPlacementPolicy extends Policy {
 	protected double targetUtilization;
 	
 	private int rackRotation = 0; //used to rotate rack placement for applications placed at the same time
+	private boolean topologyAware;
 	
-	public IntegratedApplicationPlacementPolicy(double lowerThreshold, double upperThreshold, double targetUtilization) {
+	public IntegratedApplicationPlacementPolicy(double lowerThreshold, double upperThreshold, double targetUtilization, boolean topologyAware) {
 		addRequiredCapability(DataCentreManager.class);
 		
 		this.lowerThreshold = lowerThreshold;
 		this.upperThreshold = upperThreshold;
 		this.targetUtilization = targetUtilization;
+		this.topologyAware = topologyAware;
 	}
 	
 	public void execute(ApplicationPlacementEvent event) {
@@ -95,30 +97,36 @@ public class IntegratedApplicationPlacementPolicy extends Policy {
 		//sort targetRacks collection by increasing number of powered on hosts
 		Collections.sort(targetRacks, RackComparator.HOSTS_ON);
 		
-		for (int nRacks = 1; nRacks <= targetRacks.size(); ++nRacks) {
-
-			for (int i = 0; i <= targetRacks.size() - nRacks; ++i) {
-				//build host set to attempt placement
-				ArrayList<HostData> targetHosts = new ArrayList<HostData>();
-				for (int j = i; j < i + nRacks; ++j) {
-					targetHosts.addAll(dcManager.getHosts(targetRacks.get(j))); //get the HostData collection of the hosts belonging to this rack
-				}
-				
-				placement = calculatePlacement(taskAllocationRequests, filterHosts(targetHosts), dcManager);
-				
-				if (placement.success) {
-					//debugging output
-//					String out = "Placing application #" + application.getId() + " in rack(s)";
-//					for (int j = i; j < i + nRacks; ++j) {
-//						out = out + " - " + targetRacks.get(j).getId();
-//					}
-//					System.out.println(out);
+		if (topologyAware) {
+		
+			for (int nRacks = 1; nRacks <= targetRacks.size(); ++nRacks) {
+	
+				for (int i = 0; i <= targetRacks.size() - nRacks; ++i) {
+					//build host set to attempt placement
+					ArrayList<HostData> targetHosts = new ArrayList<HostData>();
+					for (int j = i; j < i + nRacks; ++j) {
+						targetHosts.addAll(dcManager.getHosts(targetRacks.get(j))); //get the HostData collection of the hosts belonging to this rack
+					}
 					
-					break;
+					placement = calculatePlacement(taskAllocationRequests, filterHosts(targetHosts), dcManager);
+					
+					if (placement.success) {
+						//debugging output
+	//					String out = "Placing application #" + application.getId() + " in rack(s)";
+	//					for (int j = i; j < i + nRacks; ++j) {
+	//						out = out + " - " + targetRacks.get(j).getId();
+	//					}
+	//					System.out.println(out);
+						
+						break;
+					}
 				}
+				
+				if (placement != null && placement.success) break;
 			}
-			
-			if (placement != null && placement.success) break;
+		
+		} else {
+			placement = calculatePlacement(taskAllocationRequests, filterHosts(dcManager.getHosts()), dcManager);
 		}
 		
 		//build placement actions
@@ -130,6 +138,8 @@ public class IntegratedApplicationPlacementPolicy extends Policy {
 						new VmStatus(vmPlacement.a.getVMDescription().getCores(),
 								vmPlacement.a.getVMDescription().getCoreCapacity(),
 						vmPlacement.a.getResources()));
+				
+				vmPlacement.b.invalidateStatus(simulation.getSimulationTime());
 			}
 			
 			return actions;

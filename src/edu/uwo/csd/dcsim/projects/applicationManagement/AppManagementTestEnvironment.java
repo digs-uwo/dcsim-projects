@@ -47,6 +47,7 @@ public abstract class AppManagementTestEnvironment {
 		"traces/google_cores_job_type_3"};	
 	public static final long[] OFFSET_MAX = {200000000, 40000000, 40000000, 15000000, 15000000, 15000000, 15000000};
 	public static final double[] TRACE_AVG = {0.32, 0.25, 0.32, 0.72, 0.74, 0.77, 0.83};
+	public static final long APP_RAMPUP_TIME = SimTime.hours(6);
 	
 	int hostsPerRack;
 	int nRacks;
@@ -131,6 +132,8 @@ public abstract class AppManagementTestEnvironment {
 		TraceWorkload workload = new TraceWorkload(simulation, 
 				TRACES[trace], 
 				(long)(appGenerationRandom.nextDouble() * OFFSET_MAX[trace]));
+		
+		workload.setRampUp(APP_RAMPUP_TIME);
 		
 		InteractiveApplication.Builder appBuilder;
 		
@@ -281,6 +284,7 @@ public abstract class AppManagementTestEnvironment {
 		serviceRates.add(new Tuple<Long, Double>(duration, 0d));
 		
 		appGenerator = new AppManApplicationGenerator(simulation, dcAM, new NormalDistribution(SimTime.days(1) / changesPerDay, SimTime.hours(1)), serviceRates);
+		//appGenerator = new AppManApplicationGenerator(simulation, dcAM, new NormalDistribution(SimTime.days(5), SimTime.hours(1)), serviceRates);
 		appGenerator.start();
 	}
 	

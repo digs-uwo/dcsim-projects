@@ -3,6 +3,7 @@ package edu.uwo.csd.dcsim.projects.applicationManagement;
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
 import java.util.List;
+import java.util.Map.Entry;
 
 import org.apache.log4j.Logger;
 
@@ -13,6 +14,7 @@ import edu.uwo.csd.dcsim.application.*;
 import edu.uwo.csd.dcsim.application.loadbalancer.ShareLoadBalancer;
 import edu.uwo.csd.dcsim.common.SimTime;
 import edu.uwo.csd.dcsim.core.Simulation;
+import edu.uwo.csd.dcsim.core.metrics.WeightedMetric;
 import edu.uwo.csd.dcsim.host.Cluster;
 import edu.uwo.csd.dcsim.host.Host;
 import edu.uwo.csd.dcsim.host.Rack;
@@ -30,12 +32,12 @@ public class ApplicationManagementExperiment extends SimulationTask {
 
 	private static final long RAMP_UP_TIME = SimTime.hours(10);
 	private static final long APP_ARRIVAL_START_TIME =  SimTime.hours(12);
-	private static final long DURATION = SimTime.days(2);
+	private static final long DURATION = SimTime.days(10);
 	private static final long METRIC_RECORD_START = SimTime.hours(12);
 	
 	private static final int RACK_SIZE = 40; //40
-	private static final int N_RACKS = 5; //5
-	private static final int N_APPS_MAX = 50; //50
+	private static final int N_RACKS = 8; //5
+	private static final int N_APPS_MAX = 40; //50
 	private static final int N_APPS_MIN = 10; //10
 	private static final boolean DYNAMIC_ARRIVALS = true;
 	
@@ -222,7 +224,7 @@ public class ApplicationManagementExperiment extends SimulationTask {
 			applicationPool.setAutonomicManager(dcAM);
 			
 			dcAM.installPolicy(new DcHostStatusPolicy(10));
-			dcAM.installPolicy(new IntegratedApplicationPlacementPolicy(lower, upper, target));
+			dcAM.installPolicy(new IntegratedApplicationPlacementPolicy(lower, upper, target, TOPOLOGY_AWARE));
 			
 			ApplicationManagementPolicy appManagementPolicy = new ApplicationManagementPolicy(lower, upper, target);
 			appManagementPolicy.setParameters(slaWarningThreshold, slaSafeThreshold, scaleDownFreeze, cpuSafeThreshold, stressWindow, underutilWindow, TOPOLOGY_AWARE);
