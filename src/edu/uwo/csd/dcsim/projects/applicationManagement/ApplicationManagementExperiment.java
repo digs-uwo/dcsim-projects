@@ -39,9 +39,12 @@ public class ApplicationManagementExperiment extends SimulationTask {
 	private static final int N_RACKS = 8; //5
 	private static final int N_APPS_MAX = 40; //50
 	private static final int N_APPS_MIN = 10; //10
+	private static final double CHANGES_PER_DAY = 1; //0.5
 	private static final boolean DYNAMIC_ARRIVALS = true;
 	
 	private static final boolean TOPOLOGY_AWARE = false;
+	
+	private static final boolean CSV_OUTPUT = false;
 	
 	private static final long[] randomSeeds = {6198910678692541341l,
 		5646441053220106016l,
@@ -101,37 +104,33 @@ public class ApplicationManagementExperiment extends SimulationTask {
 		}
 		
 		completedTasks = executor.execute(4);
-		
-		for(SimulationTask task : completedTasks) {
-			logger.info(task.getName());
-			task.getMetrics().printDefault(logger);
+
+		if (CSV_OUTPUT) {
+			//output CSV
+			out.println("Autoscale+Reallocation Experiment");
+			out.println("upper=" + upper + " | target=" + target + " | lower=" + lower +
+					" | slaWarning=" + slaWarningThreshold + " | slaSafe=" + slaSafeThreshold + 
+					" | cpuSafe=" + cpuSafeThreshold +
+					" | stressWindow=" + stressWindow +
+					" | underutilWindow=" + underutilWindow);
+			
+			for(SimulationTask task : completedTasks) {
+				if (completedTasks.indexOf(task) == 0) {
+					task.getMetrics().printCSV(out);
+				} else {
+					task.getMetrics().printCSV(out, false);
+				}
+			}
+			out.println("");
+			out.println("");
+			
+			out.flush();
+		} else {
+			for(SimulationTask task : completedTasks) {
+				logger.info(task.getName());
+				task.getMetrics().printDefault(logger);
+			}
 		}
-		
-//		//output CSV
-//		out.println("Autoscale+Reallocation Experiment");
-//		out.println("upper=" + upper + " | target=" + target + " | lower=" + lower +
-//				" | slaWarning=" + slaWarningThreshold + " | slaSafe=" + slaSafeThreshold + 
-//				" | cpuSafe=" + cpuSafeThreshold +
-//				" | stressWindow=" + stressWindow +
-//				" | underutilWindow=" + underutilWindow);
-//		
-//		for(SimulationTask task : completedTasks) {
-//			if (completedTasks.indexOf(task) == 0) {
-//				task.getMetrics().printCSV(out);
-//			} else {
-//				task.getMetrics().printCSV(out, false);
-//			}
-//		}
-//		out.println("");
-//		out.println("");
-//		
-//		out.flush();
-		
-//		ArrayList<SimulationMetrics> simMetrics = new ArrayList<SimulationMetrics>();
-//		for (SimulationTask task : completedTasks) {
-//			simMetrics.add(task.getMetrics());
-//		}
-//		SimulationMetrics.writeToODS("test", simMetrics);
 		
 	}
 	
@@ -195,7 +194,7 @@ public class ApplicationManagementExperiment extends SimulationTask {
 		
 		if(DYNAMIC_ARRIVALS) {
 			//change level every 2 days, min 10 apps, max 50 apps, ramp up 20 hours, start random at 24 hours, duration 2 days
-			environment.configureRandomApplications(simulation, 1, N_APPS_MIN, N_APPS_MAX, RAMP_UP_TIME, APP_ARRIVAL_START_TIME, DURATION);
+			environment.configureRandomApplications(simulation, CHANGES_PER_DAY, N_APPS_MIN, N_APPS_MAX, RAMP_UP_TIME, APP_ARRIVAL_START_TIME, DURATION);
 		} else {
 			environment.configureStaticApplications(simulation, N_APPS_MAX);
 		}

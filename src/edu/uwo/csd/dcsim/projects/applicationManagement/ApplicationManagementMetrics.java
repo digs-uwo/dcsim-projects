@@ -10,6 +10,7 @@ import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.apache.log4j.Logger;
 
 import edu.uwo.csd.dcsim.application.Application;
+import edu.uwo.csd.dcsim.application.InteractiveApplication;
 import edu.uwo.csd.dcsim.application.VmmApplication;
 import edu.uwo.csd.dcsim.common.SimTime;
 import edu.uwo.csd.dcsim.common.Tuple;
@@ -79,6 +80,7 @@ public class ApplicationManagementMetrics extends MetricCollection {
 		//record application placement spread penalty
 		for (Application app : applications) {
 			if (app instanceof VmmApplication) continue;
+			if (!app.isActive() || app.isComplete()) continue;
 			
 			double penalty = 0;
 			if (app.getPlacementSpread() > 1) {
@@ -90,6 +92,7 @@ public class ApplicationManagementMetrics extends MetricCollection {
 		//record application VM time
 		for (Application app : applications) {
 			if (app instanceof VmmApplication) continue;
+			if (!app.isActive() || app.isComplete()) continue;
 			
 			long val = 0;
 			if (appVmTime.containsKey(app)) {

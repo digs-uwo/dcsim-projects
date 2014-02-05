@@ -219,11 +219,19 @@ public abstract class AppManagementTestEnvironment {
 	 */
 	
 	public void configureStaticApplications(Simulation simulation, int nApps) {
+		configureStaticApplications(simulation, nApps, false);
+	}
+	
+	public void configureStaticApplications(Simulation simulation, int nApps, boolean fullSize) {
 		ArrayList<Application> applications = new ArrayList<Application>();
 		for (int i = 0; i < nApps; ++i) {
-			applications.add(this.createApplication());
+			applications.add(this.createApplication(fullSize));
 		}
 		simulation.sendEvent(new ApplicationPlacementEvent(dcAM, applications));
+	}
+	
+	public void configureRandomApplications(Simulation simulation, double changesPerDay, int minServices, int maxServices, long rampUpTime, long startTime, long duration) {
+		configureRandomApplications(simulation, changesPerDay, minServices, maxServices, rampUpTime, startTime, duration, false);
 	}
 	
 	/**
@@ -233,8 +241,9 @@ public abstract class AppManagementTestEnvironment {
 	 * @param changesPerDay The number of utilization changes (arrival rate changes) per day
 	 * @param minServices The minimum number of services running in the data centre
 	 * @param maxServices The maximum number of services running in the data centre
+	 * @param fullSize True to create applications at their maximum size
 	 */
-	public void configureRandomApplications(Simulation simulation, double changesPerDay, int minServices, int maxServices, long rampUpTime, long startTime, long duration) {
+	public void configureRandomApplications(Simulation simulation, double changesPerDay, int minServices, int maxServices, long rampUpTime, long startTime, long duration, boolean fullSize) {
 
 		/*
 		 * Configure minimum service level. Create the minimum number of services over the first 40 hours,
@@ -245,7 +254,7 @@ public abstract class AppManagementTestEnvironment {
 		serviceRates.add(new Tuple<Long, Double>(rampUpTime, 0d));		
 		serviceRates.add(new Tuple<Long, Double>(duration, 0d));		// 10 days
 		
-		ApplicationGenerator appGenerator = new AppManApplicationGenerator(simulation, dcAM, null, serviceRates);
+		ApplicationGenerator appGenerator = new AppManApplicationGenerator(simulation, dcAM, null, serviceRates, fullSize);
 		appGenerator.start();
 		
 		//Create a uniform random distribution to generate the number of services within the data centre.
@@ -283,7 +292,7 @@ public abstract class AppManagementTestEnvironment {
 		//add a final rate of 0 to run until the end of the simulation
 		serviceRates.add(new Tuple<Long, Double>(duration, 0d));
 		
-		appGenerator = new AppManApplicationGenerator(simulation, dcAM, new NormalDistribution(SimTime.days(1) / changesPerDay, SimTime.hours(1)), serviceRates);
+		appGenerator = new AppManApplicationGenerator(simulation, dcAM, new NormalDistribution(SimTime.days(1) / changesPerDay, SimTime.hours(1)), serviceRates, fullSize);
 		//appGenerator = new AppManApplicationGenerator(simulation, dcAM, new NormalDistribution(SimTime.days(5), SimTime.hours(1)), serviceRates);
 		appGenerator.start();
 	}
@@ -291,16 +300,18 @@ public abstract class AppManagementTestEnvironment {
 	public class AppManApplicationGenerator extends ApplicationGenerator {
 		
 		int id;
+		boolean fullSize;
 		
-		public AppManApplicationGenerator(Simulation simulation, AutonomicManager dcTarget, RealDistribution lifespanDist, List<Tuple<Long, Double>> servicesPerHour) {
+		public AppManApplicationGenerator(Simulation simulation, AutonomicManager dcTarget, RealDistribution lifespanDist, List<Tuple<Long, Double>> servicesPerHour, boolean fullSize) {
 			super(simulation, dcTarget, lifespanDist, servicesPerHour);
 			
 			this.setArrivalSyncInterval(ARRIVAL_SYNC_INTERVAL);
+			this.fullSize = fullSize;
 		}
 
 		@Override
 		public Application buildApplication() {
-			return createApplication();
+			return createApplication(fullSize);
 		}
 		
 		
