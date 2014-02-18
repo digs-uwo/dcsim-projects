@@ -24,30 +24,23 @@ public class ApplicationScalingPolicy extends Policy {
 	
 	private double cpuSafeThreshold = 0.5;
 	
-	private double cpuWarningThreshold = 0.9;
-	
 	private AutonomicManager dcManager;
-	private boolean slaAware;
 	long lastScaleUp = Long.MIN_VALUE;
 	
-	public ApplicationScalingPolicy(AutonomicManager dcManager, boolean slaAware) {
+	public ApplicationScalingPolicy(AutonomicManager dcManager) {
 		addRequiredCapability(ApplicationManager.class);
 		this.dcManager = dcManager;
-		
-		this.slaAware = slaAware;
 	}
 	
 	public void setParameters(double slaWarningThreshold, 
 			double slaSafeThreshold,
 			long scaleDownFreeze,
-			double cpuSafeThreshold,
-			double cpuWarningThreshold) {
+			double cpuSafeThreshold) {
 		
 		this.slaWarningThreshold = slaWarningThreshold;
 		this.slaSafeThreshold = slaSafeThreshold;
 		this.scaleDownFreeze = scaleDownFreeze;
 		this.cpuSafeThreshold = cpuSafeThreshold;
-		this.cpuWarningThreshold = cpuWarningThreshold;
 		
 	}
 	
@@ -75,14 +68,10 @@ public class ApplicationScalingPolicy extends Policy {
 			appManager.getApplicationResponseTimesLong().addValue(interactiveApp.getResponseTime());
 		}
 		
-		if (slaAware) {
-			autoscaleOnSLA();
-		} else {
-			autoscaleOnCpu();
-		}
+		autoscale();
 	}
 	
-	public void autoscaleOnSLA() {
+	public void autoscale() {
 		ApplicationManager appManager = manager.getCapability(ApplicationManager.class);
 		Application app = appManager.getApplication();
 		
@@ -187,93 +176,6 @@ public class ApplicationScalingPolicy extends Policy {
 			}
 		}
 		
-	}
-	
-	public void autoscaleOnCpu() {
-		ApplicationManager appManager = manager.getCapability(ApplicationManager.class);
-		Application app = appManager.getApplication();
-		
-		HostPoolManager hostPool = dcManager.getCapability(HostPoolManager.class);
-		
-		boolean scaledUp = false;
-		
-		//scale up - look for tasks with high utilization
-		Task targetTask = null;
-		double targetUtil = 0;
-		
-		for (Task task : app.getTasks()) {
-			if (task.getInstances().size() < task.getMaxInstances()) {
-				double taskUtil = 0;
-				for (TaskInstance instance : task.getInstances()) {
-					taskUtil += appManager.getInstanceCpuUtils().get(instance).getMean();
-				}
-				taskUtil = taskUtil / task.getInstances().size();
-				
-				if (taskUtil > cpuWarningThreshold && taskUtil > targetUtil) {
-					targetUtil = taskUtil;
-					targetTask = task;
-				}
-			}
-		}
-		
-		if (targetTask != null) {
-			AddTaskInstanceAction action = new AddTaskInstanceAction(targetTask, dcManager);
-			action.execute(simulation, this);
-			simulation.getSimulationMetrics().getCustomMetricCollection(ApplicationManagementMetrics.class).instancesAdded++;
-			lastScaleUp = simulation.getSimulationTime();
-			scaledUp = true;
-			
-//			System.out.println(SimTime.toHumanReadable(simulation.getSimulationTime()) + " Adding Instance to Task " + app.getId() + "-" + targetTask.getId());
-		}
-		
-		//scale down - choose task with lowest utilization that will result in utilization remaining below the safe threshold
-		if (!scaledUp && (simulation.getSimulationTime() - lastScaleUp) > scaleDownFreeze) {
-			targetUtil = Double.MAX_VALUE;
-			
-			for (Task task : app.getTasks()) {
-				if (task.getInstances().size() > 1) {
-					double utilization = 0;
-					for (TaskInstance instance : task.getInstances()) {
-						utilization += appManager.getInstanceCpuUtilsLong().get(instance).getMean();
-					}
-
-					if ((utilization / (task.getInstances().size() - 1)) < cpuSafeThreshold) {
-						if (utilization < targetUtil) {
-							targetUtil = utilization;
-							targetTask = task;
-						}
-					}
-				}
-			}
-			
-			if (targetTask != null) {
-
-				double targetHostUtil = -1;
-				TaskInstance targetInstance = null;
-				
-				//choose a task instance to shut down (instance on host with highest utilization to reduce overload risk)
-				for (TaskInstance instance : targetTask.getInstances()) {
-					double util = instance.getVM().getVMAllocation().getHost().getResourceManager().getCpuUtilization();
-					if (util > targetHostUtil) {
-						targetHostUtil = util;
-						targetInstance = instance;
-					}
-				}
-				
-				RemoveTaskInstanceAction action = new RemoveTaskInstanceAction(targetInstance);
-				action.execute(simulation, this);
-				simulation.getSimulationMetrics().getCustomMetricCollection(ApplicationManagementMetrics.class).instancesRemoved++;
-
-				//invalidate the dcManager host data
-				if (hostPool != null) {
-					HostData hostData = hostPool.getHost(targetInstance.getVM().getVMAllocation().getHost().getId());
-					hostData.invalidateStatus(simulation.getSimulationTime());
-				}
-				
-//				System.out.println(SimTime.toHumanReadable(simulation.getSimulationTime()) + " Removing Instance from Task " + app.getId() + "-" + targetTask.getId());
-			}
-			
-		}
 	}
 	
 	@Override

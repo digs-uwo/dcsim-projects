@@ -18,6 +18,7 @@ import edu.uwo.csd.dcsim.management.action.InstantiateVmAction;
 import edu.uwo.csd.dcsim.management.capabilities.HostPoolManager;
 import edu.uwo.csd.dcsim.management.events.ApplicationPlacementEvent;
 import edu.uwo.csd.dcsim.projects.applicationManagement.ApplicationManagementMetrics;
+import edu.uwo.csd.dcsim.projects.applicationManagement.RackComparator;
 import edu.uwo.csd.dcsim.projects.applicationManagement.capabilities.*;
 import edu.uwo.csd.dcsim.projects.applicationManagement.events.*;
 import edu.uwo.csd.dcsim.vm.VmAllocationRequest;
@@ -29,16 +30,20 @@ public class IntegratedApplicationPlacementPolicy extends Policy {
 	protected double upperThreshold;
 	protected double targetUtilization;
 	
-	public IntegratedApplicationPlacementPolicy(double lowerThreshold, double upperThreshold, double targetUtilization) {
+	private int rackRotation = 0; //used to rotate rack placement for applications placed at the same time
+	private boolean topologyAware;
+	
+	public IntegratedApplicationPlacementPolicy(double lowerThreshold, double upperThreshold, double targetUtilization, boolean topologyAware) {
 		addRequiredCapability(DataCentreManager.class);
 		
 		this.lowerThreshold = lowerThreshold;
 		this.upperThreshold = upperThreshold;
 		this.targetUtilization = targetUtilization;
+		this.topologyAware = topologyAware;
 	}
 	
 	public void execute(ApplicationPlacementEvent event) {
-		
+			
 		DataCentreManager dcManager = manager.getCapability(DataCentreManager.class);
 		Collection<HostData> hosts = dcManager.getHosts();
 		
@@ -85,33 +90,43 @@ public class IntegratedApplicationPlacementPolicy extends Policy {
 		//attempt to place in the fewest number of racks possible
 		ArrayList<Rack> targetRacks = new ArrayList<Rack>();
 		targetRacks.addAll(dcManager.getRacks()); //create an ordered version of the rack collection
-//		System.out.println("racks.size = " + targetRacks.size());
-		for (int nRacks = 1; nRacks <= targetRacks.size(); ++nRacks) {
-//			System.out.println("nRacks = " + nRacks);
-			for (int i = 0; i <= targetRacks.size() - nRacks; ++i) {
-//				System.out.println("    i = " + i);
-				//build host set to attempt placement
-				ArrayList<HostData> targetHosts = new ArrayList<HostData>();
-				for (int j = i; j < i + nRacks; ++j) {
-//					System.out.println("          j = " + j);
-					targetHosts.addAll(dcManager.getHosts(targetRacks.get(j))); //get the HostData collection of the hosts belonging to this rack
-				}
-				
-				placement = calculatePlacement(taskAllocationRequests, filterHosts(targetHosts), dcManager);
-				
-				if (placement.success) {
-					//debugging output
-//					String out = "Placing application #" + application.getId() + " in rack(s)";
-//					for (int j = i; j < i + nRacks; ++j) {
-//						out = out + " - " + j;
-//					}
-//					System.out.println(out);
+		
+		//rotate initial collection to ensure that applications placed at the same time are spread despite "sort by powered on hosts" returning same order 
+		Collections.rotate(targetRacks, rackRotation++);
+		
+		//sort targetRacks collection by increasing number of powered on hosts
+		Collections.sort(targetRacks, RackComparator.HOSTS_ON);
+		
+		if (topologyAware) {
+		
+			for (int nRacks = 1; nRacks <= targetRacks.size(); ++nRacks) {
+	
+				for (int i = 0; i <= targetRacks.size() - nRacks; ++i) {
+					//build host set to attempt placement
+					ArrayList<HostData> targetHosts = new ArrayList<HostData>();
+					for (int j = i; j < i + nRacks; ++j) {
+						targetHosts.addAll(dcManager.getHosts(targetRacks.get(j))); //get the HostData collection of the hosts belonging to this rack
+					}
 					
-					break;
+					placement = calculatePlacement(taskAllocationRequests, filterHosts(targetHosts), dcManager);
+					
+					if (placement.success) {
+						//debugging output
+	//					String out = "Placing application #" + application.getId() + " in rack(s)";
+	//					for (int j = i; j < i + nRacks; ++j) {
+	//						out = out + " - " + targetRacks.get(j).getId();
+	//					}
+	//					System.out.println(out);
+						
+						break;
+					}
 				}
+				
+				if (placement != null && placement.success) break;
 			}
-			
-			if (placement != null && placement.success) break;
+		
+		} else {
+			placement = calculatePlacement(taskAllocationRequests, filterHosts(dcManager.getHosts()), dcManager);
 		}
 		
 		//build placement actions
@@ -123,6 +138,8 @@ public class IntegratedApplicationPlacementPolicy extends Policy {
 						new VmStatus(vmPlacement.a.getVMDescription().getCores(),
 								vmPlacement.a.getVMDescription().getCoreCapacity(),
 						vmPlacement.a.getResources()));
+				
+				vmPlacement.b.invalidateStatus(simulation.getSimulationTime());
 			}
 			
 			return actions;
@@ -204,12 +221,13 @@ public class IntegratedApplicationPlacementPolicy extends Policy {
 	}
 	
 	public void execute(TaskInstancePlacementEvent event) {
-		//TODO: handle
-		System.out.println("!");
+		//throw an exception - for this work, we are handling new instance placement in the application management policy
+		throw new RuntimeException("Placement Policy recieved TaskInstancePlacementEvent - We aren't currently handling this here!!");
 	}
 	
 	public void execute(ShutdownApplicationEvent event) {
 		//TODO: handle
+		System.out.println("!!shutdown app event!!");
 	}
 	
 	private Collection<HostData> filterHosts(Collection<HostData> hosts) {

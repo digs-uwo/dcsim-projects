@@ -28,14 +28,13 @@ import edu.uwo.csd.dcsim.projects.applicationManagement.capabilities.Application
 import edu.uwo.csd.dcsim.projects.applicationManagement.capabilities.TaskInstanceManager;
 import edu.uwo.csd.dcsim.projects.applicationManagement.policies.*;
 import edu.uwo.csd.dcsim.projects.centralized.policies.VmConsolidationPolicyFFDDIHybrid;
-import edu.uwo.csd.dcsim.projects.centralized.policies.VmPlacementPolicyFFMHybrid;
 import edu.uwo.csd.dcsim.projects.centralized.policies.VmRelocationPolicyFFIMDHybrid;
 
 public class BasicAutoscalingWithReallocationExperiment extends SimulationTask {
 
 	private static Logger logger = Logger.getLogger(BasicAutoscalingWithReallocationExperiment.class);
 	
-	private static final long DURATION = SimTime.days(6);
+	private static final long DURATION = SimTime.days(8);
 //	private static final long DURATION = SimTime.minutes(5);
 	private static final long METRIC_RECORD_START = SimTime.days(1);
 	
@@ -65,33 +64,33 @@ public class BasicAutoscalingWithReallocationExperiment extends SimulationTask {
 		//use 10 minute relocation and 1 hour consolidation, as determined in previous work... try longer consolidation?
 		System.out.println("Starting BasicAutoscalingWithReallocationExperiment");
 		
-		//runSimulationSet(out, slaAware, slaWarningThreshold, slaSafeThreshold, cpuSafeThreshold, cpuWarningThreshold, upper, target, lower)
+		//runSimulationSet(out, slaWarningThreshold, slaSafeThreshold, cpuSafeThreshold, cpuWarningThreshold, upper, target, lower)
 		
-		//with SLA - SLA (true, 0.3, 0.2, 0.3, 0.9)
+		//with SLA (0.3, 0.2, 0.3)
 //			//90 - 85 - 60
-//		runSimulationSet(printStream, true, 0.3, 0.2, 0.3, 0.9, 0.9, 0.85, 0.6);
+//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.9, 0.85, 0.6);
 //			//90 - 85 - 50
-//		runSimulationSet(printStream, true, 0.3, 0.2, 0.3, 0.9, 0.9, 0.85, 0.5);
+//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.9, 0.85, 0.5);
 //			//90 - 85 - 40
-//		runSimulationSet(printStream, true, 0.3, 0.2, 0.3, 0.9, 0.9, 0.85, 0.4);
+//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.9, 0.85, 0.4);
 //			//85 - 80 - 60
-//		runSimulationSet(printStream, true, 0.3, 0.2, 0.3, 0.9, 0.85, 0.8, 0.6);
+//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.85, 0.8, 0.6);
 //			//85 - 80 - 50
-//		runSimulationSet(printStream, true, 0.3, 0.2, 0.3, 0.9, 0.85, 0.8, 0.5);
+//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.85, 0.8, 0.5);
 //			//85 - 80 - 40
-//		runSimulationSet(printStream, true, 0.3, 0.2, 0.3, 0.9, 0.85, 0.8, 0.4);
+//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.85, 0.8, 0.4);
 //			//80 - 75 - 60
-//		runSimulationSet(printStream, true, 0.3, 0.2, 0.3, 0.9, 0.8, 0.75, 0.6);
+//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.8, 0.75, 0.6);
 //			//80 - 75 - 50
-//		runSimulationSet(printStream, true, 0.3, 0.2, 0.3, 0.9, 0.8, 0.75, 0.5);
+//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.8, 0.75, 0.5);
 //			//80 - 75 - 40
-//		runSimulationSet(printStream, true, 0.3, 0.2, 0.3, 0.9, 0.8, 0.75, 0.4);
+//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.8, 0.75, 0.4);
 			//75 - 70 - 60
-		runSimulationSet(printStream, true, 0.3, 0.2, 0.3, 0.9, 0.75, 0.7, 0.6);
+		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.75, 0.7, 0.6);
 			//75 - 70 - 50
-		runSimulationSet(printStream, true, 0.3, 0.2, 0.3, 0.9, 0.75, 0.7, 0.5);
+		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.75, 0.7, 0.5);
 			//75 - 70 - 40
-		runSimulationSet(printStream, true, 0.3, 0.2, 0.3, 0.9, 0.75, 0.7, 0.4);
+		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.75, 0.7, 0.4);
 		
 	
 		
@@ -101,23 +100,21 @@ public class BasicAutoscalingWithReallocationExperiment extends SimulationTask {
 	}
 	
 	public static void runSimulationSet(PrintStream out, 
-			boolean slaAware,
 			double slaWarningThreshold, 
 			double slaSafeThreshold,
 			double cpuSafeThreshold,
-			double cpuWarningThreshold,
 			double upper,
 			double target,
 			double lower) {
 		
 		logger.info("Started New Simulation Set");
-		logger.info(upper + "," + target + "," + lower + "," + slaAware + "," + slaWarningThreshold + "," + slaSafeThreshold + "," + "," + cpuSafeThreshold + "," + cpuWarningThreshold);
+		logger.info(upper + "," + target + "," + lower + "," + slaWarningThreshold + "," + slaSafeThreshold + "," + "," + cpuSafeThreshold);
 		
 		List<SimulationTask> completedTasks;
 		SimulationExecutor executor = new SimulationExecutor();
 		for (int i = 0; i < 10; ++i)  {
 			BasicAutoscalingWithReallocationExperiment e = new BasicAutoscalingWithReallocationExperiment("autoscaling-reallocation-" + (i + 1), randomSeeds[i]);
-			e.setParameters(slaAware, slaWarningThreshold, slaSafeThreshold, cpuSafeThreshold, cpuWarningThreshold, upper, target, lower);
+			e.setParameters(slaWarningThreshold, slaSafeThreshold, cpuSafeThreshold, upper, target, lower);
 			executor.addTask(e);
 		}
 		
@@ -126,8 +123,8 @@ public class BasicAutoscalingWithReallocationExperiment extends SimulationTask {
 		//output CSV
 		out.println("Autoscale+Reallocation Experiment");
 		out.println("upper=" + upper + " | target=" + target + " | lower=" + lower +
-				" | slaAware=" + slaAware + " | slaWarning=" + slaWarningThreshold + " | slaSafe=" + slaSafeThreshold + 
-				" | cpuSafe=" + cpuSafeThreshold + " | cpuWarn=" + cpuWarningThreshold);
+				" | slaWarning=" + slaWarningThreshold + " | slaSafe=" + slaSafeThreshold + 
+				" | cpuSafe=" + cpuSafeThreshold);
 		
 		for(SimulationTask task : completedTasks) {
 			if (completedTasks.indexOf(task) == 0) {
@@ -143,12 +140,10 @@ public class BasicAutoscalingWithReallocationExperiment extends SimulationTask {
 		
 	}
 	
-	private boolean slaAware = true;
 	private double slaWarningThreshold = 0.8;
 	private double slaSafeThreshold = 0.6;
 	private long scaleDownFreeze = SimTime.minutes(60);
 	private double cpuSafeThreshold = 0.5;
-	private double cpuWarningThreshold = 0.9;
 	private int shortWindow = 5;
 	private int longWindow = 30;
 	private long scalingInterval = SimTime.minutes(5);
@@ -167,20 +162,16 @@ public class BasicAutoscalingWithReallocationExperiment extends SimulationTask {
 		this.setRandomSeed(randomSeed);
 	}
 	
-	public void setParameters(boolean slaAware,
-			double slaWarningThreshold, 
+	public void setParameters(double slaWarningThreshold, 
 			double slaSafeThreshold,
 			double cpuSafeThreshold,
-			double cpuWarningThreshold,
 			double upper,
 			double target,
 			double lower) {
 		
-		this.slaAware = slaAware;
 		this.slaWarningThreshold = slaWarningThreshold;
 		this.slaSafeThreshold = slaSafeThreshold;
 		this.cpuSafeThreshold = cpuSafeThreshold;
-		this.cpuWarningThreshold = cpuWarningThreshold;
 		this.upper = upper;
 		this.target = target;
 		this.lower = lower;
@@ -241,8 +232,8 @@ public class BasicAutoscalingWithReallocationExperiment extends SimulationTask {
 			manager.addCapability(applicationManager);
 			applicationManager.setAutonomicManager(manager);
 			
-			ApplicationScalingPolicy appPolicy = new ApplicationScalingPolicy(dcAM, slaAware);
-			appPolicy.setParameters(slaWarningThreshold, slaSafeThreshold, scaleDownFreeze, cpuSafeThreshold, cpuWarningThreshold);
+			ApplicationScalingPolicy appPolicy = new ApplicationScalingPolicy(dcAM);
+			appPolicy.setParameters(slaWarningThreshold, slaSafeThreshold, scaleDownFreeze, cpuSafeThreshold);
 			manager.installPolicy(appPolicy, scalingInterval, 0);
 			
 			application.addApplicationListener(new ManagedApplicationListener(simulation, applicationManager));
