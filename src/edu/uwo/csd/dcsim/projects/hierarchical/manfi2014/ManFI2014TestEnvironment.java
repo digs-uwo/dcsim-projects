@@ -175,7 +175,7 @@ public class ManFI2014TestEnvironment {
 		 * 7. Hold on ~1520 for day 10.
 		 * 8. Decrease from ~1520 to ~1280 throughout day 11.
 		 * 9. Hold on ~1280 for day 12.
-		 * 9. Complete 8 days of recorded simulation.
+		 * 10. Complete 8 days of recorded simulation.
 		 */
 		
 		/*
@@ -212,9 +212,10 @@ public class ManFI2014TestEnvironment {
 		serviceRates.add(new Tuple<Long, Double>(SimTime.days(8), 10d));
 		
 		//Day 10: Create ~240 new services throughout the day, for a total of ~1520 -- services from Day 6 terminate throughout the day.
+		serviceRates.add(new Tuple<Long, Double>(SimTime.days(9), 0d));
 		
 		//Day 11: Load goes down to ~1280 -- services from Day 7 terminate throughout the day.
-		serviceRates.add(new Tuple<Long, Double>(SimTime.days(10), 0d));
+//		serviceRates.add(new Tuple<Long, Double>(SimTime.days(10), 0d));
 		
 		//Day 12: Hold at ~1280.
 		

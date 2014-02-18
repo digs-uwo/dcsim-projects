@@ -46,7 +46,7 @@ public class CentralizedExperiment extends SimulationTask {
 		-6452776964812569334l,
 		-7148920787255940546l,
 		8311271444423629559l};
-	private static final long N_SEEDS = 1;
+	private static final long N_SEEDS = 10;
 	
 	private double lower;				// Lower utilization threshold.
 	private double target;				// Target utilization threshold.
@@ -126,8 +126,8 @@ public class CentralizedExperiment extends SimulationTask {
 			}
 			
 			// Conventional print.
-			logger.info(task.getName());
-			task.getMetrics().printDefault(logger);
+//			logger.info(task.getName());
+//			task.getMetrics().printDefault(logger);
 		}
 		out.println("");
 		out.println("");
