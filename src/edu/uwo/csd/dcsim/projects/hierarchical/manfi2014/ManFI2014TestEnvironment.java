@@ -76,6 +76,10 @@ public class ManFI2014TestEnvironment {
 		SwitchFactory switch10g48p = new SwitchFactory(10000000, 48, 100);
 		SwitchFactory switch40g24p = new SwitchFactory(40000000, 24, 100);
 		
+		// Switches defined according to Mahadevan2009.
+		SwitchFactory edgeSwitch = new SwitchFactory(1000000, 48, 102);	// 1 Gbps
+		SwitchFactory coreSwitch = new SwitchFactory(1000000, 48, 656);	// 1 Gbps
+		
 		// Define Host types.
 		Host.Builder proLiantDL380G5QuadCore = HostModels.ProLiantDL380G5QuadCore(simulation).privCpu(500).privBandwidth(131072)
 				.resourceManagerFactory(new DefaultResourceManagerFactory())
@@ -88,23 +92,28 @@ public class ManFI2014TestEnvironment {
 		// Define Rack types.
 		Rack.Builder seriesA = new Rack.Builder(simulation).nSlots(40).nHosts(N_HOSTS)
 				.hostBuilder(proLiantDL380G5QuadCore)
-				.switchFactory(switch10g48p);
+				.switchFactory(edgeSwitch);
+//				.switchFactory(switch10g48p);
 		
 		Rack.Builder seriesB = new Rack.Builder(simulation).nSlots(40).nHosts(N_HOSTS)
 				.hostBuilder(proLiantDL160G5E5420)
-				.switchFactory(switch10g48p);
+				.switchFactory(edgeSwitch);
+//				.switchFactory(switch10g48p);
 		
 		// Define Cluster types.
 		Cluster.Builder series09 = new Cluster.Builder(simulation).nRacks(N_RACKS).nSwitches(1)
 				.rackBuilder(seriesA)
-				.switchFactory(switch40g24p);
+				.switchFactory(coreSwitch);
+//				.switchFactory(switch40g24p);
 		
 		Cluster.Builder series11 = new Cluster.Builder(simulation).nRacks(N_RACKS).nSwitches(1)
 				.rackBuilder(seriesB)
-				.switchFactory(switch40g24p);
+				.switchFactory(coreSwitch);
+//				.switchFactory(switch40g24p);
 		
 		// Create data centre.
-		DataCentre dc = new DataCentre(simulation, switch40g24p);
+		DataCentre dc = new DataCentre(simulation, coreSwitch);
+//		DataCentre dc = new DataCentre(simulation, switch40g24p);
 		simulation.addDatacentre(dc);
 		
 		// Create clusters in data centre.
