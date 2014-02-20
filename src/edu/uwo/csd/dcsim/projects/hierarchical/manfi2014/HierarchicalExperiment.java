@@ -53,7 +53,7 @@ public class HierarchicalExperiment extends SimulationTask {
 		-6452776964812569334l,
 		-7148920787255940546l,
 		8311271444423629559l};
-	private static final long N_SEEDS = 10;
+	private static final long N_SEEDS = 1;
 	
 	private double lower;				// Lower utilization threshold.
 	private double target;				// Target utilization threshold.

@@ -26,6 +26,8 @@ import edu.uwo.csd.dcsim.projects.hierarchical.HierarchicalMetrics;
  */
 public class ManFI2014TestEnvironment {
 
+	public static final long ARRIVAL_SYNC_INTERVAL = SimTime.minutes(1);
+	
 	public static final int N_CLUSTERS = 5;
 	public static final int N_RACKS = 4;
 	public static final int N_HOSTS = 10;
@@ -368,6 +370,8 @@ public class ManFI2014TestEnvironment {
 		
 		public ServiceProducer(Simulation simulation, AutonomicManager dcTarget, RealDistribution lifespanDist, List<Tuple<Long, Double>> servicesPerHour) {
 			super(simulation, dcTarget, lifespanDist, servicesPerHour);
+			
+			this.setArrivalSyncInterval(ARRIVAL_SYNC_INTERVAL);
 		}
 		
 		@Override
