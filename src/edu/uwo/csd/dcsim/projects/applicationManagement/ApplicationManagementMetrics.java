@@ -154,8 +154,10 @@ public class ApplicationManagementMetrics extends MetricCollection {
 		
 		metrics.add(new Tuple<String, Object>("spreadPenalty", (long)appSpreadPenaltyStats.getSum()));
 		metrics.add(new Tuple<String, Object>("zeroPenalty", Utility.roundDouble(Utility.toPercentage(nZeroSpreadPenalty / (double)appSpreadPenalty.size()), Simulation.getMetricPrecision())));
-		metrics.add(new Tuple<String, Object>("appVmTime", SimTime.toDays((long)appVmTimeStats.getSum())));
-		metrics.add(new Tuple<String, Object>("appVmTimeAvg", SimTime.toHours((long)appVmTimeStats.getMean())));
+		metrics.add(new Tuple<String, Object>("appVmTime(Days)", SimTime.toDays((long)appVmTimeStats.getSum())));
+		metrics.add(new Tuple<String, Object>("appVmTimeAvg(Hours)", SimTime.toHours((long)appVmTimeStats.getMean())));
+		
+		metrics.add(new Tuple<String, Object>("placementCorrectionMigs", placementCorrectionMigration));
 		
 		return metrics;
 	}

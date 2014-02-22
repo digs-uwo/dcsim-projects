@@ -5,24 +5,21 @@ import java.util.*;
 import edu.uwo.csd.dcsim.application.*;
 import edu.uwo.csd.dcsim.common.Tuple;
 import edu.uwo.csd.dcsim.common.Utility;
-import edu.uwo.csd.dcsim.core.Event;
 import edu.uwo.csd.dcsim.host.Host;
 import edu.uwo.csd.dcsim.host.Rack;
 import edu.uwo.csd.dcsim.host.Resources;
+import edu.uwo.csd.dcsim.host.Host.HostState;
 import edu.uwo.csd.dcsim.management.HostData;
 import edu.uwo.csd.dcsim.management.HostDataComparator;
 import edu.uwo.csd.dcsim.management.HostStatus;
 import edu.uwo.csd.dcsim.management.Policy;
 import edu.uwo.csd.dcsim.management.VmStatus;
 import edu.uwo.csd.dcsim.management.action.InstantiateVmAction;
-import edu.uwo.csd.dcsim.management.capabilities.HostPoolManager;
 import edu.uwo.csd.dcsim.management.events.ApplicationPlacementEvent;
-import edu.uwo.csd.dcsim.projects.applicationManagement.ApplicationManagementMetrics;
 import edu.uwo.csd.dcsim.projects.applicationManagement.RackComparator;
 import edu.uwo.csd.dcsim.projects.applicationManagement.capabilities.*;
 import edu.uwo.csd.dcsim.projects.applicationManagement.events.*;
 import edu.uwo.csd.dcsim.vm.VmAllocationRequest;
-import edu.uwo.csd.dcsim.vm.VmDescription;
 
 public class IntegratedApplicationPlacementPolicy extends Policy {
 
@@ -32,14 +29,16 @@ public class IntegratedApplicationPlacementPolicy extends Policy {
 	
 	private int rackRotation = 0; //used to rotate rack placement for applications placed at the same time
 	private boolean topologyAware;
+	private double rackTarget;
 	
-	public IntegratedApplicationPlacementPolicy(double lowerThreshold, double upperThreshold, double targetUtilization, boolean topologyAware) {
+	public IntegratedApplicationPlacementPolicy(double lowerThreshold, double upperThreshold, double targetUtilization, boolean topologyAware, double rackTarget) {
 		addRequiredCapability(DataCentreManager.class);
 		
 		this.lowerThreshold = lowerThreshold;
 		this.upperThreshold = upperThreshold;
 		this.targetUtilization = targetUtilization;
 		this.topologyAware = topologyAware;
+		this.rackTarget = rackTarget;
 	}
 	
 	public void execute(ApplicationPlacementEvent event) {
@@ -94,8 +93,33 @@ public class IntegratedApplicationPlacementPolicy extends Policy {
 		//rotate initial collection to ensure that applications placed at the same time are spread despite "sort by powered on hosts" returning same order 
 		Collections.rotate(targetRacks, rackRotation++);
 		
-		//sort targetRacks collection by increasing number of powered on hosts
-		Collections.sort(targetRacks, RackComparator.HOSTS_ON);
+		ArrayList<Rack> overTarget = new ArrayList<Rack>();
+		ArrayList<Rack> underTarget = new ArrayList<Rack>();
+		
+		for (Rack rack : targetRacks) {
+			int nHostsOn = 0;
+			for (Host host : rack.getHosts()) {
+				if (host.getState() == HostState.ON) ++nHostsOn;
+			}
+			if (nHostsOn / (double)rack.getHostCount() >= rackTarget) {
+				overTarget.add(rack);
+			} else {
+				underTarget.add(rack);
+			}
+		}
+		
+		Collections.sort(underTarget, RackComparator.HOSTS_ON);
+		Collections.reverse(underTarget);
+		
+		Collections.sort(overTarget, RackComparator.HOSTS_ON);
+		
+		targetRacks.clear();
+		targetRacks.addAll(underTarget);
+		targetRacks.addAll(overTarget);
+		
+		//sort targetRacks collection by decreasing number of powered on hosts
+//		Collections.sort(targetRacks, RackComparator.HOSTS_ON);
+//		Collections.reverse(targetRacks);
 		
 		if (topologyAware) {
 		

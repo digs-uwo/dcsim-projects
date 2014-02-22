@@ -24,6 +24,7 @@ import edu.uwo.csd.dcsim.management.AutonomicManager;
 import edu.uwo.csd.dcsim.management.capabilities.*;
 import edu.uwo.csd.dcsim.management.events.ApplicationPlacementEvent;
 import edu.uwo.csd.dcsim.management.policies.*;
+import edu.uwo.csd.dcsim.projects.applicationManagement.ApplicationManagementExperiment.Environment;
 import edu.uwo.csd.dcsim.projects.applicationManagement.capabilities.ApplicationManager;
 import edu.uwo.csd.dcsim.projects.applicationManagement.capabilities.TaskInstanceManager;
 import edu.uwo.csd.dcsim.projects.applicationManagement.policies.*;
@@ -34,9 +35,19 @@ public class BasicAutoscalingWithReallocationExperiment extends SimulationTask {
 
 	private static Logger logger = Logger.getLogger(BasicAutoscalingWithReallocationExperiment.class);
 	
-	private static final long DURATION = SimTime.days(8);
-//	private static final long DURATION = SimTime.minutes(5);
-	private static final long METRIC_RECORD_START = SimTime.days(1);
+	private static final long RAMP_UP_TIME = SimTime.hours(20); //20
+	private static final long APP_ARRIVAL_START_TIME =  SimTime.hours(24); //24
+	private static final long DURATION = SimTime.days(8); //8
+	private static final long METRIC_RECORD_START = SimTime.hours(24); //24
+	
+	private static final int RACK_SIZE = 40; //40
+	private static final int N_RACKS = 8; //8
+	private static final int N_APPS_MAX = 50; //50
+	private static final int N_APPS_MIN = 10; //10
+	private static final double CHANGES_PER_DAY = 0.5; //0.5
+	private static final boolean DYNAMIC_ARRIVALS = true; //true
+		
+	private static final boolean CSV_OUTPUT = true;
 	
 	private static final long[] randomSeeds = {6198910678692541341l,
 		5646441053220106016l,
@@ -48,6 +59,7 @@ public class BasicAutoscalingWithReallocationExperiment extends SimulationTask {
 		-6452776964812569334l,
 		-7148920787255940546l,
 		8311271444423629559l};
+	private static final long N_SEEDS = 10; //10
 	
 	public static void main(String args[]) {
 		Simulation.initializeLogging();
@@ -67,24 +79,24 @@ public class BasicAutoscalingWithReallocationExperiment extends SimulationTask {
 		//runSimulationSet(out, slaWarningThreshold, slaSafeThreshold, cpuSafeThreshold, cpuWarningThreshold, upper, target, lower)
 		
 		//with SLA (0.3, 0.2, 0.3)
-//			//90 - 85 - 60
-//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.9, 0.85, 0.6);
-//			//90 - 85 - 50
-//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.9, 0.85, 0.5);
-//			//90 - 85 - 40
-//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.9, 0.85, 0.4);
-//			//85 - 80 - 60
-//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.85, 0.8, 0.6);
-//			//85 - 80 - 50
-//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.85, 0.8, 0.5);
-//			//85 - 80 - 40
-//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.85, 0.8, 0.4);
-//			//80 - 75 - 60
-//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.8, 0.75, 0.6);
-//			//80 - 75 - 50
-//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.8, 0.75, 0.5);
-//			//80 - 75 - 40
-//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.8, 0.75, 0.4);
+			//90 - 85 - 60
+		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.9, 0.85, 0.6);
+			//90 - 85 - 50
+		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.9, 0.85, 0.5);
+			//90 - 85 - 40
+		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.9, 0.85, 0.4);
+			//85 - 80 - 60
+		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.85, 0.8, 0.6);
+			//85 - 80 - 50
+		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.85, 0.8, 0.5);
+			//85 - 80 - 40
+		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.85, 0.8, 0.4);
+			//80 - 75 - 60
+		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.8, 0.75, 0.6);
+			//80 - 75 - 50
+		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.8, 0.75, 0.5);
+			//80 - 75 - 40
+		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.8, 0.75, 0.4);
 			//75 - 70 - 60
 		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.75, 0.7, 0.6);
 			//75 - 70 - 50
@@ -112,7 +124,7 @@ public class BasicAutoscalingWithReallocationExperiment extends SimulationTask {
 		
 		List<SimulationTask> completedTasks;
 		SimulationExecutor executor = new SimulationExecutor();
-		for (int i = 0; i < 10; ++i)  {
+		for (int i = 0; i < N_SEEDS; ++i)  {
 			BasicAutoscalingWithReallocationExperiment e = new BasicAutoscalingWithReallocationExperiment("autoscaling-reallocation-" + (i + 1), randomSeeds[i]);
 			e.setParameters(slaWarningThreshold, slaSafeThreshold, cpuSafeThreshold, upper, target, lower);
 			executor.addTask(e);
@@ -120,23 +132,30 @@ public class BasicAutoscalingWithReallocationExperiment extends SimulationTask {
 		
 		completedTasks = executor.execute(4);
 		
-		//output CSV
-		out.println("Autoscale+Reallocation Experiment");
-		out.println("upper=" + upper + " | target=" + target + " | lower=" + lower +
-				" | slaWarning=" + slaWarningThreshold + " | slaSafe=" + slaSafeThreshold + 
-				" | cpuSafe=" + cpuSafeThreshold);
-		
-		for(SimulationTask task : completedTasks) {
-			if (completedTasks.indexOf(task) == 0) {
-				task.getMetrics().printCSV(out);
-			} else {
-				task.getMetrics().printCSV(out, false);
+		if (CSV_OUTPUT) {
+			//output CSV
+			out.println("Autoscale+Reallocation Experiment");
+			out.println("upper=" + upper + " | target=" + target + " | lower=" + lower +
+					" | slaWarning=" + slaWarningThreshold + " | slaSafe=" + slaSafeThreshold + 
+					" | cpuSafe=" + cpuSafeThreshold);
+			
+			for(SimulationTask task : completedTasks) {
+				if (completedTasks.indexOf(task) == 0) {
+					task.getMetrics().printCSV(out);
+				} else {
+					task.getMetrics().printCSV(out, false);
+				}
+			}
+			out.println("");
+			out.println("");
+			
+			out.flush();
+		} else {
+			for(SimulationTask task : completedTasks) {
+				logger.info(task.getName());
+				task.getMetrics().printDefault(logger);
 			}
 		}
-		out.println("");
-		out.println("");
-		
-		out.flush();
 		
 	}
 	
@@ -183,14 +202,15 @@ public class BasicAutoscalingWithReallocationExperiment extends SimulationTask {
 		
 		simulation.getSimulationMetrics().addCustomMetricCollection(new ApplicationManagementMetrics(simulation));
 		
-		Environment environment = new Environment(simulation, 40, 5);
+		Environment environment = new Environment(simulation, RACK_SIZE, N_RACKS);
 		environment.createDataCentre(simulation);
-			
-		ArrayList<Application> applications = new ArrayList<Application>();
-		for (int i = 0; i < 50; ++i) {
-			applications.add(environment.createApplication());
+		
+		if(DYNAMIC_ARRIVALS) {
+			//change level every 2 days, min 10 apps, max 50 apps, ramp up 20 hours, start random at 24 hours, duration 2 days
+			environment.configureRandomApplications(simulation, CHANGES_PER_DAY, N_APPS_MIN, N_APPS_MAX, RAMP_UP_TIME, APP_ARRIVAL_START_TIME, DURATION);
+		} else {
+			environment.configureStaticApplications(simulation, N_APPS_MAX);
 		}
-		simulation.sendEvent(new ApplicationPlacementEvent(environment.getDcAM(), applications));
 	}
 	
 	public class Environment extends AppManagementTestEnvironment {
@@ -234,7 +254,7 @@ public class BasicAutoscalingWithReallocationExperiment extends SimulationTask {
 			
 			ApplicationScalingPolicy appPolicy = new ApplicationScalingPolicy(dcAM);
 			appPolicy.setParameters(slaWarningThreshold, slaSafeThreshold, scaleDownFreeze, cpuSafeThreshold);
-			manager.installPolicy(appPolicy, scalingInterval, 0);
+			manager.installPolicy(appPolicy, scalingInterval, simulation.getSimulationTime());
 			
 			application.addApplicationListener(new ManagedApplicationListener(simulation, applicationManager));
 		}
@@ -270,8 +290,7 @@ public class BasicAutoscalingWithReallocationExperiment extends SimulationTask {
 
 		@Override
 		public void onShutdownApplication(Application application) {
-			// TODO Auto-generated method stub
-			
+			applicationManager.getManager().shutdown();
 		}
 		
 	}

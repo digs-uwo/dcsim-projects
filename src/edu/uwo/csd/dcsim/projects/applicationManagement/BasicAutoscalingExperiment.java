@@ -41,15 +41,15 @@ public class BasicAutoscalingExperiment extends SimulationTask {
 	private static final long METRIC_RECORD_START = SimTime.hours(24); //24
 	
 	private static final int RACK_SIZE = 40; //40
-	private static final int N_RACKS = 5; //5
-	private static final int N_APPS_MAX = 40; //40
+	private static final int N_RACKS = 8; //8
+	private static final int N_APPS_MAX = 50; //50
 	private static final int N_APPS_MIN = 10; //10
-	private static final double CHANGES_PER_DAY = 1; //0.5
-	private static final boolean DYNAMIC_ARRIVALS = true;
+	private static final double CHANGES_PER_DAY = 0.5; //0.5
+	private static final boolean DYNAMIC_ARRIVALS = true; //true
 	
 	private static final boolean STATIC_FULL = false; //if True, applications will be statically allocated their full size, no autoscaling will occur
 	
-	private static final boolean CSV_OUTPUT = false;
+	private static final boolean CSV_OUTPUT = true;
 	
 	private static final long[] randomSeeds = {6198910678692541341l,
 		5646441053220106016l,
@@ -61,7 +61,7 @@ public class BasicAutoscalingExperiment extends SimulationTask {
 		-6452776964812569334l,
 		-7148920787255940546l,
 		8311271444423629559l};
-	private static final long N_SEEDS = 1;
+	private static final long N_SEEDS = 10; //10
 
 	public static void main(String args[]) {
 		Simulation.initializeLogging();
@@ -88,19 +88,22 @@ public class BasicAutoscalingExperiment extends SimulationTask {
 		 * NOMS 2014 Extended
 		 */
 		//runSimulationSet(out,slaWarningThreshold,slaSafeThreshold,scaleDownFreeze, cpuSafeThreshold, shortWindow, longWindow, scalingInterval)
-//		runSimulationSet(printStream, 0.25, 0.2, SimTime.minutes(60), 0.3, 5, 30, SimTime.minutes(5)); //lower SLA warning
-//		runSimulationSet(printStream, 0.3, 0.15, SimTime.minutes(60), 0.3, 5, 30, SimTime.minutes(5)); //lower SLA safe
-//		runSimulationSet(printStream, 0.25, 0.15, SimTime.minutes(60), 0.3, 5, 30, SimTime.minutes(5)); //lower SLA warning & safe
-//		runSimulationSet(printStream, 0.3, 0.2, SimTime.minutes(60), 0.2, 5, 30, SimTime.minutes(5)); //lower CPU safe
-		runSimulationSet(printStream, 0.2, 0.15, SimTime.minutes(60), 0.3, 5, 30, SimTime.minutes(5)); //lower SLA warning
 		
-//		runSimulationSet(printStream, 0.9, 0.6, SimTime.minutes(60), 0.3, 5, 30, SimTime.minutes(5)); 
-//		runSimulationSet(printStream, 0.6, 0.6, SimTime.minutes(60), 0.3, 5, 30, SimTime.minutes(5)); 
-//		runSimulationSet(printStream, 0.6, 0.6, SimTime.minutes(60), 0.5, 5, 30, SimTime.minutes(5)); 
-//		runSimulationSet(printStream, 0.2, 0.6, SimTime.minutes(60), 0.3, 5, 30, SimTime.minutes(5)); 
-//		runSimulationSet(printStream, 0.8, 0.6, SimTime.minutes(30), 0.5, 5, 30, SimTime.minutes(5)); 
-//		runSimulationSet(printStream, 0.8, 0.4, SimTime.minutes(30), 0.3, 5, 30, SimTime.minutes(5)); 
-		
+		runSimulationSet(printStream, 0.9, 0.6, SimTime.minutes(60), 0.5, 5, 30, SimTime.minutes(5));
+//		runSimulationSet(printStream, 0.9, 0.6, SimTime.minutes(60), 0.3, 5, 30, SimTime.minutes(5));
+//		runSimulationSet(printStream, 0.9, 0.3, SimTime.minutes(60), 0.3, 5, 30, SimTime.minutes(5));
+//		
+//		runSimulationSet(printStream, 0.8, 0.6, SimTime.minutes(60), 0.3, 5, 30, SimTime.minutes(5));
+//		runSimulationSet(printStream, 0.6, 0.6, SimTime.minutes(60), 0.3, 5, 30, SimTime.minutes(5));
+//		runSimulationSet(printStream, 0.6, 0.3, SimTime.minutes(60), 0.3, 5, 30, SimTime.minutes(5));
+//		runSimulationSet(printStream, 0.3, 0.2, SimTime.minutes(60), 0.3, 5, 30, SimTime.minutes(5));
+//		
+//		runSimulationSet(printStream, 0.3, 0.2, SimTime.minutes(60), 0.5, 5, 30, SimTime.minutes(5));
+//		runSimulationSet(printStream, 0.2, 0.15, SimTime.minutes(60), 0.3, 5, 30, SimTime.minutes(5));
+//		
+//		runSimulationSet(printStream, 0.9, 0.6, SimTime.minutes(30), 0.5, 5, 30, SimTime.minutes(5));
+//		runSimulationSet(printStream, 0.8, 0.6, SimTime.minutes(30), 0.3, 5, 30, SimTime.minutes(5));
+//		runSimulationSet(printStream, 0.3, 0.2, SimTime.minutes(30), 0.5, 5, 30, SimTime.minutes(5));
 		
 		printStream.println("DONE!");
 		printStream.flush();

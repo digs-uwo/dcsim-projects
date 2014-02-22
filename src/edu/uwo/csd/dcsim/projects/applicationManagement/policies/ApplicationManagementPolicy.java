@@ -55,6 +55,7 @@ public class ApplicationManagementPolicy extends Policy {
 	private double targetUtilization;
 
 	private boolean topologyAware;
+	private boolean topologySortPost = true;
 	
 	private HashMap<HostData, Integer> stressedHostWindow = new HashMap<HostData, Integer>();
 	private HashMap<HostData, Integer> underutilHostWindow = new HashMap<HostData, Integer>();
@@ -97,9 +98,8 @@ public class ApplicationManagementPolicy extends Policy {
 		ArrayList<HostData> empty = new ArrayList<HostData>();
 		
 		ArrayList<HostData> stressedPendingMigration = new ArrayList<HostData>();
+		ArrayList<HostData> usedSources = new ArrayList<HostData>();
 		ArrayList<HostData> usedTargets = new ArrayList<HostData>();
-		
-		ArrayList<HostData> targets = new ArrayList<HostData>();
 		
 		//scaling tasks
 		ArrayList<Task> scaleUpTasks = new ArrayList<Task>();
@@ -151,7 +151,7 @@ public class ApplicationManagementPolicy extends Policy {
 		handleStressByScaling(data);
 		scaleDownOverTargetUtilization(data);
 		
-		buildTargetList(data);
+		//buildTargetList(data);
 		relocate(data);
 		
 		/*
@@ -240,48 +240,97 @@ public class ApplicationManagementPolicy extends Policy {
 		}
 	}
 	
-	private void buildTargetList(ApplicationManagementData data) {
+	private ArrayList<HostData> buildTargetList(ApplicationManagementData data) {
+		
+		ArrayList<HostData> targets = new ArrayList<HostData>();
+		
+		ArrayList<HostData> partiallyUtilized = new ArrayList<HostData>();
+		ArrayList<HostData> underUtilized = new ArrayList<HostData>();
+		ArrayList<HostData> empty = new ArrayList<HostData>();
+		
+		partiallyUtilized.addAll(data.partiallyUtilized);
+		underUtilized.addAll(data.underUtilized);
+		empty.addAll(data.empty);
+		
 		// Sort Partially-Utilized hosts in increasing order by <CPU utilization, power efficiency>.
-		Collections.sort(data.partiallyUtilized, HostDataComparator.getComparator(HostDataComparator.CPU_UTIL, HostDataComparator.EFFICIENCY));
+		Collections.sort(partiallyUtilized, HostDataComparator.getComparator(HostDataComparator.CPU_UTIL, HostDataComparator.EFFICIENCY));
 		
 		// Sort Underutilized hosts in decreasing order by <CPU utilization, power efficiency>.
-		Collections.sort(data.underUtilized, HostDataComparator.getComparator(HostDataComparator.CPU_UTIL, HostDataComparator.EFFICIENCY));
-		Collections.reverse(data.underUtilized);
+		Collections.sort(underUtilized, HostDataComparator.getComparator(HostDataComparator.CPU_UTIL, HostDataComparator.EFFICIENCY));
+		Collections.reverse(underUtilized);
 		
 		// Sort Empty hosts in decreasing order by <power efficiency, power state>.
-		Collections.sort(data.empty, HostDataComparator.getComparator(HostDataComparator.EFFICIENCY, HostDataComparator.PWR_STATE));
-		Collections.reverse(data.empty);
+		Collections.sort(empty, HostDataComparator.getComparator(HostDataComparator.EFFICIENCY, HostDataComparator.PWR_STATE));
+		Collections.reverse(empty);
 		
-		data.targets.addAll(data.partiallyUtilized);
-		data.targets.addAll(data.underUtilized);
-		data.targets.addAll(data.empty);
+		targets.addAll(partiallyUtilized);
+		targets.addAll(underUtilized);
+		targets.addAll(empty);
+		
+		return targets;
+	}
+	
+	private ArrayList<HostData> buildTargetList(ApplicationManagementData data, Rack majorityRack) {
+		
+		ArrayList<HostData> targets = new ArrayList<HostData>();
+		
+		ArrayList<HostData> partiallyUtilized = new ArrayList<HostData>();
+		ArrayList<HostData> underUtilized = new ArrayList<HostData>();
+		ArrayList<HostData> empty = new ArrayList<HostData>();
+		
+		partiallyUtilized.addAll(data.partiallyUtilized);
+		underUtilized.addAll(data.underUtilized);
+		empty.addAll(data.empty);
+		
+		// Sort Partially-Utilized hosts in increasing order by <CPU utilization, power efficiency>.
+		Collections.sort(partiallyUtilized, HostDataComparator.getComparator(HostDataComparator.CPU_UTIL, HostDataComparator.EFFICIENCY));
+		
+		// Sort Underutilized hosts in decreasing order by <CPU utilization, power efficiency>.
+		Collections.sort(underUtilized, HostDataComparator.getComparator(HostDataComparator.CPU_UTIL, HostDataComparator.EFFICIENCY));
+		Collections.reverse(underUtilized);
+		
+		// Sort Empty hosts in decreasing order by <power efficiency, power state>.
+		Collections.sort(empty, HostDataComparator.getComparator(HostDataComparator.EFFICIENCY, HostDataComparator.PWR_STATE));
+		Collections.reverse(empty);
+		
+
+		if (topologySortPost) {
+			
+			targets.addAll(partiallyUtilized);
+			targets.addAll(underUtilized);
+			targets.addAll(empty);
+			
+			ArrayList<HostData> sorted = new ArrayList<HostData>();
+			
+			//make a first pass to pull members of majority rack
+//			for (HostData hostData : targets) {
+//				if (hostData.getHost().getRack() == majorityRack) sorted.add(hostData);
+//			}
+			sorted.addAll(targetRackOnly(majorityRack, targets));
+			
+			//make a second pass to add remaining hosts
+//			for (HostData hostData : targets) {
+//				if (hostData.getHost().getRack() != majorityRack) sorted.add(hostData);
+//			}
+			sorted.addAll(targetNonRackOnly(majorityRack, targets));
+			
+			targets = sorted;
+		} else {
+			targets.addAll(targetRackOnly(majorityRack, partiallyUtilized));
+			targets.addAll(targetNonRackOnly(majorityRack, partiallyUtilized));
+			
+			targets.addAll(targetRackOnly(majorityRack, underUtilized));
+			targets.addAll(targetNonRackOnly(majorityRack, underUtilized));
+			
+			targets.addAll(targetRackOnly(majorityRack, empty));
+			targets.addAll(targetNonRackOnly(majorityRack, empty));
+		}
+		
+		return targets;
 	}
 	
 	private Rack getMajorityRack(VmStatus vmStatus) {
 		return vmStatus.getVm().getTaskInstance().getTask().getApplication().getMajorityRack();
-	}
-	
-	/**
-	 * Rearrange target host list so that hosts within the majority rack of the application in the VM are chosen first, with
-	 * the existing order as the secondary ordering
-	 * @param vm
-	 * @param targets
-	 * @return
-	 */
-	private ArrayList<HostData> targetRack(Rack rack, ArrayList<HostData> targets) {
-		ArrayList<HostData> sorted = new ArrayList<HostData>();
-		
-		//make a first pass to pull members of majority rack
-		for (HostData hostData : targets) {
-			if (hostData.getHost().getRack() == rack) sorted.add(hostData);
-		}
-		
-		//make a second pass to add remaining hosts
-		for (HostData hostData : targets) {
-			if (hostData.getHost().getRack() != rack) sorted.add(hostData);
-		}
-		
-		return sorted;
 	}
 	
 	/**
@@ -301,6 +350,18 @@ public class ApplicationManagementPolicy extends Policy {
 
 		return sorted;
 	}
+
+	private ArrayList<HostData> targetNonRackOnly(Rack rack, ArrayList<HostData> targets) {
+		ArrayList<HostData> sorted = new ArrayList<HostData>();
+		
+		//pull members of majority rack
+		for (HostData hostData : targets) {
+			if (hostData.getHost().getRack() != rack) sorted.add(hostData);
+		}
+
+		return sorted;
+	}
+	
 	
 	private void relocate(ApplicationManagementData data) {
 		/*
@@ -329,9 +390,9 @@ public class ApplicationManagementPolicy extends Policy {
 				
 				ArrayList<HostData> targets;
 				if (topologyAware) {
-					targets = targetRack(majorityRack, data.targets);
+					targets = buildTargetList(data, majorityRack);
 				} else {
-					targets = data.targets;
+					targets = buildTargetList(data);
 				}
 				
 				for (HostData target : targets) {
@@ -395,9 +456,9 @@ public class ApplicationManagementPolicy extends Policy {
 			//reorder target list to target application majority rack first
 			ArrayList<HostData> targets;
 			if (topologyAware) {
-				targets = targetRack(task.getApplication().getMajorityRack(), data.targets);
+				targets = buildTargetList(data, task.getApplication().getMajorityRack());
 			} else {
-				targets = data.targets;
+				targets = buildTargetList(data);
 			}
 			
 			for (HostData target : targets) {
@@ -553,9 +614,11 @@ public class ApplicationManagementPolicy extends Policy {
 						boolean found = false;
 						for (VmStatus i : host.getSandboxStatus().getVms()) {
 							if (i.getVm() != null && i.getVm().getId() == vm.getId()) {
-								vmStatus = i;
-								hostData = host;
-								found = true;
+								if (host.isStatusValid()) {
+									vmStatus = i;
+									hostData = host;
+									found = true;
+								}
 							}
 						}
 						
@@ -570,7 +633,7 @@ public class ApplicationManagementPolicy extends Policy {
 			}
 			
 			//attempt to migrate VMs to the application's majority rack, IFF the VMs task is not pending a scale down
-			ArrayList<HostData> usedSources = new ArrayList<HostData>();
+			//ArrayList<HostData> usedSources = new ArrayList<HostData>();
 			
 			for (Tuple<VmStatus, HostData> tuple : vmList) {
 				VmStatus vm = tuple.a;
@@ -581,7 +644,7 @@ public class ApplicationManagementPolicy extends Policy {
 				if (data.scaleDownTasks.contains(task)) continue;
 				
 				//filter target list to target application majority rack
-				ArrayList<HostData> targets = targetRackOnly(majorityRack, data.targets);
+				ArrayList<HostData> targets = targetRackOnly(majorityRack, buildTargetList(data));
 				
 				for (HostData target : targets) {
 					// Check that source and target are different hosts, 
@@ -589,7 +652,7 @@ public class ApplicationManagementPolicy extends Policy {
 					// that target host is capable and has enough capacity left to host the VM, 
 					// and also that it will not exceed the target utilization.
 					if (source != target && 
-							!usedSources.contains(target) && 
+							!data.usedSources.contains(target) && 
 							HostData.canHost(vm, target.getSandboxStatus(), target.getHostDescription()) &&	
 							(target.getSandboxStatus().getResourcesInUse().getCpu() + vm.getResourcesInUse().getCpu()) / target.getHostDescription().getResourceCapacity().getCpu() <= targetUtilization) {
 						
@@ -609,7 +672,7 @@ public class ApplicationManagementPolicy extends Policy {
 						simulation.getSimulationMetrics().getCustomMetricCollection(ApplicationManagementMetrics.class).placementCorrectionMigration++;
 						
 						data.usedTargets.add(target);
-						usedSources.add(source);
+						data.usedSources.add(source);
 						
 						break;
 					}
@@ -656,7 +719,7 @@ public class ApplicationManagementPolicy extends Policy {
 		}
 		
 		//attempt to shutdown underutilized hosts not chosen as targets
-		ArrayList<HostData> usedSources = new ArrayList<HostData>();
+//		ArrayList<HostData> usedSources = new ArrayList<HostData>();
 		for (HostData source : sortedUnderUtilized) {
 			if (!data.usedTargets.contains(source)) {	
 				
@@ -714,9 +777,9 @@ public class ApplicationManagementPolicy extends Policy {
 						Rack majorityRack = getMajorityRack(vm);
 						ArrayList<HostData> targets;
 						if (topologyAware) {
-							targets = targetRackOnly(majorityRack, data.targets); //Filter to place ONLY in application's majority rack
+							targets = targetRackOnly(majorityRack, buildTargetList(data)); //Filter to place ONLY in application's majority rack
 						} else {
-							targets = data.targets;
+							targets = buildTargetList(data);
 						}
 						
 						
@@ -726,7 +789,7 @@ public class ApplicationManagementPolicy extends Policy {
 							// that target host is capable and has enough capacity left to host the VM, 
 							// and also that it will not exceed the target utilization.
 							if (source != target && 
-									!usedSources.contains(target) && 
+									!data.usedSources.contains(target) && 
 									HostData.canHost(vm, target.getSandboxStatus(), target.getHostDescription()) &&	
 									(target.getSandboxStatus().getResourcesInUse().getCpu() + vm.getResourcesInUse().getCpu()) / target.getHostDescription().getResourceCapacity().getCpu() <= targetUtilization) {
 								
@@ -754,7 +817,7 @@ public class ApplicationManagementPolicy extends Policy {
 								}
 								
 								data.usedTargets.add(target);
-								usedSources.add(source);
+								data.usedSources.add(source);
 								
 								break;
 							}

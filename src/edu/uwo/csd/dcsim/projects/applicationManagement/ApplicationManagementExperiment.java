@@ -30,21 +30,21 @@ public class ApplicationManagementExperiment extends SimulationTask {
 
 	private static Logger logger = Logger.getLogger(ApplicationManagementExperiment.class);
 
-	private static final long RAMP_UP_TIME = SimTime.hours(10);
-	private static final long APP_ARRIVAL_START_TIME =  SimTime.hours(12);
-	private static final long DURATION = SimTime.days(10);
-	private static final long METRIC_RECORD_START = SimTime.hours(12);
+	private static final long RAMP_UP_TIME = SimTime.hours(20); //20
+	private static final long APP_ARRIVAL_START_TIME =  SimTime.hours(24); //24
+	private static final long DURATION = SimTime.days(8); //8
+	private static final long METRIC_RECORD_START = SimTime.hours(24); //24
 	
 	private static final int RACK_SIZE = 40; //40
-	private static final int N_RACKS = 8; //5
-	private static final int N_APPS_MAX = 40; //50
+	private static final int N_RACKS = 8; //8
+	private static final int N_APPS_MAX = 50; //50
 	private static final int N_APPS_MIN = 10; //10
-	private static final double CHANGES_PER_DAY = 1; //0.5
-	private static final boolean DYNAMIC_ARRIVALS = true;
+	private static final double CHANGES_PER_DAY = 0.5; //0.5
+	private static final boolean DYNAMIC_ARRIVALS = true; //true
 	
-	private static final boolean TOPOLOGY_AWARE = false;
+	private static final boolean TOPOLOGY_AWARE = true;
 	
-	private static final boolean CSV_OUTPUT = false;
+	private static final boolean CSV_OUTPUT = true;
 	
 	private static final long[] randomSeeds = {6198910678692541341l,
 		5646441053220106016l,
@@ -56,14 +56,14 @@ public class ApplicationManagementExperiment extends SimulationTask {
 		-6452776964812569334l,
 		-7148920787255940546l,
 		8311271444423629559l};
-	private static final long N_SEEDS = 1;
+	private static final long N_SEEDS = 10; //10
 	
 	public static void main(String args[]) {
 		Simulation.initializeLogging();
 
 		PrintStream printStream;
 		try {
-			printStream = new PrintStream("out_integrated");
+			printStream = new PrintStream("out_integrated_topo_rack_target");
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -76,8 +76,54 @@ public class ApplicationManagementExperiment extends SimulationTask {
 			//90 - 85 - 40
 		
 		//runSimulationSet(out, slaWarn, slaSafe, cpuSafe, upper, target, lower, stressWindow, underutilWindow)
-		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.9, 0.85, 0.4, 2, 12);
+//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.9, 0.85, 0.4, 2, 12);
+		
+		
+		/*
+		 * Stress, Lower, Target threshold experiments
+		 */
+		
+		//with SLA (0.3, 0.2, 0.3)
+//			//90 - 85 - 60
+//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.9, 0.85, 0.6, 2, 12);
+//			//90 - 85 - 50
+//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.9, 0.85, 0.5, 2, 12);
+//			//90 - 85 - 40
+//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.9, 0.85, 0.4, 2, 12);
+//			//85 - 80 - 60
+//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.85, 0.8, 0.6, 2, 12);
+//			//85 - 80 - 50
+//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.85, 0.8, 0.5, 2, 12);
+//			//85 - 80 - 40
+//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.85, 0.8, 0.4, 2, 12);
+//			//80 - 75 - 60
+//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.8, 0.75, 0.6, 2, 12);
+//			//80 - 75 - 50
+//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.8, 0.75, 0.5, 2, 12);
+//			//80 - 75 - 40
+//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.8, 0.75, 0.4, 2, 12); //FAILED
+//			//75 - 70 - 60
+//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.75, 0.7, 0.6, 2, 12);
+//			//75 - 70 - 50
+//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.75, 0.7, 0.5, 2, 12);
+//			//75 - 70 - 40
+//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.75, 0.7, 0.4, 2, 12);
 	
+		/*
+		 * Rack Target level experiments
+		 */
+			//80 - 75 - 40
+		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.8, 0.75, 0.4, 2, 12, 0.1);
+//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.8, 0.75, 0.4, 2, 12, 0.2);
+		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.8, 0.75, 0.4, 2, 12, 0.3);
+//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.8, 0.75, 0.4, 2, 12, 0.4);
+		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.8, 0.75, 0.4, 2, 12, 0.5);
+//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.8, 0.75, 0.4, 2, 12, 0.6);
+		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.8, 0.75, 0.4, 2, 12, 0.7);
+//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.8, 0.75, 0.4, 2, 12, 0.8);
+		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.8, 0.75, 0.4, 2, 12, 0.9);
+//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.8, 0.75, 0.4, 2, 12, 1.0);
+		
 		printStream.close();
 		
 	}
@@ -90,20 +136,21 @@ public class ApplicationManagementExperiment extends SimulationTask {
 			double target,
 			double lower,
 			double stressWindow,
-			double underutilWindow) {
+			double underutilWindow, 
+			double rackTarget) {
 		
 		logger.info("Started New Simulation Set");
-		logger.info(upper + "," + target + "," + lower + "," + slaWarningThreshold + "," + slaSafeThreshold + "," + "," + cpuSafeThreshold + "," + stressWindow  + "," + underutilWindow);
+		logger.info(upper + "," + target + "," + lower + "," + slaWarningThreshold + "," + slaSafeThreshold + "," + "," + cpuSafeThreshold + "," + stressWindow  + "," + underutilWindow + "," + rackTarget);
 		
 		List<SimulationTask> completedTasks;
 		SimulationExecutor executor = new SimulationExecutor();
 		for (int i = 0; i < N_SEEDS; ++i)  {
 			ApplicationManagementExperiment e = new ApplicationManagementExperiment("integrated-" + (i + 1), randomSeeds[i]);
-			e.setParameters(slaWarningThreshold, slaSafeThreshold, cpuSafeThreshold, upper, target, lower, stressWindow, underutilWindow);
+			e.setParameters(slaWarningThreshold, slaSafeThreshold, cpuSafeThreshold, upper, target, lower, stressWindow, underutilWindow, rackTarget);
 			executor.addTask(e);
 		}
 		
-		completedTasks = executor.execute(4);
+		completedTasks = executor.execute(6);
 
 		if (CSV_OUTPUT) {
 			//output CSV
@@ -112,7 +159,8 @@ public class ApplicationManagementExperiment extends SimulationTask {
 					" | slaWarning=" + slaWarningThreshold + " | slaSafe=" + slaSafeThreshold + 
 					" | cpuSafe=" + cpuSafeThreshold +
 					" | stressWindow=" + stressWindow +
-					" | underutilWindow=" + underutilWindow);
+					" | underutilWindow=" + underutilWindow +
+					" | rackTarget=" + rackTarget);
 			
 			for(SimulationTask task : completedTasks) {
 				if (completedTasks.indexOf(task) == 0) {
@@ -163,6 +211,7 @@ public class ApplicationManagementExperiment extends SimulationTask {
 	private double lower = 0.60;
 	private double stressWindow = 2; //* 5 min intervals = 10 min
 	private double underutilWindow = 12; //* 5 min intervals = 60 min
+	private double rackTarget = 0.7;
 	
 	public void setParameters(double slaWarningThreshold, 
 			double slaSafeThreshold,
@@ -171,7 +220,8 @@ public class ApplicationManagementExperiment extends SimulationTask {
 			double target,
 			double lower,
 			double stressWindow,
-			double underutilWindow) {
+			double underutilWindow,
+			double rackTarget) {
 		
 		this.slaWarningThreshold = slaWarningThreshold;
 		this.slaSafeThreshold = slaSafeThreshold;
@@ -181,7 +231,7 @@ public class ApplicationManagementExperiment extends SimulationTask {
 		this.lower = lower;
 		this.stressWindow = stressWindow;
 		this.underutilWindow = underutilWindow;
-		
+		this.rackTarget = rackTarget;
 	}
 	
 	@Override
@@ -223,7 +273,7 @@ public class ApplicationManagementExperiment extends SimulationTask {
 			applicationPool.setAutonomicManager(dcAM);
 			
 			dcAM.installPolicy(new DcHostStatusPolicy(10));
-			dcAM.installPolicy(new IntegratedApplicationPlacementPolicy(lower, upper, target, TOPOLOGY_AWARE));
+			dcAM.installPolicy(new IntegratedApplicationPlacementPolicy(lower, upper, target, TOPOLOGY_AWARE, rackTarget));
 			
 			ApplicationManagementPolicy appManagementPolicy = new ApplicationManagementPolicy(lower, upper, target);
 			appManagementPolicy.setParameters(slaWarningThreshold, slaSafeThreshold, scaleDownFreeze, cpuSafeThreshold, stressWindow, underutilWindow, TOPOLOGY_AWARE);
