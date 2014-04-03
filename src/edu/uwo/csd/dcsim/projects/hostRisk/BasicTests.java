@@ -24,8 +24,9 @@ public class BasicTests {
 	
 	public static final double UPPER_P = 0.9;
 	public static final double P_T = 0.2; //probability threshold
+	public static final double PREDICT_T = 0.6;
 	
-	public static final double SLA_CPU_T = 0.95;
+	public static final double SLA_CPU_T = 0.5;
 	
 	public static final int HOST_MAX_VMS = 10;
 	
@@ -42,7 +43,7 @@ public class BasicTests {
 		}
 		
 		//test
-		for (int i = 0; i < 10000; ++i) {
+		for (int i = 0; i < 1000; ++i) {
 
 //			System.out.print(".");
 			
@@ -50,8 +51,9 @@ public class BasicTests {
 				host.advance();
 			}
 			
-			runDynamicManagementThreshold(hosts);
+//			runDynamicManagementThreshold(hosts);
 //			runDynamicManagementProbability(hosts);
+			runDynamicManagementPredicted(hosts);
 			
 			if (i % 20 == 0) {
 				runConsol(hosts);
@@ -82,6 +84,20 @@ public class BasicTests {
 		for (HostModel host : hosts) {
 			if (host.calculateOverloadProbability(UPPER_P) >= P_T) {
 				relocate(host, hosts);
+			}
+		}
+	}
+	
+	public static void runDynamicManagementPredicted(ArrayList<HostModel> hosts) {
+		for (HostModel host : hosts) {
+			double cpuP = host.predictCpuUsage() / host.cpuSize;
+			if (cpuP >= PREDICT_T) {
+				System.out.println("CPU=" + host.getUtilization());
+				System.out.println("PREDICT=" + cpuP + ">=" + PREDICT_T);
+				System.out.println("PROB=" + host.calculateOverloadProbability(UPPER_P) + ">=" + P_T);
+				System.out.println("THRESH=" + host.getUtilization() + ">=" + UPPER_T);
+				relocate(host, hosts);
+				System.out.println("");
 			}
 		}
 	}
@@ -119,7 +135,7 @@ public class BasicTests {
 			if (found) break;
 		}	
 		
-		if (found) migrate(source, selectedTarget, selectedVm);
+		if (found) migrate(source, selectedTarget, selectedVm, true);
 	}
 	
 	public static void consolidate(HostModel source, ArrayList<HostModel> hosts) {
@@ -133,7 +149,7 @@ public class BasicTests {
 				if (target != source && target.vms.size() < HOST_MAX_VMS &&
 						(target.getCpuUse() + vm.getCpuUse()) / (double)target.cpuSize <= TARGET_T) {
 					
-					migrate(source, target, vm);
+					migrate(source, target, vm, false);
 					++consolMigCount;
 					break;
 				}
@@ -172,10 +188,10 @@ public class BasicTests {
 		return sorted;
 	}
 	
-	public static void migrate(HostModel source, HostModel target, VmModel vm) {
+	public static void migrate(HostModel source, HostModel target, VmModel vm, boolean print) {
 		source.vms.remove(vm);
 		target.vms.add(vm);
-		System.out.println("Migrated VM#" + vm.id + " from Host#" + source.id + " to Host#" + target.id);
+		if (print) System.out.println("Migrated VM#" + vm.id + " from Host#" + source.id + " to Host#" + target.id);
 	}
 	
 	public static double getAvgSla(ArrayList<HostModel> hosts) {
@@ -211,6 +227,18 @@ public class BasicTests {
 		
 		public double getSlaA() {
 			return (simSteps - slaVSteps) / (double)simSteps;
+		}
+		
+		public double predictCpuUsage() {
+			double cpu = 0;
+			
+			for (VmModel vm : vms) {
+				cpu += (vm.getState().utilization * vm.getState().getSelfProbability()) * vm.cpuSize;
+				cpu += (vm.getUpperState().utilization * vm.getState().getUpperProbability()) * vm.cpuSize;
+				cpu += (vm.getLowerState().utilization * vm.getState().getLowerProbability()) * vm.cpuSize;
+			}
+			
+			return cpu;
 		}
 		
 		public double calculateOverloadProbability(double threshold) {
