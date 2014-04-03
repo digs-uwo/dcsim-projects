@@ -1,4 +1,4 @@
-package edu.uwo.csd.dcsim.projects.hostRisk;
+package edu.uwo.csd.dcsim.projects.overloadProbability;
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
