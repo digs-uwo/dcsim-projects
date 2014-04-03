@@ -9,7 +9,6 @@ import org.apache.commons.math3.distribution.*;
 import edu.uwo.csd.dcsim.DataCentre;
 import edu.uwo.csd.dcsim.application.Application;
 import edu.uwo.csd.dcsim.application.ApplicationGenerator;
-import edu.uwo.csd.dcsim.application.Applications;
 import edu.uwo.csd.dcsim.application.InteractiveApplication;
 import edu.uwo.csd.dcsim.application.InteractiveTask;
 import edu.uwo.csd.dcsim.application.Task;
@@ -22,8 +21,6 @@ import edu.uwo.csd.dcsim.host.*;
 import edu.uwo.csd.dcsim.host.resourcemanager.DefaultResourceManagerFactory;
 import edu.uwo.csd.dcsim.host.scheduler.DefaultResourceSchedulerFactory;
 import edu.uwo.csd.dcsim.management.AutonomicManager;
-import edu.uwo.csd.dcsim.management.events.ApplicationPlacementEvent;
-import edu.uwo.csd.dcsim.projects.applicationManagement.AppManagementTestEnvironment.AppManApplicationGenerator;
 import edu.uwo.csd.dcsim.projects.hierarchical.HierarchicalMetrics;
 
 /**
@@ -57,6 +54,7 @@ public class Cnsm2014TestEnvironment {
 		"traces/google_cores_job_type_3"};	
 	public static final long[] OFFSET_MAX = {200000000, 40000000, 40000000, 15000000, 15000000, 15000000, 15000000};
 //	public static final double[] TRACE_AVG = {0.32, 0.25, 0.32, 0.72, 0.74, 0.77, 0.83};
+	public static final long APP_RAMPUP_TIME = SimTime.hours(6);
 	
 	int nClusters = 5;
 	int nRacks = 4;
@@ -153,209 +151,6 @@ public class Cnsm2014TestEnvironment {
 	}
 	
 	/**
-	 * Creates a Service Producer to spawn new services over time and thus populate the data centre. 
-	 * The services respond to the single-tier interactive service model.
-	 */
-	public static void configureStaticServices(Simulation simulation, AutonomicManager dcAM, boolean legacy) {
-		ApplicationGenerator serviceProducer = null;
-		
-		// Create a service rate _trace_ for the ServiceProducer.
-		ArrayList<Tuple<Long, Double>> serviceRates = new ArrayList<Tuple<Long, Double>>();
-		
-		// EXP 1A
-//		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), 10d));
-//		serviceRates.add(new Tuple<Long, Double>(SimTime.hours(40), 0d));
-//		serviceRates.add(new Tuple<Long, Double>(SimTime.days(10), 0d));
-		
-		// EXP 1B
-		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), 10d));
-		serviceRates.add(new Tuple<Long, Double>(SimTime.hours(80), 0d));
-		serviceRates.add(new Tuple<Long, Double>(SimTime.days(12), 0d));
-		
-		// EXP 1C
-//		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), 10d));
-//		serviceRates.add(new Tuple<Long, Double>(SimTime.hours(144), 0d));
-//		serviceRates.add(new Tuple<Long, Double>(SimTime.days(14), 0d));
-		
-		// EXP 1D
-//		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), 10d));
-//		serviceRates.add(new Tuple<Long, Double>(SimTime.hours(160), 0d));
-//		serviceRates.add(new Tuple<Long, Double>(SimTime.days(15), 0d));
-		
-		serviceProducer = new ServiceProducer(simulation, dcAM, null, serviceRates);
-		serviceProducer.start();
-	}
-	
-	/**
-	 * Creates Service Producers to spawn services over time in such a manner as to dynamically vary 
-	 * the number of services within the simulation over time, according to a fixed plan.
-	 */
-	public static void configureDynamicServices(Simulation simulation, AutonomicManager dcAM, boolean legacy) {
-		ApplicationGenerator serviceProducer = null;
-		
-		/*
-		 * 1. Create ~800 Services (VMs) over first 80 hours. These Services do not terminate.
-		 * 2. Simulation recording starts after 4 days.
-		 * 3. Hold on ~800 Services for day 5.
-		 * 4. Increase from ~800 to ~1280 throughout days 6 & 7.
-		 * 5. Hold on ~1280 for day 8.
-		 * 6. Increase from ~1280 to ~1520 throughout day 9.
-		 * 7. Hold on ~1520 for day 10.
-		 * 8. Decrease from ~1520 to ~1280 throughout day 11.
-		 * 9. Hold on ~1280 for day 12.
-		 * 10. Complete 8 days of recorded simulation.
-		 */
-		
-		/*
-		 * Configure and start the base 800 services which do not terminate.
-		 */
-		ArrayList<Tuple<Long, Double>> serviceRates = new ArrayList<Tuple<Long, Double>>();
-		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), 10d));
-		serviceRates.add(new Tuple<Long, Double>(SimTime.hours(80), 0d));
-		serviceRates.add(new Tuple<Long, Double>(SimTime.days(12), 0d));
-		
-		serviceProducer = new ServiceProducer(simulation, dcAM, null, serviceRates);
-		serviceProducer.start();
-		
-		/*
-		 * Create time varying service levels. Each service has a lifespan of ~6 days, normally distributed with a std. dev. of 2 hours
-		 */
-		serviceRates = new ArrayList<Tuple<Long, Double>>();
-		
-		//Day 6: Create ~240 new services throughout the day, for a total of ~1040.
-		serviceRates.add(new Tuple<Long, Double>(SimTime.days(5), 10d));
-		
-		//Day 7: Create ~240 new services throughout the day, for a total of ~1280.
-		
-		//Day 8: Hold at ~1280.
-		serviceRates.add(new Tuple<Long, Double>(SimTime.days(7), 0d));
-		
-		//Day 9: Create ~240 new services throughout the day, for a total of ~1520.
-		serviceRates.add(new Tuple<Long, Double>(SimTime.days(8), 10d));
-		
-		//Day 10: Create ~240 new services throughout the day, for a total of ~1520 -- services from Day 6 terminate throughout the day.
-		serviceRates.add(new Tuple<Long, Double>(SimTime.days(9), 0d));
-		
-		//Day 11: Load goes down to ~1280 -- services from Day 7 terminate throughout the day.
-//		serviceRates.add(new Tuple<Long, Double>(SimTime.days(10), 0d));
-		
-		//Day 12: Hold at ~1280.
-		
-		serviceProducer = new ServiceProducer(simulation, dcAM, new NormalDistribution(SimTime.days(4), SimTime.hours(6)), serviceRates);
-		((ApplicationGenerator) serviceProducer).start();
-	}
-	
-	/**
-	 * Configure services to arrival such that the overall utilization of the datacentre changes randomly.
-	 * @param simulation
-	 * @param dc
-	 * @param changesPerDay The number of utilization changes (arrival rate changes) per day
-	 * @param minServices The minimum number of services running in the data centre
-	 * @param maxServices The maximum number of services running in the data centre
-	 */
-	public static void configureRandomServices(Simulation simulation, AutonomicManager dcAM, double changesPerDay, int minServices, int maxServices, boolean legacy) {
-		ApplicationGenerator serviceProducer = null;
-		
-		/*
-		 * Configure minimum service level. Create a base of ~800 services over the first 80 hours,
-		 * and leave them running for the entire simulation.
-		 */
-		ArrayList<Tuple<Long, Double>> serviceRates = new ArrayList<Tuple<Long, Double>>();
-		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), 10d));	
-		serviceRates.add(new Tuple<Long, Double>(SimTime.hours(80), 0d));
-		serviceRates.add(new Tuple<Long, Double>(SimTime.days(12), 0d));
-		
-		serviceProducer = new ServiceProducer(simulation, dcAM, null, serviceRates);
-		serviceProducer.start();
-		
-		//Create a uniform random distribution to generate the number of services within the data centre.
-		UniformIntegerDistribution serviceCountDist = new UniformIntegerDistribution(0, (maxServices - minServices));
-//		UniformIntegerDistribution serviceCountDist = new UniformIntegerDistribution(0, 150);
-		serviceCountDist.reseedRandomGenerator(simulation.getRandom().nextLong());
-		
-		/*
-		 * Generate the service arrival rates for the rest of the simulation
-		 */
-		long time;		//start time of the current arrival rate
-		long nextTime;	//the time of the next arrival rate change
-		double rate;	//the current arrival rate
-		serviceRates = new ArrayList<Tuple<Long, Double>>(); //list of arrival rates
-		
-		time = SimTime.days(4); //start at beginning of 5th day (end of 4th)
-		
-		//loop while we still have simulation time to generate arrival rates for
-		while (time < SimTime.days(12)) {
-
-			//calculate the next time the rate will changes
-			nextTime = time + Math.round(SimTime.days(1) / changesPerDay);
-			
-			//generate a target VM count to reach by the next rate change
-			double target = serviceCountDist.sample();
-			
-			//calculate the current arrival rate necessary to reach the target VM count
-			rate = target / ((nextTime - time) / 1000d / 60d / 60d);
-			
-			//add the current rate to the list of arrival rates
-			serviceRates.add(new Tuple<Long, Double>(time, rate));
-			
-			//advance to the next time interval
-			time = nextTime;
-		}
-		//add a final rate of 0 to run until the end of the simulation
-		serviceRates.add(new Tuple<Long, Double>(SimTime.days(12), 0d));
-		
-		
-		for (Tuple<Long, Double> t : serviceRates) {
-			System.out.println(SimTime.toHours(t.a) + " - " + t.b);
-		}
-		
-		
-		serviceProducer = new ServiceProducer(simulation, dcAM, new NormalDistribution(SimTime.days(1) / changesPerDay, SimTime.hours(1)), serviceRates);
-		((ApplicationGenerator) serviceProducer).start();
-	}
-	
-	/**
-	 * Creates services (applications) to submit and deploy in the data centre.
-	 */
-	public static class ServiceProducer extends ApplicationGenerator {
-		
-		private int counter = 0;
-		
-		public ServiceProducer(Simulation simulation, AutonomicManager dcTarget, RealDistribution lifespanDist, List<Tuple<Long, Double>> servicesPerHour) {
-			super(simulation, dcTarget, lifespanDist, servicesPerHour);
-			
-			this.setArrivalSyncInterval(ARRIVAL_SYNC_INTERVAL);
-		}
-		
-		@Override
-		public Application buildApplication() {
-			++counter;
-			
-			String trace = TRACES[counter % N_TRACES];
-			long offset = (int)(simulation.getRandom().nextDouble() * OFFSET_MAX[counter % N_TRACES]);
-			
-			int cores = VM_CORES[counter % N_VM_SIZES];
-			int coreCapacity = VM_SIZES[counter % N_VM_SIZES];
-			int memory = VM_RAM[counter % N_VM_SIZES];
-			int bandwidth = 12800;	// 100 Mb/s
-			int storage = 1024;	// 1 GB
-			
-			// Create workload (external) for the service.
-			TraceWorkload workload = new TraceWorkload(simulation, trace, offset); //scale to n replicas
-			
-			InteractiveApplication application = Applications.singleTaskInteractiveApplication(simulation, workload, cores, coreCapacity, memory, bandwidth, storage, 0.01);
-			
-			//workload.setScaleFactor(application.calculateMaxWorkloadUtilizationLimit(0.98));
-			
-			workload.setScaleFactor(application.calculateMaxWorkloadResponseTimeLimit(0.9)); //1s response time SLA
-			InteractiveServiceLevelAgreement sla = new InteractiveServiceLevelAgreement(application).responseTime(1, 1); //sla limit at 1s response time, penalty rate of 1 per second in violation
-			application.setSla(sla);
-			
-			return application;
-		}
-	}
-	
-	/**
 	 * 
 	 * APPLICATION GENERATION
 	 * 
@@ -368,15 +163,21 @@ public class Cnsm2014TestEnvironment {
 	public Application createApplication(int appTemplate) {
 //		++nApps;
 		
-		int trace = appGenerationRandom.nextInt(N_TRACES);		
-		TraceWorkload workload = new TraceWorkload(simulation, 
-				TRACES[trace], 
-				(long)(appGenerationRandom.nextDouble() * OFFSET_MAX[trace]));
 		
-		workload.setRampUp(APP_RAMPUP_TIME);
+		
+		
+		// TODO: ADD SOME VARIABILITY TO THE TASKS' RES. NEEDS (cores, coreCapacity, memory, bandwidth, storage).
+//		++counter;
+//		int cores = VM_CORES[counter % N_VM_SIZES];
+//		int coreCapacity = VM_SIZES[counter % N_VM_SIZES];
+//		int memory = VM_RAM[counter % N_VM_SIZES];
+//		int bandwidth = 12800;	// 100 Mb/s
+//		int storage = 1024;	// 1 GB
+		
+		
+		
 		
 		InteractiveApplication.Builder appBuilder;
-		
 		switch(appTemplate) {
 		case 0:
 			appBuilder = new InteractiveApplication.Builder(simulation).thinkTime(4)
@@ -421,6 +222,12 @@ public class Cnsm2014TestEnvironment {
 		// Infer and set application tasks' constraints.
 		this.setApplicationTasksConstraints(app);
 		
+		// Create application's workload.
+		int trace = appGenerationRandom.nextInt(N_TRACES);
+		TraceWorkload workload = new TraceWorkload(simulation, TRACES[trace], (long) (appGenerationRandom.nextDouble() * OFFSET_MAX[trace]));
+		
+		workload.setRampUp(APP_RAMPUP_TIME);
+		
 		app.setWorkload(workload);
 		workload.setScaleFactor(app.calculateMaxWorkloadResponseTimeLimit(0.9)); //1s response time SLA
 
@@ -430,16 +237,34 @@ public class Cnsm2014TestEnvironment {
 		return app;
 	}
 	
+	/**
+	 * Assigns constraint types to the tasks in an InteractiveApplication.
+	 * 
+	 * Constraints are inferred from each task's cardinality (i.e., maximum
+	 * number of instances) and position in the application "template". If
+	 * a task can have more than one instance, an anti-affinity constraint
+	 * is placed in the task to indicate that its various instances have to
+	 * be placed apart from each other. If a task consists of a single
+	 * instance, it is marked as independent (i.e., no constraints). If two
+	 * or more independent tasks appear consecutively in the application
+	 * template, then an affinity constraint is placed on them, so that
+	 * their instances are placed together.
+	 */
 	private void setApplicationTasksConstraints(InteractiveApplication app) {
 		ArrayList<Task> tasks = app.getTasks();
 		
-		// assert tasks.size() > 0
+		assert tasks.size() > 0;
 		
 		// First, set constraints in individual tasks.
+		
+		// TODO: If we could indicate the type of constraint of each task during creation process
+		// (i.e., when calling on InteractiveApplication.Builder.task()), then we would not need
+		// to "infer" the constraints like we do in this first loop.
+		
 		Task previous = null;
 		for (Task task : tasks) {
 			
-			// assert task.getMaxInstances() > 0
+			assert task.getMaxInstances() > 0;
 			
 			if (previous == null) {
 				task.setConstraintType(TaskConstraintType.INDEPENDENT);
@@ -466,7 +291,8 @@ public class Cnsm2014TestEnvironment {
 			previous = task;
 		}
 		
-		// Second, build the task lists according to constraint type (and task order).
+		// Second, build the task lists according to constraint type and task order
+		// in the application template.
 		ArrayList<InteractiveTask> affinityTasks = null;
 		for (Task task : tasks) {
 			switch (task.getConstraintType()) {
@@ -499,93 +325,204 @@ public class Cnsm2014TestEnvironment {
 		}
 	}
 	
-	public void configureStaticApplications(Simulation simulation, AutonomicManager dcAM, int nApps) {
-		ArrayList<Application> applications = new ArrayList<Application>();
-		for (int i = 0; i < nApps; ++i) {
-			applications.add(this.createApplication());
-		}
-		simulation.sendEvent(new ApplicationPlacementEvent(dcAM, applications));
+	/**
+	 * Creates a Service Producer to spawn new services over time and thus populate the data centre.
+	 */
+	public void configureStaticServices(Simulation simulation, AutonomicManager dcAM, int nApps, long rampUpTime, long duration) {
+		
+		/*
+		 * Configure static service level.
+		 * 
+		 * Create the given number of services during the "ramp-up-time" period
+		 * (e.g., 800 services over the first 80 hours) and leave them running for
+		 * the entire simulation.
+		 */
+		ArrayList<Tuple<Long, Double>> serviceRates = new ArrayList<Tuple<Long, Double>>();
+		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), (nApps / SimTime.toHours(rampUpTime))));
+		serviceRates.add(new Tuple<Long, Double>(rampUpTime, 0d));
+		serviceRates.add(new Tuple<Long, Double>(duration, 0d));
+		
+		ApplicationGenerator serviceProducer = new ServiceProducer(simulation, dcAM, null, serviceRates);
+		serviceProducer.start();
+		
+		
+		/* 
+		 * EXAMPLES.
+		 */
+		
+		// EXP 1A
+//		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), 10d));
+//		serviceRates.add(new Tuple<Long, Double>(SimTime.hours(40), 0d));
+//		serviceRates.add(new Tuple<Long, Double>(SimTime.days(10), 0d));
+		
+		// EXP 1B
+//		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), 10d));
+//		serviceRates.add(new Tuple<Long, Double>(SimTime.hours(80), 0d));
+//		serviceRates.add(new Tuple<Long, Double>(SimTime.days(12), 0d));
+		
+		// EXP 1C
+//		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), 10d));
+//		serviceRates.add(new Tuple<Long, Double>(SimTime.hours(144), 0d));
+//		serviceRates.add(new Tuple<Long, Double>(SimTime.days(14), 0d));
+		
+		// EXP 1D
+//		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), 10d));
+//		serviceRates.add(new Tuple<Long, Double>(SimTime.hours(160), 0d));
+//		serviceRates.add(new Tuple<Long, Double>(SimTime.days(15), 0d));
+		
 	}
 	
+	
+	
+	
+	
+	
 	/**
-	 * Configure applications to arrive such that the overall utilization of the datacentre changes randomly.
+	 * Creates Service Producers to spawn services over time in such a manner as to dynamically vary 
+	 * the number of services within the simulation over time, according to a fixed plan.
+	 */
+	public void configureDynamicServices(Simulation simulation, AutonomicManager dcAM, boolean legacy) {
+		
+		/*
+		 * 1. Create ~800 Services (VMs) over first 80 hours. These Services do not terminate.
+		 * 2. Simulation recording starts after 4 days.
+		 * 3. Hold on ~800 Services for day 5.
+		 * 4. Increase from ~800 to ~1280 throughout days 6 & 7.
+		 * 5. Hold on ~1280 for day 8.
+		 * 6. Increase from ~1280 to ~1520 throughout day 9.
+		 * 7. Hold on ~1520 for day 10.
+		 * 8. Decrease from ~1520 to ~1280 throughout day 11.
+		 * 9. Hold on ~1280 for day 12.
+		 * 10. Complete 8 days of recorded simulation.
+		 */
+		
+		/*
+		 * Configure and start the base 800 services which do not terminate.
+		 */
+		ArrayList<Tuple<Long, Double>> serviceRates = new ArrayList<Tuple<Long, Double>>();
+		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), 10d));
+		serviceRates.add(new Tuple<Long, Double>(SimTime.hours(80), 0d));
+		serviceRates.add(new Tuple<Long, Double>(SimTime.days(12), 0d));
+		
+		ApplicationGenerator serviceProducer = new ServiceProducer(simulation, dcAM, null, serviceRates);
+		serviceProducer.start();
+		
+		/*
+		 * Create time varying service levels. Each service has a lifespan of ~6 days, normally distributed with a std. dev. of 2 hours
+		 */
+		serviceRates = new ArrayList<Tuple<Long, Double>>();
+		
+		//Day 6: Create ~240 new services throughout the day, for a total of ~1040.
+		serviceRates.add(new Tuple<Long, Double>(SimTime.days(5), 10d));
+		
+		//Day 7: Create ~240 new services throughout the day, for a total of ~1280.
+		
+		//Day 8: Hold at ~1280.
+		serviceRates.add(new Tuple<Long, Double>(SimTime.days(7), 0d));
+		
+		//Day 9: Create ~240 new services throughout the day, for a total of ~1520.
+		serviceRates.add(new Tuple<Long, Double>(SimTime.days(8), 10d));
+		
+		//Day 10: Create ~240 new services throughout the day, for a total of ~1520 -- services from Day 6 terminate throughout the day.
+		serviceRates.add(new Tuple<Long, Double>(SimTime.days(9), 0d));
+		
+		//Day 11: Load goes down to ~1280 -- services from Day 7 terminate throughout the day.
+//		serviceRates.add(new Tuple<Long, Double>(SimTime.days(10), 0d));
+		
+		//Day 12: Hold at ~1280.
+		
+		serviceProducer = new ServiceProducer(simulation, dcAM, new NormalDistribution(SimTime.days(4), SimTime.hours(6)), serviceRates);
+		serviceProducer.start();
+	}
+	
+	
+	
+	
+	
+	
+	/**
+	 * Configure services to arrival such that the overall utilization of the datacentre changes randomly.
+	 * 
 	 * @param simulation
 	 * @param dc
 	 * @param changesPerDay The number of utilization changes (arrival rate changes) per day
 	 * @param minServices The minimum number of services running in the data centre
 	 * @param maxServices The maximum number of services running in the data centre
-	 * @param fullSize True to create applications at their maximum size
 	 */
-	public void configureRandomApplications(Simulation simulation, double changesPerDay, int minServices, int maxServices, long rampUpTime, long startTime, long duration) {
-
+	public void configureRandomServices(Simulation simulation, AutonomicManager dcAM, double changesPerDay, int minServices, int maxServices, long rampUpTime, long startTime, long duration) {
+		
 		/*
-		 * Configure minimum service level. Create the minimum number of services over the first 40 hours,
-		 * and leave them running for the entire simulation.
+		 * Configure minimum service level.
+		 * 
+		 * Create the minimum number of services during the "ramp-up-time" period
+		 * (e.g., 800 services over the first 80 hours) and leave them running for
+		 * the entire simulation.
 		 */
 		ArrayList<Tuple<Long, Double>> serviceRates = new ArrayList<Tuple<Long, Double>>();
-		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), (minServices / SimTime.toHours(rampUpTime))));		
-		serviceRates.add(new Tuple<Long, Double>(rampUpTime, 0d));		
-		serviceRates.add(new Tuple<Long, Double>(duration, 0d));		// 10 days
+//		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), 10d));	
+//		serviceRates.add(new Tuple<Long, Double>(SimTime.hours(80), 0d));
+//		serviceRates.add(new Tuple<Long, Double>(SimTime.days(12), 0d));
+		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), (minServices / SimTime.toHours(rampUpTime))));
+		serviceRates.add(new Tuple<Long, Double>(rampUpTime, 0d));
+		serviceRates.add(new Tuple<Long, Double>(duration, 0d));
 		
-		ApplicationGenerator appGenerator = new AppManApplicationGenerator(simulation, dcAM, null, serviceRates);
-		appGenerator.start();
+		ApplicationGenerator serviceProducer = new ServiceProducer(simulation, dcAM, null, serviceRates);
+		serviceProducer.start();
 		
-		//Create a uniform random distribution to generate the number of services within the data centre.
+		// Create a uniform random distribution to generate the number of services within the data centre.
 		UniformIntegerDistribution serviceCountDist = new UniformIntegerDistribution(0, (maxServices - minServices));
 		serviceCountDist.reseedRandomGenerator(simulation.getRandom().nextLong());
 		
 		/*
-		 * Generate the service arrival rates for the rest of the simulation
+		 * Generate the service arrival rates for the rest of the simulation.
 		 */
-		long time;		//start time of the current arrival rate
-		long nextTime;	//the time of the next arrival rate change
-		double rate;	//the current arrival rate
-		serviceRates = new ArrayList<Tuple<Long, Double>>(); //list of arrival rates
+		long time;													// Start time of the current arrival rate.
+		long nextTime;												// Time of the next arrival rate change.
+		double rate;												// Current arrival rate.
+		serviceRates = new ArrayList<Tuple<Long, Double>>(); 		// List of arrival rates.
 		
-		time = startTime; //start at beginning of 3rd day (end of 2nd)
+		time = startTime;
 		
-		//loop while we still have simulation time to generate arrival rates for
+		// Generate arrival rates for the rest of the simulation.
 		while (time < duration) {
 
-			//calculate the next time the rate will changes
+			// Calculate time for next arrival rate change.
 			nextTime = time + Math.round(SimTime.days(1) / changesPerDay);
 			
-			//generate a target VM count to reach by the next rate change
+			// Generate target service count to reach by the next arrival rate change.
 			double target = serviceCountDist.sample();
 			
-			//caculate the current arrival rate necessary to reach the target VM count
+			// Calculate current arrival rate needed to reach target service count.
 			rate = target / ((nextTime - time) / 1000d / 60d / 60d);
 			
-			//add the current rate to the list of arrival rates
+			// Add current arrival rate to the list of arrival rates.
 			serviceRates.add(new Tuple<Long, Double>(time, rate));
 			
-			//advance to the next time interval
+			// Move on to the next time interval.
 			time = nextTime;
 		}
-		//add a final rate of 0 to run until the end of the simulation
+		// Add a final arrival rate of 0 to run until the end of the simulation.
 		serviceRates.add(new Tuple<Long, Double>(duration, 0d));
 		
-		appGenerator = new AppManApplicationGenerator(simulation, dcAM, new NormalDistribution(SimTime.days(1) / changesPerDay, SimTime.hours(1)), serviceRates);
-		//appGenerator = new AppManApplicationGenerator(simulation, dcAM, new NormalDistribution(SimTime.days(5), SimTime.hours(1)), serviceRates);
-		appGenerator.start();
+		serviceProducer = new ServiceProducer(simulation, dcAM, new NormalDistribution(SimTime.days(1) / changesPerDay, SimTime.hours(1)), serviceRates);
+		serviceProducer.start();
 	}
 	
-	public class AppManApplicationGenerator extends ApplicationGenerator {
+	/**
+	 * Creates services (applications) to submit and deploy in the data centre.
+	 */
+	public class ServiceProducer extends ApplicationGenerator {
 		
-		int id;
-		boolean fullSize;
-		
-		public AppManApplicationGenerator(Simulation simulation, AutonomicManager dcTarget, RealDistribution lifespanDist, List<Tuple<Long, Double>> servicesPerHour) {
+		public ServiceProducer(Simulation simulation, AutonomicManager dcTarget, RealDistribution lifespanDist, List<Tuple<Long, Double>> servicesPerHour) {
 			super(simulation, dcTarget, lifespanDist, servicesPerHour);
 			
 			this.setArrivalSyncInterval(ARRIVAL_SYNC_INTERVAL);
 		}
-
+		
 		@Override
 		public Application buildApplication() {
 			return createApplication();
 		}
-		
 		
 	}
 
