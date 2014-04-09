@@ -37,8 +37,12 @@ public final class StandardVmSizes {
 		if (state != Host.HostState.ON && state != Host.HostState.POWERING_ON)
 			return 0;
 		
-		Resources spare = host.getHostDescription().getResourceCapacity().subtract(host.getCurrentStatus().getResourcesInUse());
-		return Math.min(spare.getCpu() / ((double) cpu), Math.min(spare.getMemory() / ((double) mem), spare.getBandwidth() / ((double) bw)));
+		Resources availableResources = host.getHostDescription().getResourceCapacity().subtract(host.getCurrentStatus().getResourcesInUse());
+		return calculateSpareCapacity(availableResources);
+	}
+	
+	public static double calculateSpareCapacity(Resources availableResources) {
+		return Math.min(availableResources.getCpu() / ((double) cpu), Math.min(availableResources.getMemory() / ((double) mem), availableResources.getBandwidth() / ((double) bw)));
 	}
 	
 	/**

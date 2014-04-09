@@ -107,6 +107,10 @@ public class RackStatus {
 		return state;
 	}
 	
+	public Resources[] getVmVector() {
+		return vmVector;
+	}
+	
 	public int[] getSpareCapacityVector() {
 		return spareCapacityVector;
 	}
@@ -115,16 +119,39 @@ public class RackStatus {
 		return spareCapacityVector[iActive];
 	}
 	
+	public int getActiveHostsIndex() {
+		return iActive;
+	}
+	
 	public int getSuspendedHosts() {
 		return spareCapacityVector[iSuspended];
+	}
+	
+	public int getSuspendedHostsIndex() {
+		return iSuspended;
 	}
 	
 	public int getPoweredOffHosts() {
 		return spareCapacityVector[iPoweredOff];
 	}
 	
+	public int getPoweredOffHostsIndex() {
+		return iPoweredOff;
+	}
+	
 	public double getPowerConsumption() {
 		return powerConsumption;
+	}
+	
+	@Deprecated
+	public double getMaxSpareCapacity() {
+		
+		for (int i = vmVector.length - 1; i >= 0; i--) {
+			if (spareCapacityVector[i] > 0)
+				return StandardVmSizes.calculateSpareCapacity(vmVector[i]);
+		}
+		
+		return 0.0;
 	}
 
 }

@@ -189,29 +189,152 @@ public class AppPlacementPolicyLevel2 extends Policy {
 	protected boolean canHost(ConstrainedAppAllocationRequest request, RackData rack) {
 		
 		// Get Rack status vector.
-		int[] status = rack.getCurrentStatus().getSpareCapacityVector();
+		RackStatus status = rack.getCurrentStatus();
+		Resources[] vmVector = status.getVmVector();
+		int[] spareCapacity = status.getSpareCapacityVector();
+		int iActive = status.getActiveHostsIndex();
+		int iSuspended = status.getSuspendedHostsIndex();
+		int iPoweredOff = status.getPoweredOffHostsIndex();
 		
 		// Affinity sets
 		for (ArrayList<VmAllocationRequest> affinitySet : request.getAffinityVms()) {
 			
-			// add VMs' res. needs and see if there's a Host with enough spare capacity; modify vector as needed
+			// Calculate total resource needs of the VMs in the affinity set.
+			int totalCpu = 0;
+			int totalMemory = 0;
+			int totalBandwidth = 0;
+			int totalStorage = 0;
+			for (VmAllocationRequest req : affinitySet) {
+				totalCpu += req.getCpu();
+				totalMemory += req.getMemory();
+				totalBandwidth += req.getBandwidth();
+				totalStorage += req.getStorage();
+			}
+			Resources totalReqResources = new Resources(totalCpu, totalMemory, totalBandwidth, totalStorage);
 			
+			// Check if a currently active Host has enough spare capacity to host the set.
+			boolean found = false;
+			for (int i = vmVector.length - 1; i >= 0; i--) {
+				if (this.theresEnoughCapacity(totalReqResources, vmVector[i])) {
+					if (spareCapacity[i] > 0) {
+						spareCapacity[i]--;
+						found = true;
+						
+						// TODO: UPDATE STATUS VECTOR
+						
+						break;
+					}
+				}
+				else
+					break;
+			}
+			
+			if (!found) {	// Activate a new Host.
+				if (spareCapacity[iSuspended] > 0 || spareCapacity[iPoweredOff] > 0) {
+					Resources hostCapacity = rack.getRackDescription().getHostDescription().getResourceCapacity();
+					if (this.theresEnoughCapacity(totalReqResources, hostCapacity)) {
+						if (spareCapacity[iSuspended] > 0)
+							spareCapacity[iSuspended]--;
+						else
+							spareCapacity[iPoweredOff]--;
+						found = true;
+						
+						// TODO: UPDATE STATUS VECTOR
+						
+					}
+					else
+						return false;
+				}
+				else
+					return false;
+			}
 		}
 		
 		// Anti-affinity sets
 		for (ArrayList<VmAllocationRequest> antiAffinitySet : request.getAntiAffinityVms()) {
 			
-			// for each VM, see if there's a Host that can take it; modify vector accordingly
+			// Note: All VMs in the set have equal size and MUST be placed in different Hosts each.
 			
+			if (antiAffinitySet.size() == 0)	// Checking that the set is not empty -- which should never occur, but...
+				continue;
+			Resources vmSize = antiAffinitySet.get(0).getResources();
+			int nVms = antiAffinitySet.size();
+			
+			// for each VM, see if there's a Host that can take it; modify vector accordingly
+			for (int i = 0; i < vmVector.length; i++) {
+				
+				if (this.theresEnoughCapacity(vmSize, vmVector[i])) {
+					int hosts = Math.min(nVms, spareCapacity[i]);
+					
+					// TODO: UPDATE STATUS VECTOR (hosts)
+					
+					nVms -= hosts;
+					spareCapacity[i] -= hosts;
+				}
+				if (nVms == 0)	// All VMs were accounted for.
+					break;
+			}
+			
+			// If there still are VMs to account for, active suspended Hosts.
+			if (nVms > 0 && spareCapacity[iSuspended] > 0) {
+				int hosts = Math.min(nVms, spareCapacity[iSuspended]);
+				
+				// TODO: UPDATE STATUS VECTOR (hosts)
+				
+				nVms -= hosts;
+				spareCapacity[iSuspended] -= hosts;
+			}
+			
+			// If there still are VMs to account for, active powered-off Hosts.
+			if (nVms > 0 && spareCapacity[iPoweredOff] > 0) {
+				int hosts = Math.min(nVms, spareCapacity[iPoweredOff]);
+				
+				// TODO: UPDATE STATUS VECTOR (hosts)
+				
+				nVms -= hosts;
+				spareCapacity[iPoweredOff] -= hosts;
+			}
+			
+			if (nVms > 0)
+				return false;
 		}
 		
 		// Independent set
 		for (VmAllocationRequest req : request.getIndependentVms()) {
+			// for each VM, see if there's a Host that can take it; modify vector accordingly
+			boolean found = false;
+			for (int i = 0; i < vmVector.length; i++) {
+				if (this.theresEnoughCapacity(req.getResources(), vmVector[i])) {
+					found = true;
+					spareCapacity[i]--;
+					
+					// TODO: UPDATE STATUS VECTOR
+					
+					break;
+				}
+			}
 			
+			if (!found) {	// Activate a new Host.
+				if (spareCapacity[iSuspended] > 0 || spareCapacity[iPoweredOff] > 0) {
+					Resources hostCapacity = rack.getRackDescription().getHostDescription().getResourceCapacity();
+					if (this.theresEnoughCapacity(req.getResources(), hostCapacity)) {
+						if (spareCapacity[iSuspended] > 0)
+							spareCapacity[iSuspended]--;
+						else
+							spareCapacity[iPoweredOff]--;
+						
+						// TODO: UPDATE STATUS VECTOR
+						
+					}
+					else
+						return false;
+				}
+				else
+					return false;
+			}
 		}
 		
-		
-		return false;
+		return true;
 	}
 	
 	/**
@@ -226,6 +349,20 @@ public class AppPlacementPolicyLevel2 extends Policy {
 			return true;
 		
 		return false;
+	}
+	
+	protected boolean theresEnoughCapacity(Resources requiredResources, Resources availableResources) {
+		// Check available resources.
+		if (availableResources.getCpu() < requiredResources.getCpu())
+			return false;
+		if (availableResources.getMemory() < requiredResources.getMemory())
+			return false;
+		if (availableResources.getBandwidth() < requiredResources.getBandwidth())
+			return false;
+		if (availableResources.getStorage() < requiredResources.getStorage())
+			return false;
+		
+		return true;
 	}
 	
 	/**
