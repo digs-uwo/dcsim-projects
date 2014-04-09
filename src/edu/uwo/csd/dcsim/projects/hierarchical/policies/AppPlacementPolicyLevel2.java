@@ -58,6 +58,8 @@ public class AppPlacementPolicyLevel2 extends Policy {
 	protected void processRequest(PlacementRequestEvent event) {
 		RackData targetRack = null;
 		
+		ConstrainedAppAllocationRequest request = event.getRequest();
+		
 		Collection<RackData> racks = manager.getCapability(RackPoolManager.class).getRacks();
 		
 		// Create sublist of active Racks (includes Racks with currently Invalid Status).
@@ -71,7 +73,7 @@ public class AppPlacementPolicyLevel2 extends Policy {
 		// the VM; otherwise, activate a new Rack.
 		else if (active.size() == 1) {
 			RackData rack = active.get(0);
-			if (rack.isStatusValid() && this.canHost(event, rack)) {
+			if (rack.isStatusValid() && this.canHost(request, rack)) {
 				targetRack = rack;
 			}
 			else {
@@ -184,24 +186,27 @@ public class AppPlacementPolicyLevel2 extends Policy {
 		}
 	}
 	
-	protected boolean canHost(PlacementRequestEvent event, RackData rack) {
+	protected boolean canHost(ConstrainedAppAllocationRequest request, RackData rack) {
+		
+		// Get Rack status vector.
+		int[] status = rack.getCurrentStatus().getSpareCapacityVector();
 		
 		// Affinity sets
-		for (ArrayList<VmAllocationRequest> affinitySet : event.getAffinityVms()) {
+		for (ArrayList<VmAllocationRequest> affinitySet : request.getAffinityVms()) {
 			
 			// add VMs' res. needs and see if there's a Host with enough spare capacity; modify vector as needed
 			
 		}
 		
 		// Anti-affinity sets
-		for (ArrayList<VmAllocationRequest> antiAffinitySet : event.getAntiAffinityVms()) {
+		for (ArrayList<VmAllocationRequest> antiAffinitySet : request.getAntiAffinityVms()) {
 			
 			// for each VM, see if there's a Host that can take it; modify vector accordingly
 			
 		}
 		
 		// Independent set
-		for (VmAllocationRequest request : event.getIndependentVms()) {
+		for (VmAllocationRequest req : request.getIndependentVms()) {
 			
 		}
 		

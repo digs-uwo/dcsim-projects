@@ -16,6 +16,7 @@ import edu.uwo.csd.dcsim.management.VmStatus;
 import edu.uwo.csd.dcsim.management.action.InstantiateVmAction;
 import edu.uwo.csd.dcsim.management.capabilities.HostPoolManager;
 import edu.uwo.csd.dcsim.management.events.ShutdownVmEvent;
+import edu.uwo.csd.dcsim.projects.hierarchical.ConstrainedAppAllocationRequest;
 import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.RackManager;
 import edu.uwo.csd.dcsim.projects.hierarchical.events.PlacementRejectEvent;
 import edu.uwo.csd.dcsim.projects.hierarchical.events.PlacementRequestEvent;
@@ -72,6 +73,8 @@ public class AppPlacementPolicyLevel1 extends Policy {
 	protected ArrayList<InstantiateVmAction> processRequest(PlacementRequestEvent event) {
 		ArrayList<InstantiateVmAction> actions = new ArrayList<InstantiateVmAction>();
 		
+		ConstrainedAppAllocationRequest request = event.getRequest();
+		
 		Collection<HostData> hosts = manager.getCapability(HostPoolManager.class).getHosts();
 		
 		// Reset the sandbox host status to the current host status.
@@ -88,7 +91,7 @@ public class AppPlacementPolicyLevel1 extends Policy {
 		// Create target hosts list.
 		ArrayList<HostData> targets = this.orderTargetHosts(partiallyUtilized, underUtilized, empty);
 		
-		for (ArrayList<VmAllocationRequest> affinitySet : event.getAffinityVms()) {
+		for (ArrayList<VmAllocationRequest> affinitySet : request.getAffinityVms()) {
 			ArrayList<InstantiateVmAction> placements = this.placeVmsTogether(affinitySet, targets, event);
 			if (null != placements)
 				actions.addAll(placements);
@@ -96,7 +99,7 @@ public class AppPlacementPolicyLevel1 extends Policy {
 				return null;
 		}
 		
-		for (ArrayList<VmAllocationRequest> antiAffinitySet : event.getAntiAffinityVms()) {
+		for (ArrayList<VmAllocationRequest> antiAffinitySet : request.getAntiAffinityVms()) {
 			ArrayList<InstantiateVmAction> placements = this.placeVmsApart(antiAffinitySet, targets, event);
 			if (null != placements)
 				actions.addAll(placements);
@@ -104,8 +107,8 @@ public class AppPlacementPolicyLevel1 extends Policy {
 				return null;
 		}
 		
-		for (VmAllocationRequest request : event.getIndependentVms()) {
-			InstantiateVmAction placement = this.placeVmWherever(request, targets, event);
+		for (VmAllocationRequest req : request.getIndependentVms()) {
+			InstantiateVmAction placement = this.placeVmWherever(req, targets, event);
 			if (null != placement)
 				actions.add(placement);
 			else
@@ -304,11 +307,7 @@ public class AppPlacementPolicyLevel1 extends Policy {
 			totalBandwidth += request.getBandwidth();
 			totalStorage += request.getStorage();
 		}
-		Resources totalReqResources = new Resources();
-		totalReqResources.setCpu(totalCpu);
-		totalReqResources.setMemory(totalMemory);
-		totalReqResources.setBandwidth(totalBandwidth);
-		totalReqResources.setStorage(totalStorage);
+		Resources totalReqResources = new Resources(totalCpu, totalMemory, totalBandwidth, totalStorage);
 		
 		for (HostData target : targets) {
 			
