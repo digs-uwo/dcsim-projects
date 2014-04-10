@@ -9,17 +9,8 @@ public class RackStatus {
 
 	private long timeStamp;
 	private int id;
-	
 	private Rack.RackState state = Rack.RackState.OFF;
-	
-	private final Resources[] vmVector = {VmFlavours.xtiny(), VmFlavours.tiny(), VmFlavours.small(), VmFlavours.medium(), VmFlavours.large(), VmFlavours.xlarge()};
-	
-	private int[] spareCapacityVector = new int[3 + vmVector.length];	// [active, suspended, poweredOff] + vmVector
-	private final int iActive = 0;
-	private final int iSuspended = 1;
-	private final int iPoweredOff = 2;
-	private final int iVmVector = 3;
-	
+	private RackStatusVector statusVector = new RackStatusVector();
 	private double powerConsumption = 0;		// Sum of power consumption from all Hosts and Switches in the Rack.
 	
 	/**
@@ -28,7 +19,7 @@ public class RackStatus {
 	public RackStatus(Rack rack, long timeStamp) {
 		this.timeStamp = timeStamp;
 		id = rack.getId();
-		spareCapacityVector[iPoweredOff] = rack.getHostCount();
+		statusVector.vector[statusVector.iPoweredOff] = rack.getHostCount();
 	}
 	
 	/**
@@ -40,7 +31,7 @@ public class RackStatus {
 		state = rack.getState();
 		
 		if (state == RackState.OFF) {
-			spareCapacityVector[iPoweredOff] = rack.getHostCount();
+			statusVector.vector[statusVector.iPoweredOff] = rack.getHostCount();
 			powerConsumption = 0;
 		}
 		else {
@@ -49,17 +40,17 @@ public class RackStatus {
 				// Calculate number of active, suspended and powered-off Hosts.
 				Host.HostState state = host.getCurrentStatus().getState();
 				if (state == Host.HostState.ON || state == Host.HostState.POWERING_ON) {
-					spareCapacityVector[iActive]++;
+					statusVector.vector[statusVector.iActive]++;
 					
 					// Calculate spare capacity for each active Host.
 					// Check Host status. If invalid, we cannot make any assertions.
 					if (host.isStatusValid()) {
-						for (int i = vmVector.length - 1; i >= 0; i--) {
+						for (int i = statusVector.vmVector.length - 1; i >= 0; i--) {
 							
 							// TODO: canHost() checks space up to full Host capacity, being completely unaware of any target or stress thresholds. THIS IS A PROBLEM.
 							
-							if (HostData.canHost(vmVector[i].getCores(), vmVector[i].getCoreCapacity(), vmVector[i], host.getCurrentStatus(), host.getHostDescription())) {
-								spareCapacityVector[iVmVector + i]++;
+							if (HostData.canHost(statusVector.vmVector[i].getCores(), statusVector.vmVector[i].getCoreCapacity(), statusVector.vmVector[i], host.getCurrentStatus(), host.getHostDescription())) {
+								statusVector.vector[statusVector.iVmVector + i]++;
 								break;
 							}
 						}
@@ -67,9 +58,9 @@ public class RackStatus {
 					
 				}
 				else if (state == Host.HostState.SUSPENDED || state == Host.HostState.SUSPENDING)
-					spareCapacityVector[iSuspended]++;
+					statusVector.vector[statusVector.iSuspended]++;
 				else if (state == Host.HostState.OFF || state == Host.HostState.POWERING_OFF)
-					spareCapacityVector[iPoweredOff]++;
+					statusVector.vector[statusVector.iPoweredOff]++;
 				
 				// Calculate Rack's total power consumption.
 				// Note: Even Hosts with an invalid status are accounted for here, given that
@@ -87,7 +78,7 @@ public class RackStatus {
 		timeStamp = status.timeStamp;
 		id = status.id;
 		state = status.state;
-		spareCapacityVector = status.spareCapacityVector;
+		statusVector = new RackStatusVector(status.getStatusVector());
 		powerConsumption = status.powerConsumption;
 	}
 	
@@ -107,36 +98,8 @@ public class RackStatus {
 		return state;
 	}
 	
-	public Resources[] getVmVector() {
-		return vmVector;
-	}
-	
-	public int[] getSpareCapacityVector() {
-		return spareCapacityVector;
-	}
-	
-	public int getActiveHosts() {
-		return spareCapacityVector[iActive];
-	}
-	
-	public int getActiveHostsIndex() {
-		return iActive;
-	}
-	
-	public int getSuspendedHosts() {
-		return spareCapacityVector[iSuspended];
-	}
-	
-	public int getSuspendedHostsIndex() {
-		return iSuspended;
-	}
-	
-	public int getPoweredOffHosts() {
-		return spareCapacityVector[iPoweredOff];
-	}
-	
-	public int getPoweredOffHostsIndex() {
-		return iPoweredOff;
+	public RackStatusVector getStatusVector() {
+		return statusVector;
 	}
 	
 	public double getPowerConsumption() {
@@ -144,11 +107,26 @@ public class RackStatus {
 	}
 	
 	@Deprecated
+	public int getActiveHosts() {
+		return statusVector.vector[statusVector.iActive];
+	}
+	
+	@Deprecated
+	public int getSuspendedHosts() {
+		return statusVector.vector[statusVector.iSuspended];
+	}
+	
+	@Deprecated
+	public int getPoweredOffHosts() {
+		return statusVector.vector[statusVector.iPoweredOff];
+	}
+	
+	@Deprecated
 	public double getMaxSpareCapacity() {
 		
-		for (int i = vmVector.length - 1; i >= 0; i--) {
-			if (spareCapacityVector[i] > 0)
-				return StandardVmSizes.calculateSpareCapacity(vmVector[i]);
+		for (int i = statusVector.vmVector.length - 1; i >= 0; i--) {
+			if (statusVector.vector[i] > 0)
+				return StandardVmSizes.calculateSpareCapacity(statusVector.vmVector[i]);
 		}
 		
 		return 0.0;

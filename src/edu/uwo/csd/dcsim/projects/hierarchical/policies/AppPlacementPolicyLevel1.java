@@ -66,7 +66,7 @@ public class AppPlacementPolicyLevel1 extends Policy {
 			}
 		else {	// Contact ClusterManager - reject placement request.
 			int rackId = manager.getCapability(RackManager.class).getRack().getId();
-			simulation.sendEvent(new PlacementRejectEvent(target, event, rackId));
+			simulation.sendEvent(new PlacementRejectEvent(target, event.getRequest(), rackId));
 		}
 	}
 	
