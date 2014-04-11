@@ -59,5 +59,19 @@ public class ConstrainedAppAllocationRequest {
 	public ArrayList<ArrayList<VmAllocationRequest>> getAffinityVms() {
 		return affinityVms;
 	}
+	
+	public ArrayList<VmAllocationRequest> getAllVmAllocationRequests() {
+		ArrayList<VmAllocationRequest> vms = new ArrayList<VmAllocationRequest>(independentVms);
+		
+		for (ArrayList<VmAllocationRequest> antiAffinitySet : antiAffinityVms) {
+			vms.addAll(antiAffinitySet);
+		}
+		
+		for (ArrayList<VmAllocationRequest> affinitySet : affinityVms) {
+			vms.addAll(affinitySet);
+		}
+		
+		return vms;
+	}
 
 }

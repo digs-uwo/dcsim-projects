@@ -1,6 +1,7 @@
 package edu.uwo.csd.dcsim.projects.hierarchical;
 
-import edu.uwo.csd.dcsim.host.*;
+import edu.uwo.csd.dcsim.host.Host;
+import edu.uwo.csd.dcsim.host.Rack;
 import edu.uwo.csd.dcsim.host.Rack.RackState;
 import edu.uwo.csd.dcsim.management.HostData;
 import edu.uwo.csd.dcsim.management.capabilities.HostPoolManager;
@@ -9,7 +10,7 @@ public class RackStatus {
 
 	private long timeStamp;
 	private int id;
-	private Rack.RackState state = Rack.RackState.OFF;
+	private RackState state = RackState.OFF;
 	private RackStatusVector statusVector = new RackStatusVector();
 	private double powerConsumption = 0;		// Sum of power consumption from all Hosts and Switches in the Rack.
 	
@@ -30,10 +31,8 @@ public class RackStatus {
 		id = rack.getId();
 		state = rack.getState();
 		
-		if (state == RackState.OFF) {
+		if (RackState.OFF == state)
 			statusVector.vector[statusVector.iPoweredOff] = rack.getHostCount();
-			powerConsumption = 0;
-		}
 		else {
 			for (HostData host : capability.getHosts()) {
 				
@@ -94,7 +93,7 @@ public class RackStatus {
 		return id;
 	}
 	
-	public Rack.RackState getState() {
+	public RackState getState() {
 		return state;
 	}
 	
@@ -106,7 +105,6 @@ public class RackStatus {
 		return powerConsumption;
 	}
 	
-	@Deprecated
 	public int getActiveHosts() {
 		return statusVector.vector[statusVector.iActive];
 	}
