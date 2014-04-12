@@ -11,7 +11,7 @@ import edu.uwo.csd.dcsim.management.Policy;
 import edu.uwo.csd.dcsim.management.VmStatus;
 import edu.uwo.csd.dcsim.management.action.MigrationAction;
 import edu.uwo.csd.dcsim.management.capabilities.HostPoolManager;
-import edu.uwo.csd.dcsim.projects.centralized.events.VmRelocationEvent;
+import edu.uwo.csd.dcsim.projects.centralized.events.StressCheckEvent;
 
 /**
  * Implements a greedy algorithm for VM Relocation. VMs are migrated out of 
@@ -62,7 +62,7 @@ public abstract class VmRelocationPolicyGreedyReactive extends Policy {
 	/**
 	 * Performs the VM Relocation process.
 	 */
-	public void execute(VmRelocationEvent event) {
+	public void execute(StressCheckEvent event) {
 		HostPoolManager hostPool = manager.getCapability(HostPoolManager.class);
 		Collection<HostData> hosts = hostPool.getHosts();
 		

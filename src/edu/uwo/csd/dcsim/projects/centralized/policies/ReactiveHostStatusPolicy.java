@@ -2,7 +2,7 @@ package edu.uwo.csd.dcsim.projects.centralized.policies;
 
 import edu.uwo.csd.dcsim.management.events.HostStatusEvent;
 import edu.uwo.csd.dcsim.management.policies.HostStatusPolicy;
-import edu.uwo.csd.dcsim.projects.centralized.events.VmRelocationEvent;
+import edu.uwo.csd.dcsim.projects.centralized.events.StressCheckEvent;
 
 public class ReactiveHostStatusPolicy extends HostStatusPolicy {
 
@@ -17,8 +17,8 @@ public class ReactiveHostStatusPolicy extends HostStatusPolicy {
 	public void execute(HostStatusEvent event) {
 		super.execute(event);
 		
-		// Send event to trigger VM Relocation policy (for this host).
-		simulation.sendEvent(new VmRelocationEvent(manager, event.getHostStatus().getId()));
+		// Send event to trigger a stress check -- provided by Relocation policy -- for this host.
+		simulation.sendEvent(new StressCheckEvent(manager, event.getHostStatus().getId()));
 	}
 
 }
