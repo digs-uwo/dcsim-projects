@@ -6,17 +6,14 @@ import java.util.Collections;
 
 import edu.uwo.csd.dcsim.application.Application;
 import edu.uwo.csd.dcsim.application.InteractiveApplication;
-import edu.uwo.csd.dcsim.host.Resources;
 import edu.uwo.csd.dcsim.management.HostDescription;
 import edu.uwo.csd.dcsim.management.Policy;
 import edu.uwo.csd.dcsim.management.events.ApplicationPlacementEvent;
-import edu.uwo.csd.dcsim.management.events.VmPlacementEvent;
 import edu.uwo.csd.dcsim.projects.hierarchical.ClusterData;
 import edu.uwo.csd.dcsim.projects.hierarchical.ClusterDataComparator;
 import edu.uwo.csd.dcsim.projects.hierarchical.ClusterStatus;
 import edu.uwo.csd.dcsim.projects.hierarchical.ConstrainedAppAllocationRequest;
 import edu.uwo.csd.dcsim.projects.hierarchical.RackStatusVector;
-import edu.uwo.csd.dcsim.projects.hierarchical.StandardVmSizes;
 import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.ClusterPoolManager;
 import edu.uwo.csd.dcsim.projects.hierarchical.events.PlacementRejectEvent;
 import edu.uwo.csd.dcsim.projects.hierarchical.events.PlacementRequestEvent;
@@ -108,7 +105,10 @@ public class AppPlacementPolicyLevel3 extends Policy {
 		// the VM; otherwise, activate a new Cluster.
 		else if (active.size() == 1) {
 			ClusterData cluster = active.get(0);
-			if (cluster.isStatusValid() && this.canHost(request, cluster)) {
+			if (cluster.isStatusValid()
+					&& cluster.getCurrentStatus().getStatusVector() != null
+					&& ClusterData.canHost(request, cluster.getCurrentStatus().getStatusVector(), cluster.getClusterDescription())) {
+				
 				targetCluster = cluster;
 			}
 			else {
@@ -145,7 +145,10 @@ public class AppPlacementPolicyLevel3 extends Policy {
 				
 				if (currentPowerEff != cluster.getClusterDescription().getPowerEfficiency()) {
 					// Check if the Cluster with the least loaded Rack can take the application.
-					if (null != leastLoadedRack && this.hasEnoughCapacity(request, leastLoadedRack)) {
+					if (null != leastLoadedRack
+							&& leastLoadedRack.getCurrentStatus().getStatusVector() != null
+							&& ClusterData.canHost(request, leastLoadedRack.getCurrentStatus().getStatusVector(), leastLoadedRack.getClusterDescription())) {
+						
 						targetCluster = leastLoadedRack;
 						break;
 					}
@@ -181,14 +184,15 @@ public class AppPlacementPolicyLevel3 extends Policy {
 			// whether any target Cluster had been identified during the iteration over the last PowerEff set.
 			if (null == targetCluster) {
 				// Check if the Cluster with the least loaded Rack can take the application.
-				if (null != leastLoadedRack && this.hasEnoughCapacity(request, leastLoadedRack)) {
+				if (null != leastLoadedRack
+						&& leastLoadedRack.getCurrentStatus().getStatusVector() != null
+						&& ClusterData.canHost(request, leastLoadedRack.getCurrentStatus().getStatusVector(), leastLoadedRack.getClusterDescription())) {
+					
 					targetCluster = leastLoadedRack;
-					break;
 				}
 				// Otherwise, make the most loaded Cluster the target.
 				else if (null != mostLoadedCluster) {
 					targetCluster = mostLoadedCluster;
-					break;
 				}
 			}
 			
@@ -220,46 +224,6 @@ public class AppPlacementPolicyLevel3 extends Policy {
 		simulation.getLogger().debug(this.getClass() + " - Failed to find placement target.");
 		
 		return false;
-	}
-	
-	/**
-	 * Verifies whether the given Cluster can meet the resource requirements of the VM, 
-	 * considering the Cluster's max spare capacity, (minimum) number of inactive Hosts, 
-	 * and number of active Racks.
-	 */
-	protected boolean canHost(VmAllocationRequest request, ClusterData cluster) {
-		// Check is Cluster has enough spare capacity or inactive (i.e., empty) Hosts or Racks.
-		if (this.hasEnoughCapacity(request, cluster) || 
-				cluster.getCurrentStatus().getMinInactiveHosts() > 0 || 
-				cluster.getCurrentStatus().getActiveRacks() < cluster.getClusterDescription().getRackCount())
-			return true;
-		
-		return false;
-	}
-	
-	/**
-	 * Verifies whether the given Cluster can meet the resource requirements of the VM.
-	 */
-	protected boolean hasEnoughCapacity(VmAllocationRequest request, ClusterData cluster) {
-		// Check Host capabilities (e.g. core count, core capacity).
-		HostDescription hostDescription = cluster.getClusterDescription().getRackDescription().getHostDescription();
-		if (hostDescription.getCpuCount() * hostDescription.getCoreCount() < request.getVMDescription().getCores())
-			return false;
-		if (hostDescription.getCoreCapacity() < request.getVMDescription().getCoreCapacity())
-			return false;
-		
-		// Check available resources.
-		Resources availableResources = StandardVmSizes.convertCapacityToResources(cluster.getCurrentStatus().getMaxSpareCapacity());
-		if (availableResources.getCpu() < request.getCpu())
-			return false;
-		if (availableResources.getMemory() < request.getMemory())
-			return false;
-		if (availableResources.getBandwidth() < request.getBandwidth())
-			return false;
-		if (availableResources.getStorage() < request.getStorage())
-			return false;
-		
-		return true;
 	}
 	
 	/**

@@ -2,6 +2,7 @@ package edu.uwo.csd.dcsim.projects.hierarchical.policies;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 
 import edu.uwo.csd.dcsim.common.Utility;
 import edu.uwo.csd.dcsim.host.*;
@@ -35,7 +36,7 @@ import edu.uwo.csd.dcsim.projects.hierarchical.events.*;
  * @author Gaston Keller
  *
  */
-public abstract class VmRelocationPolicyLevel1 extends Policy {
+public class AppRelocationPolicyLevel1 extends Policy {
 	
 	protected AutonomicManager target;
 	
@@ -44,9 +45,9 @@ public abstract class VmRelocationPolicyLevel1 extends Policy {
 	protected double targetUtilization;
 	
 	/**
-	 * Creates an instance of VmRelocationPolicyLevel1.
+	 * Creates an instance of AppRelocationPolicyLevel1.
 	 */
-	public VmRelocationPolicyLevel1(AutonomicManager target, double lowerThreshold, double upperThreshold, double targetUtilization) {
+	public AppRelocationPolicyLevel1(AutonomicManager target, double lowerThreshold, double upperThreshold, double targetUtilization) {
 		addRequiredCapability(HostPoolManager.class);
 		addRequiredCapability(MigRequestRecord.class);
 		
@@ -55,59 +56,6 @@ public abstract class VmRelocationPolicyLevel1 extends Policy {
 		this.lowerThreshold = lowerThreshold;
 		this.upperThreshold = upperThreshold;
 		this.targetUtilization = targetUtilization;
-	}
-	
-	/**
-	 * Sorts the candidate VMs in the order in which they are to be considered 
-	 * for VM Relocation.
-	 */
-	protected abstract ArrayList<VmStatus> orderSourceVms(ArrayList<VmStatus> sourceVms, HostData source);
-	
-	/**
-	 * Sorts the target hosts (Partially-Utilized, Under-Utilized and Empty) in 
-	 * the order in which they are to be considered for VM Relocation.
-	 */
-	protected abstract ArrayList<HostData> orderTargetHosts(ArrayList<HostData> partiallyUtilized, ArrayList<HostData> underUtilized, ArrayList<HostData> empty);
-	
-	/**
-	 * Performs a Stress Check on the Host indicated by the event and starts a 
-	 * VM Relocation process if the Host is stressed.
-	 */
-	public void execute(StressCheckEvent event) {
-		HostPoolManager hostPool = manager.getCapability(HostPoolManager.class);
-		
-		// Perform Stress Check on the Host whose Status Update was just received.
-		// If Host is NOT stressed, terminate.
-		if (!this.isStressed(hostPool.getHost(event.getHostId())))
-			return;
-		
-		// Perform VM Relocation process within the scope of the Rack.
-		// If it fails, request assistance from ClusterManager.
-		boolean success = this.performInternalVmRelocation(event.getHostId());
-		if (!success)
-			this.performExternalVmRelocation(event.getHostId());
-	}
-	
-	/**
-	 * This event comes from the Cluster Manager, trying to migrate the VM to this Rack.
-	 */
-	public void execute(MigRequestEvent event) {
-		// Search for potential target Host.
-		HostData targetHost = this.findTargetHost(event.getVm());
-		
-		// If found, send message to RackManager origin accepting the migration request.
-		if (null != targetHost) {
-			// Invalidate target Host' status, as we know it to be incorrect until the next status update arrives.
-			targetHost.invalidateStatus(simulation.getSimulationTime());
-			
-			simulation.sendEvent(new MigAcceptEvent(event.getOrigin(), event.getVm(), targetHost.getHost()));
-			
-		}
-		// Otherwise, send message to ClusterManager rejecting the migration request.
-		else {
-			int rackId = manager.getCapability(RackManager.class).getRack().getId();
-			simulation.sendEvent(new MigRejectEvent(target, event.getVm(), event.getOrigin(), rackId));
-		}
 	}
 	
 	/**
@@ -136,6 +84,45 @@ public abstract class VmRelocationPolicyLevel1 extends Policy {
 		// Delete entry from migration requests record.
 		MigRequestRecord record = manager.getCapability(MigRequestRecord.class);
 		record.removeEntry(record.getEntry(event.getVm(), event.getOrigin()));
+	}
+	
+	/**
+	 * This event comes from the Cluster Manager, trying to migrate the VM to this Rack.
+	 */
+	public void execute(MigRequestEvent event) {
+		// Search for potential target Host.
+		HostData targetHost = this.findTargetHost(event.getVm());
+		
+		// If found, send message to RackManager origin accepting the migration request.
+		if (null != targetHost) {
+			// Invalidate target Host' status, as we know it to be incorrect until the next status update arrives.
+			targetHost.invalidateStatus(simulation.getSimulationTime());
+			
+			simulation.sendEvent(new MigAcceptEvent(event.getOrigin(), event.getVm(), targetHost.getHost()));
+			
+		}
+		// Otherwise, send message to ClusterManager rejecting the migration request.
+		else {
+			int rackId = manager.getCapability(RackManager.class).getRack().getId();
+			simulation.sendEvent(new MigRejectEvent(target, event.getVm(), event.getOrigin(), rackId));
+		}
+	}
+	
+	/**
+	 * Performs a stress check on the Host indicated by the event. If the host is stressed,
+	 * it initiates a Relocation process.
+	 */
+	public void execute(StressCheckEvent event) {
+		HostPoolManager hostPool = manager.getCapability(HostPoolManager.class);
+		
+		if (this.isStressed(hostPool.getHost(event.getHostId()))) {
+			
+			// Perform VM Relocation process within the scope of the Rack.
+			// If it fails, request assistance from ClusterManager.
+			boolean success = this.performInternalVmRelocation(event.getHostId());
+			if (!success)
+				this.performExternalVmRelocation(event.getHostId());
+		}
 	}
 	
 	/**
@@ -175,9 +162,8 @@ public abstract class VmRelocationPolicyLevel1 extends Policy {
 	}
 	
 	/**
-	 * Performs the VM Relocation process within the scope of the Rack.
-	 * 
-	 * The process searches for a feasible VM migration with target Host inside the Rack.
+	 * Performs the Relocation process within the scope of the Rack. The process searches for
+	 * a feasible VM migration with target Host inside the Rack.
 	 */
 	protected boolean performInternalVmRelocation(int hostId) {
 		HostPoolManager hostPool = manager.getCapability(HostPoolManager.class);
@@ -259,6 +245,30 @@ public abstract class VmRelocationPolicyLevel1 extends Policy {
 	}
 	
 	/**
+	 * Calculates Host's average CPU utilization over the last window of time.
+	 * 
+	 * @return		value in range [0,1] (i.e., percentage)
+	 */
+	protected double calculateHostAvgCpuUtilization(HostData host) {
+		double avgCpuInUse = 0;
+		int count = 0;
+		for (HostStatus status : host.getHistory()) {
+			// Only consider times when the host is powered ON.
+			if (status.getState() == Host.HostState.ON) {
+				avgCpuInUse += status.getResourcesInUse().getCpu();
+				++count;
+			}
+			else
+				break;
+		}
+		if (count != 0) {
+			avgCpuInUse = avgCpuInUse / count;
+		}
+		
+		return Utility.roundDouble(avgCpuInUse / host.getHostDescription().getResourceCapacity().getCpu());
+	}
+	
+	/**
 	 * Classifies hosts as Partially-Utilized, Under-Utilized or Empty based 
 	 * on the Hosts' average CPU utilization over the last window of time. The 
 	 * method ignores (or discards) Stressed Hosts.
@@ -299,27 +309,60 @@ public abstract class VmRelocationPolicyLevel1 extends Policy {
 	}
 	
 	/**
-	 * Calculates Host's average CPU utilization over the last window of time.
-	 * 
-	 * @return		value in range [0,1] (i.e., percentage)
+	 * Sorts the relocation candidates in increasing order by <CPU load>, previously removing
+	 * from consideration those VMs with less CPU load than the CPU load by which the host is stressed.
 	 */
-	protected double calculateHostAvgCpuUtilization(HostData host) {
-		double avgCpuInUse = 0;
-		int count = 0;
-		for (HostStatus status : host.getHistory()) {
-			// Only consider times when the host is powered ON.
-			if (status.getState() == Host.HostState.ON) {
-				avgCpuInUse += status.getResourcesInUse().getCpu();
-				++count;
-			}
-			else
-				break;
-		}
-		if (count != 0) {
-			avgCpuInUse = avgCpuInUse / count;
+	protected ArrayList<VmStatus> orderSourceVms(ArrayList<VmStatus> sourceVms, HostData source) {
+		ArrayList<VmStatus> sorted = new ArrayList<VmStatus>();
+		
+		// Remove VMs with less CPU load than the CPU load by which the source 
+		// host is stressed.
+		double cpuExcess = source.getSandboxStatus().getResourcesInUse().getCpu() - source.getHostDescription().getResourceCapacity().getCpu() * this.upperThreshold;
+		for (VmStatus vm : sourceVms)
+			if (vm.getResourcesInUse().getCpu() >= cpuExcess)
+				sorted.add(vm);
+		
+		if (!sorted.isEmpty())
+			// Sort VMs in increasing order by CPU load.
+			Collections.sort(sorted, VmStatusComparator.getComparator(VmStatusComparator.CPU_IN_USE));
+		else {
+			// Add original list of VMs and sort them in decreasing order by 
+			// CPU load, so as to avoid trying to migrate the smallest VMs 
+			// first (which would not help resolve the stress situation).
+			sorted.addAll(sourceVms);
+			Collections.sort(sorted, VmStatusComparator.getComparator(VmStatusComparator.CPU_IN_USE));
+			Collections.reverse(sorted);
 		}
 		
-		return Utility.roundDouble(avgCpuInUse / host.getHostDescription().getResourceCapacity().getCpu());
+		return sorted;
+	}
+	
+	/**
+	 * Sorts Partially-Utilized hosts in increasing order by <CPU utilization, power efficiency>,
+	 * Underutilized hosts in decreasing order by <CPU utilization, power efficiency>, and Empty hosts
+	 * in decreasing order by <power efficiency, power state>.
+	 * 
+	 * Returns Partially-utilized, Underutilized, and Empty hosts, in that order.
+	 */
+	protected ArrayList<HostData> orderTargetHosts(ArrayList<HostData> partiallyUtilized, ArrayList<HostData> underUtilized, ArrayList<HostData> empty) {
+		ArrayList<HostData> targets = new ArrayList<HostData>();
+		
+		// Sort Partially-Utilized hosts in increasing order by <CPU utilization, power efficiency>.
+		Collections.sort(partiallyUtilized, HostDataComparator.getComparator(HostDataComparator.CPU_UTIL, HostDataComparator.EFFICIENCY));
+		
+		// Sort Underutilized hosts in decreasing order by <CPU utilization, power efficiency>.
+		Collections.sort(underUtilized, HostDataComparator.getComparator(HostDataComparator.CPU_UTIL, HostDataComparator.EFFICIENCY));
+		Collections.reverse(underUtilized);
+		
+		// Sort Empty hosts in decreasing order by <power efficiency, power state>.
+		Collections.sort(empty, HostDataComparator.getComparator(HostDataComparator.EFFICIENCY, HostDataComparator.PWR_STATE));
+		Collections.reverse(empty);
+		
+		targets.addAll(partiallyUtilized);
+		targets.addAll(underUtilized);
+		targets.addAll(empty);
+		
+		return targets;
 	}
 	
 	@Override

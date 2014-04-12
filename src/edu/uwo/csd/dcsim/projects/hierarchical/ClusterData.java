@@ -61,6 +61,13 @@ public class ClusterData {
 		}
 	}
 	
+	/**
+	 * Verifies whether the given Cluster can meet the resource requirements of the application request.
+	 */
+	public static boolean canHost(ConstrainedAppAllocationRequest request, RackStatusVector currentStatus, ClusterDescription clusterDescription) {
+		return RackData.canHost(request, currentStatus, clusterDescription.getRackDescription());
+	}
+	
 	public boolean isStatusValid() {
 		return statusValid;
 	}
