@@ -3,7 +3,12 @@ package edu.uwo.csd.dcsim.projects.hierarchical.policies;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 
+import edu.uwo.csd.dcsim.application.InteractiveApplication;
+import edu.uwo.csd.dcsim.application.InteractiveTask;
+import edu.uwo.csd.dcsim.application.Task;
 import edu.uwo.csd.dcsim.common.Utility;
 import edu.uwo.csd.dcsim.host.*;
 import edu.uwo.csd.dcsim.management.*;
@@ -177,7 +182,8 @@ public class AppRelocationPolicyLevel1 extends Policy {
 		// Stressed Host becomes the source for the VM migration.
 		HostData source = hostPool.getHost(hostId);
 		
-		// Classify Hosts as Partially-Utilized, Under-Utilized or Empty; ignore Stressed Hosts.
+		// Classify Hosts as Partially-Utilized, Under-Utilized or Empty; ignore Stressed Hosts
+		// and Hosts with currently invalid status.
 		ArrayList<HostData> partiallyUtilized = new ArrayList<HostData>();
 		ArrayList<HostData> underUtilized = new ArrayList<HostData>();
 		ArrayList<HostData> empty = new ArrayList<HostData>();
@@ -186,19 +192,28 @@ public class AppRelocationPolicyLevel1 extends Policy {
 		// Create sorted list of target Hosts.
 		ArrayList<HostData> targets = this.orderTargetHosts(partiallyUtilized, underUtilized, empty);
 		
-		MigrationAction mig = null;
+		// Obtain source Host's VMs, and sort them, removing small VMs from consideration for migration.
 		ArrayList<VmStatus> vmList = this.orderSourceVms(source.getCurrentStatus().getVms(), source);
-		for (VmStatus vm : vmList) {
+		
+		// Classify source Host's VMs according to the constraint-type of their hosted Task instance.
+		ArrayList<VmStatus> independent = new ArrayList<VmStatus>();
+		ArrayList<VmStatus> antiAffinity = new ArrayList<VmStatus>();
+		ArrayList<VmStatus> affinity = new ArrayList<VmStatus>();
+		this.classifyVms(vmList, independent, antiAffinity, affinity);
+		
+		// Process Independent VMs.
+		MigrationAction mig = null;
+		for (VmStatus vm : independent) {
 			
 			for (HostData target : targets) {
-				// Check that target host has at most 1 incoming migration pending, 
-				// that target host is capable and has enough capacity left to host the VM, 
-				// and also that it will not exceed the target utilization.
-				if (target.getSandboxStatus().getIncomingMigrationCount() < 2 && 
+				// Check that the target host is not currently involved in migrations,
+				// that the target host has enough capacity left to host the VM, 
+				// and that the migration won't push the Host's utilization above the target utilization threshold.
+				if (target.getSandboxStatus().getIncomingMigrationCount() == 0 && target.getSandboxStatus().getOutgoingMigrationCount() == 0 &&
 					HostData.canHost(vm, target.getSandboxStatus(), target.getHostDescription()) && 
 					(target.getSandboxStatus().getResourcesInUse().getCpu() + vm.getResourcesInUse().getCpu()) / target.getHostDescription().getResourceCapacity().getCpu() <= targetUtilization) {
 					
-					// Modify host and vm states to record the future migration. Note that we 
+					// Modify host and VM states to record the future migration. Note that we 
 					// can do this because we are using the designated 'sandbox' host status.
 					source.getSandboxStatus().migrate(vm, target.getSandboxStatus());
 					
@@ -212,12 +227,111 @@ public class AppRelocationPolicyLevel1 extends Policy {
 				}
 			}
 			
-			if (mig != null)	// Found VM migration. Exit loop.
+			if (null != mig)	// Found VM migration. Exit loop.
 				break;
 		}
 		
-		if (mig != null) {		// Trigger migration.
+		if (null != mig) {		// Trigger migration and exit.
 			mig.execute(simulation, this);
+			return true;
+		}
+		
+		// Process Anti-affinity VMs.
+		for (VmStatus vm : antiAffinity) {
+			
+			for (HostData target : targets) {
+				// Check that the target host is not currently involved in migrations,
+				// that the target host has enough capacity left to host the VM, 
+				// and that the migration won't push the Host's utilization above the target utilization threshold.
+				if (target.getSandboxStatus().getIncomingMigrationCount() == 0 && target.getSandboxStatus().getOutgoingMigrationCount() == 0 &&
+					HostData.canHost(vm, target.getSandboxStatus(), target.getHostDescription()) && 
+					(target.getSandboxStatus().getResourcesInUse().getCpu() + vm.getResourcesInUse().getCpu()) / target.getHostDescription().getResourceCapacity().getCpu() <= targetUtilization &&
+					!this.isHostingTask(vm.getVm().getTaskInstance().getTask(), target)) {
+					
+					// Modify host and VM states to record the future migration. Note that we 
+					// can do this because we are using the designated 'sandbox' host status.
+					source.getSandboxStatus().migrate(vm, target.getSandboxStatus());
+					
+					// Invalidate source and target status, as we know them to be incorrect until the next status update arrives.
+					source.invalidateStatus(simulation.getSimulationTime());
+					target.invalidateStatus(simulation.getSimulationTime());
+					
+					mig = new MigrationAction(source.getHostManager(), source.getHost(), target.getHost(), vm.getId());
+					
+					break;		// Found VM migration. Exit loop.
+				}
+			}
+			
+			if (null != mig)	// Found VM migration. Exit loop.
+				break;
+		}
+		
+		if (null != mig) {		// Trigger migration and exit.
+			mig.execute(simulation, this);
+			return true;
+		}
+		
+		// Process Affinity VMs.
+		ArrayList<MigrationAction> migActions = new ArrayList<MigrationAction>();
+		
+		ArrayList<ArrayList<VmStatus>> affinitySets = this.groupVmsByAffinity(affinity);
+		
+		// If there's more than one Affinity-set, sort them in increasing order by size.
+		if (affinitySets.size() > 1)
+			Collections.sort(affinitySets, new Comparator<List<?>>(){
+				@Override
+				public int compare(List<?> arg0, List<?> arg1) {
+					return arg0.size() - arg1.size();
+				}
+			});
+		
+		for (ArrayList<VmStatus> affinitySet : affinitySets) {
+			
+			// Calculata total required resources for all the VMs in the Affinity-set.
+			int maxReqCores = 0;
+			int maxReqCoreCapacity = 0;
+			Resources totalReqResources = new Resources();
+			for (VmStatus vm : affinitySet) {
+				if (vm.getCores() > maxReqCores)
+					maxReqCores = vm.getCores();
+				
+				if (vm.getCoreCapacity() > maxReqCoreCapacity)
+					maxReqCoreCapacity = vm.getCoreCapacity();
+				
+				totalReqResources = totalReqResources.add(vm.getResourcesInUse());
+			}
+			
+			for (HostData target : targets) {
+				// Check that the target host is not currently involved in migrations,
+				// that the target host has enough capacity left to host the VM, 
+				// and that the migration won't push the Host's utilization above the target utilization threshold.
+				if (target.getSandboxStatus().getIncomingMigrationCount() == 0 && target.getSandboxStatus().getOutgoingMigrationCount() == 0 &&
+					HostData.canHost(maxReqCores, maxReqCoreCapacity, totalReqResources, target.getSandboxStatus(), target.getHostDescription()) && 
+					(target.getSandboxStatus().getResourcesInUse().getCpu() + totalReqResources.getCpu()) / target.getHostDescription().getResourceCapacity().getCpu() <= targetUtilization) {
+					
+					// Modify host and VM states to record the future migration. Note that we 
+					// can do this because we are using the designated 'sandbox' host status.
+					// Create a migration action per VM in the Affinity-set.
+					for (VmStatus v : affinitySet) {
+						source.getSandboxStatus().migrate(v, target.getSandboxStatus());
+						migActions.add(new MigrationAction(source.getHostManager(), source.getHost(), target.getHost(), v.getId()));
+					}
+					
+					// Invalidate source and target status, as we know them to be incorrect until the next status update arrives.
+					source.invalidateStatus(simulation.getSimulationTime());
+					target.invalidateStatus(simulation.getSimulationTime());
+					
+					break;					// Found VM migration. Exit loop.
+				}
+			}
+			
+			if (migActions.size() > 0)		// Found VM migration. Exit loop.
+				break;
+		}
+		
+		if (migActions.size() > 0) {		// Trigger migrations and exit.
+			for (MigrationAction action : migActions)
+				action.execute(simulation, this);
 			return true;
 		}
 		
@@ -231,6 +345,11 @@ public class AppRelocationPolicyLevel1 extends Policy {
 	 * The ClusterManager is contacted for it to find a target Host for the VM migration.
 	 */
 	protected void performExternalVmRelocation(int hostId) {
+		
+		
+		// TODO Find an application to relocate away from this Rack.
+		
+		
 		HostData host = manager.getCapability(HostPoolManager.class).getHost(hostId);
 		int rackId = manager.getCapability(RackManager.class).getRack().getId();
 		
@@ -271,7 +390,8 @@ public class AppRelocationPolicyLevel1 extends Policy {
 	/**
 	 * Classifies hosts as Partially-Utilized, Under-Utilized or Empty based 
 	 * on the Hosts' average CPU utilization over the last window of time. The 
-	 * method ignores (or discards) Stressed Hosts.
+	 * method ignores (or discards) Stressed Hosts and Hosts with currently
+	 * invalid status.
 	 */
 	protected void classifyHosts(Collection<HostData> hosts, 
 			ArrayList<HostData> partiallyUtilized, 
@@ -295,6 +415,76 @@ public class AppRelocationPolicyLevel1 extends Policy {
 				}
 			}
 		}
+	}
+	
+	/**
+	 * Classifies VMs as Independent, Anti-affinity, or Affinity, in accordance with the constraint-type
+	 * of their hosted Task instance.
+	 */
+	protected void classifyVms(ArrayList<VmStatus> vms, ArrayList<VmStatus> independent, ArrayList<VmStatus> antiAffinity, ArrayList<VmStatus> affinity) {
+		
+		for (VmStatus vm : vms) {
+			switch (vm.getVm().getTaskInstance().getTask().getConstraintType()) {
+			case INDEPENDENT:
+				independent.add(vm);
+				break;
+			case ANTI_AFFINITY:
+				antiAffinity.add(vm);
+				break;
+			case AFFINITY:
+				affinity.add(vm);
+				break;
+			default:
+				break;
+			}
+		}
+	}
+	
+	private VmStatus findHostingVm(InteractiveTask task, ArrayList<VmStatus> vms) {
+		
+		for (VmStatus vm : vms) {
+			if (vm.getVm().getTaskInstance().getTask().getId() == task.getId())
+				return vm;
+		}
+		
+		return null;
+	}
+	
+	private ArrayList<ArrayList<VmStatus>> groupVmsByAffinity(ArrayList<VmStatus> vms) {
+		ArrayList<ArrayList<VmStatus>> affinitySets = new ArrayList<ArrayList<VmStatus>>();
+		
+		ArrayList<VmStatus> copy = new ArrayList<VmStatus>(vms);
+		while (copy.size() > 0) {
+			VmStatus vm = copy.get(0);
+			
+			// Get Affinity-set for the Task instance hosted in this VM.
+			InteractiveTask vmTask = (InteractiveTask) vm.getVm().getTaskInstance().getTask();
+			ArrayList<InteractiveTask> affinitySet = ((InteractiveApplication) vmTask.getApplication()).getAffinitySet(vmTask);
+			
+			// Build the set of VMs hosting the Tasks in the previously found Affinity-set.
+			ArrayList<VmStatus> affinitySetVms = new ArrayList<VmStatus>();
+			for (InteractiveTask task : affinitySet) {
+				affinitySetVms.add(this.findHostingVm(task, copy));
+			}
+			
+			affinitySets.add(affinitySetVms);
+			copy.removeAll(affinitySetVms);
+		}
+		
+		return affinitySets;
+	}
+	
+	/**
+	 * Determines whether the given Host is hosting an instance of the given Task.
+	 */
+	private boolean isHostingTask(Task task, HostData host) {
+		
+		for (VmStatus vm : host.getCurrentStatus().getVms()) {
+			if (vm.getVm().getTaskInstance().getTask().getId() == task.getId())
+				return true;
+		}
+		
+		return false;
 	}
 	
 	/**
