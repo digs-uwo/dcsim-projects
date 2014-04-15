@@ -59,11 +59,14 @@ public class AppPlacementPolicyLevel1 extends Policy {
 	 * Note: This event can only come from the ClusterManager.
 	 */
 	public void execute(PlacementRequestEvent event) {
-		ArrayList<InstantiateVmAction> actions = this.processRequest(event);
-		if (null != actions)
-			for (InstantiateVmAction action : actions) {
+		ArrayList<InstantiateVmAction> placements = this.processRequest(event);
+		if (null != placements) {
+			for (InstantiateVmAction action : placements) {
+				// Invalidate target Host's status, as we know it to be incorrect until the next status update arrives.
+				action.getTarget().invalidateStatus(simulation.getSimulationTime());
 				action.execute(simulation, this);
 			}
+		}
 		else {	// Contact ClusterManager - reject placement request.
 			int rackId = manager.getCapability(RackManager.class).getRack().getId();
 			simulation.sendEvent(new PlacementRejectEvent(target, event.getRequest(), rackId));
@@ -86,7 +89,7 @@ public class AppPlacementPolicyLevel1 extends Policy {
 		ArrayList<HostData> partiallyUtilized = new ArrayList<HostData>();
 		ArrayList<HostData> underUtilized = new ArrayList<HostData>();
 		ArrayList<HostData> empty = new ArrayList<HostData>();
-		this.classifyHosts(partiallyUtilized, underUtilized, empty, hosts);
+		this.classifyHosts(hosts, partiallyUtilized, underUtilized, empty);
 		
 		// Create target hosts list.
 		ArrayList<HostData> targets = this.orderTargetHosts(partiallyUtilized, underUtilized, empty);
@@ -115,6 +118,9 @@ public class AppPlacementPolicyLevel1 extends Policy {
 				return null;
 		}
 		
+		// If we don't have a Placement action for each allocation request, then there's an implementation error somewhere.
+		assert request.getAllVmAllocationRequests().size() == actions.size();
+		
 		return actions;
 	}
 	
@@ -136,10 +142,7 @@ public class AppPlacementPolicyLevel1 extends Policy {
 	 * on the Hosts' average CPU utilization over the last window of time. The 
 	 * method ignores (or discards) Stressed Hosts.
 	 */
-	protected void classifyHosts(ArrayList<HostData> partiallyUtilized, 
-			ArrayList<HostData> underUtilized, 
-			ArrayList<HostData> empty, 
-			Collection<HostData> hosts) {
+	protected void classifyHosts(Collection<HostData> hosts, ArrayList<HostData> partiallyUtilized, ArrayList<HostData> underUtilized, ArrayList<HostData> empty) {
 		
 		for (HostData host : hosts) {
 			
@@ -227,9 +230,6 @@ public class AppPlacementPolicyLevel1 extends Policy {
 				// Add a dummy placeholder VM to keep track of placed VM resource requirements.
 				target.getSandboxStatus().instantiateVm(new VmStatus(request.getVMDescription().getCores(),	request.getVMDescription().getCoreCapacity(), reqResources));
 				
-				// Invalidate this host status, as we know it to be incorrect until the next status update arrives.
-				target.invalidateStatus(simulation.getSimulationTime());
-				
 				return new InstantiateVmAction(target, request, event);
 			}
 		}
@@ -263,9 +263,6 @@ public class AppPlacementPolicyLevel1 extends Policy {
 					
 					// Add a dummy placeholder VM to keep track of placed VM resource requirements.
 					target.getSandboxStatus().instantiateVm(new VmStatus(request.getVMDescription().getCores(),	request.getVMDescription().getCoreCapacity(), reqResources));
-					
-					// Invalidate this host status, as we know it to be incorrect until the next status update arrives.
-					target.invalidateStatus(simulation.getSimulationTime());
 					
 					break;
 				}
@@ -330,9 +327,6 @@ public class AppPlacementPolicyLevel1 extends Policy {
 					actions.add(new InstantiateVmAction(target, request, event));
 				}
 				
-				// Invalidate this host status, as we know it to be incorrect until the next status update arrives.
-				target.invalidateStatus(simulation.getSimulationTime());
-				
 				return actions;
 			}
 		}
@@ -340,28 +334,19 @@ public class AppPlacementPolicyLevel1 extends Policy {
 		return null;
 	}
 	
-	/* (non-Javadoc)
-	 * @see edu.uwo.csd.dcsim.management.Policy#onInstall()
-	 */
 	@Override
 	public void onInstall() {
-		// TODO Auto-generated method stub
+		// Auto-generated method stub
 	}
 
-	/* (non-Javadoc)
-	 * @see edu.uwo.csd.dcsim.management.Policy#onManagerStart()
-	 */
 	@Override
 	public void onManagerStart() {
-		// TODO Auto-generated method stub
+		// Auto-generated method stub
 	}
 
-	/* (non-Javadoc)
-	 * @see edu.uwo.csd.dcsim.management.Policy#onManagerStop()
-	 */
 	@Override
 	public void onManagerStop() {
-		// TODO Auto-generated method stub
+		// Auto-generated method stub
 	}
 
 }

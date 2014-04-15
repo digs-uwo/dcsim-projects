@@ -4,7 +4,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import edu.uwo.csd.dcsim.application.InteractiveApplication;
 import edu.uwo.csd.dcsim.application.InteractiveTask;
@@ -12,12 +14,16 @@ import edu.uwo.csd.dcsim.application.Task;
 import edu.uwo.csd.dcsim.common.Utility;
 import edu.uwo.csd.dcsim.host.*;
 import edu.uwo.csd.dcsim.management.*;
+import edu.uwo.csd.dcsim.management.action.InstantiateVmAction;
 import edu.uwo.csd.dcsim.management.action.MigrationAction;
 import edu.uwo.csd.dcsim.management.capabilities.HostPoolManager;
 import edu.uwo.csd.dcsim.projects.centralized.events.StressCheckEvent;
+import edu.uwo.csd.dcsim.projects.hierarchical.AppStatus;
+import edu.uwo.csd.dcsim.projects.hierarchical.ConstrainedAppAllocationRequest;
 import edu.uwo.csd.dcsim.projects.hierarchical.MigRequestEntry;
 import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.*;
 import edu.uwo.csd.dcsim.projects.hierarchical.events.*;
+import edu.uwo.csd.dcsim.vm.VmAllocationRequest;
 
 /**
  * This policy implements the VM Relocation process in two steps. First, the 
@@ -68,6 +74,10 @@ public class AppRelocationPolicyLevel1 extends Policy {
 	 */
 	public void execute(MigAcceptEvent event) {
 		
+		
+		// TODO
+		
+		
 		// Get entry from migration requests record.
 		MigRequestEntry entry = manager.getCapability(MigRequestRecord.class).getEntry(event.getVm(), manager);
 		HostData source = entry.getHost();
@@ -85,31 +95,35 @@ public class AppRelocationPolicyLevel1 extends Policy {
 	/**
 	 * This event can only come from the DC Manager, signaling that nobody can accept the migration request.
 	 */
-	public void execute(MigRejectEvent event) {
+	public void execute(AppMigRejectEvent event) {
 		// Delete entry from migration requests record.
 		MigRequestRecord record = manager.getCapability(MigRequestRecord.class);
-		record.removeEntry(record.getEntry(event.getVm(), event.getOrigin()));
+		record.removeEntry(record.getEntry(event.getApplication(), event.getOrigin()));
 	}
 	
 	/**
-	 * This event comes from the Cluster Manager, trying to migrate the VM to this Rack.
+	 * This event comes from the Cluster Manager, trying to migrate an application to this Rack.
 	 */
-	public void execute(MigRequestEvent event) {
-		// Search for potential target Host.
-		HostData targetHost = this.findTargetHost(event.getVm());
+	public void execute(AppMigRequestEvent event) {
+		
+		// Find target Hosts in this Rack for the VMs that compose the migrating application.
+		Map<Integer, HostData> vmHostMap = this.findMigrationTargets(event.getApplication());
 		
 		// If found, send message to RackManager origin accepting the migration request.
-		if (null != targetHost) {
-			// Invalidate target Host' status, as we know it to be incorrect until the next status update arrives.
-			targetHost.invalidateStatus(simulation.getSimulationTime());
+		if (null != vmHostMap) {
+			// Invalidate target Hosts' status, as we know them to be incorrect until the next status updates arrive.
+			// Build map < vmId , Host > .
+			Map<Integer, Host> targets = new HashMap<Integer, Host>();
+			for (Map.Entry<Integer, HostData> entry : vmHostMap.entrySet()) {
+				entry.getValue().invalidateStatus(simulation.getSimulationTime());
+				targets.put(entry.getKey(), entry.getValue().getHost());
+			}
 			
-			simulation.sendEvent(new MigAcceptEvent(event.getOrigin(), event.getVm(), targetHost.getHost()));
-			
+			simulation.sendEvent(new AppMigAcceptEvent(event.getOrigin(), event.getApplication(), targets));
 		}
-		// Otherwise, send message to ClusterManager rejecting the migration request.
-		else {
+		else {	// Otherwise, send message to ClusterManager rejecting the migration request.
 			int rackId = manager.getCapability(RackManager.class).getRack().getId();
-			simulation.sendEvent(new MigRejectEvent(target, event.getVm(), event.getOrigin(), rackId));
+			simulation.sendEvent(new AppMigRejectEvent(target, event.getApplication(), event.getOrigin(), rackId));
 		}
 	}
 	
@@ -133,38 +147,38 @@ public class AppRelocationPolicyLevel1 extends Policy {
 	/**
 	 * Search for a target Host that could take the given VM.
 	 */
-	protected HostData findTargetHost(VmStatus vm) {
-		HostPoolManager hostPool = manager.getCapability(HostPoolManager.class);
-		Collection<HostData> hosts = hostPool.getHosts();
-		
-		// Reset the sandbox host status to the current host status.
-		for (HostData host : hosts) {
-			host.resetSandboxStatusToCurrent();
-		}
-		
-		// Classify Hosts as Partially-Utilized, Under-Utilized or Empty; ignore Stressed Hosts.
-		ArrayList<HostData> partiallyUtilized = new ArrayList<HostData>();
-		ArrayList<HostData> underUtilized = new ArrayList<HostData>();
-		ArrayList<HostData> empty = new ArrayList<HostData>();
-		this.classifyHosts(hosts, partiallyUtilized, underUtilized, empty);
-		
-		// Create sorted list of target Hosts.
-		ArrayList<HostData> targets = this.orderTargetHosts(partiallyUtilized, underUtilized, empty);
-		
-		for (HostData target : targets) {
-			// Check that target host has at most 1 incoming migration pending, 
-			// that target host is capable and has enough capacity left to host the VM, 
-			// and also that it will not exceed the target utilization.
-			if (target.getSandboxStatus().getIncomingMigrationCount() < 2 && 
-				HostData.canHost(vm, target.getSandboxStatus(), target.getHostDescription()) && 
-				(target.getSandboxStatus().getResourcesInUse().getCpu() + vm.getResourcesInUse().getCpu()) / target.getHostDescription().getResourceCapacity().getCpu() <= targetUtilization) {
-				
-				return target;
-			}
-		}
-		
-		return null;
-	}
+//	protected HostData findTargetHost(VmStatus vm) {
+//		HostPoolManager hostPool = manager.getCapability(HostPoolManager.class);
+//		Collection<HostData> hosts = hostPool.getHosts();
+//		
+//		// Reset the sandbox host status to the current host status.
+//		for (HostData host : hosts) {
+//			host.resetSandboxStatusToCurrent();
+//		}
+//		
+//		// Classify Hosts as Partially-Utilized, Under-Utilized or Empty; ignore Stressed Hosts.
+//		ArrayList<HostData> partiallyUtilized = new ArrayList<HostData>();
+//		ArrayList<HostData> underUtilized = new ArrayList<HostData>();
+//		ArrayList<HostData> empty = new ArrayList<HostData>();
+//		this.classifyHosts(hosts, partiallyUtilized, underUtilized, empty);
+//		
+//		// Create sorted list of target Hosts.
+//		ArrayList<HostData> targets = this.orderTargetHosts(partiallyUtilized, underUtilized, empty);
+//		
+//		for (HostData target : targets) {
+//			// Check that target host has at most 1 incoming migration pending, 
+//			// that target host is capable and has enough capacity left to host the VM, 
+//			// and also that it will not exceed the target utilization.
+//			if (target.getSandboxStatus().getIncomingMigrationCount() < 2 && 
+//				HostData.canHost(vm, target.getSandboxStatus(), target.getHostDescription()) && 
+//				(target.getSandboxStatus().getResourcesInUse().getCpu() + vm.getResourcesInUse().getCpu()) / target.getHostDescription().getResourceCapacity().getCpu() <= targetUtilization) {
+//				
+//				return target;
+//			}
+//		}
+//		
+//		return null;
+//	}
 	
 	/**
 	 * Performs the Relocation process within the scope of the Rack. The process searches for
@@ -341,26 +355,135 @@ public class AppRelocationPolicyLevel1 extends Policy {
 	/**
 	 * Starts an external VM Relocation process.
 	 * 
-	 * A VM from the stressed Host is selected to be migrated away from the Rack.
-	 * The ClusterManager is contacted for it to find a target Host for the VM migration.
+	 * An application hosted in a VM in the stressed Host is selected to be migrated away from the Rack.
+	 * The ClusterManager is contacted for it to find a target Rack for the migration.
 	 */
 	protected void performExternalVmRelocation(int hostId) {
-		
-		
-		// TODO Find an application to relocate away from this Rack.
-		
-		
-		HostData host = manager.getCapability(HostPoolManager.class).getHost(hostId);
+		HostData source = manager.getCapability(HostPoolManager.class).getHost(hostId);
 		int rackId = manager.getCapability(RackManager.class).getRack().getId();
 		
-		// Get VM to migrate away -- the first one in the ordered list.
-		VmStatus vm = this.orderSourceVms(host.getCurrentStatus().getVms(), host).get(0);
+		// Find VM to migrate away.
+		VmStatus vm = this.findCandidateVm(source);
 		
-		// Request assistance from ClusterManager to find a target Host for migrating the selected VM.
-		simulation.sendEvent(new MigRequestEvent(target, vm, manager, rackId));
+		// TODO: Accessing remote object (VM). Redesign mgmt. system to avoid this trick.
+		
+		AppStatus application = new AppStatus((InteractiveApplication) vm.getVm().getTaskInstance().getTask().getApplication());
+		
+		// Request assistance from ClusterManager to find a target Rack to which to migrate the selected application.
+		simulation.sendEvent(new AppMigRequestEvent(target, application, manager, rackId));
 		
 		// Keep track of the migration request just sent.
-		manager.getCapability(MigRequestRecord.class).addEntry(new MigRequestEntry(vm, manager, host));
+		manager.getCapability(MigRequestRecord.class).addEntry(new MigRequestEntry(application, manager, source));
+	}
+	
+	protected Map<Integer, HostData> findMigrationTargets(AppStatus application) {
+		Map<Integer, HostData> vmHostMap = new HashMap<Integer, HostData>();
+		
+		Collection<HostData> hosts = manager.getCapability(HostPoolManager.class).getHosts();
+		
+		// Reset the sandbox host status to the current host status.
+		for (HostData host : hosts) {
+			host.resetSandboxStatusToCurrent();
+		}
+		
+		// Categorize hosts.
+		ArrayList<HostData> partiallyUtilized = new ArrayList<HostData>();
+		ArrayList<HostData> underUtilized = new ArrayList<HostData>();
+		ArrayList<HostData> empty = new ArrayList<HostData>();
+		this.classifyHosts(hosts, partiallyUtilized, underUtilized, empty);
+		
+		// Create target hosts list.
+		ArrayList<HostData> targets = this.orderTargetHosts(partiallyUtilized, underUtilized, empty);
+		
+		for (ArrayList<VmStatus> affinitySet : application.getAffinityVms()) {
+			Map<Integer, HostData> mapping = this.placeVmsTogether(affinitySet, targets);
+			if (null != mapping)
+				vmHostMap.putAll(mapping);
+			else
+				return null;
+		}
+		
+		for (ArrayList<VmStatus> antiAffinitySet : application.getAntiAffinityVms()) {
+			Map<Integer, HostData> mapping = this.placeVmsApart(antiAffinitySet, targets);
+			if (null != mapping)
+				vmHostMap.putAll(mapping);
+			else
+				return null;
+		}
+		
+		for (VmStatus req : application.getIndependentVms()) {
+			HostData targetHost = this.placeVmWherever(req, targets);
+			if (null != targetHost)
+				vmHostMap.put(req.getId(), targetHost);
+			else
+				return null;
+		}
+		
+		// If we don't have a Placement action for each allocation request, then there's an implementation error somewhere.
+		assert application.getAllVms().size() == vmHostMap.size();
+		
+		return vmHostMap;
+	}
+	
+	/**
+	 * Selects a VM to be migrated away from the Rack containing the given Host.
+	 * 
+	 * Returns null ONLY if the given Host is not hosting any VMs.
+	 */
+	protected VmStatus findCandidateVm(HostData source) {
+		
+		// Obtain source Host's VMs and sort them in increasing order by application size (i.e., the number of VMs
+		// that compose the application (partially or completely) hosted in the VM).
+		// Obtain source Host's VMs, and sort them, removing small VMs from consideration for migration.
+		ArrayList<VmStatus> vmList = source.getCurrentStatus().getVms();
+		
+		// Determine the amount of CPU load to get rid of to bring the Host back to its target utilization.
+		double cpuExcess = source.getSandboxStatus().getResourcesInUse().getCpu() - source.getHostDescription().getResourceCapacity().getCpu() * this.targetUtilization;
+		
+		VmStatus bigVm = null;
+		int bigVmMinAppSize = Integer.MAX_VALUE;
+		int bigVmMinLoad = Integer.MAX_VALUE;
+		VmStatus smallVm = null;
+		int smallVmMinAppSize = Integer.MAX_VALUE;
+		int smallVmMaxLoad = Integer.MIN_VALUE;
+		for (VmStatus vm : vmList) {
+			int vmLoad = vm.getResourcesInUse().getCpu();
+			
+			// TODO: Accessing remote object (VM). Redesign mgmt. system to avoid this trick.
+			
+			int vmAppSize = vm.getVm().getTaskInstance().getTask().getApplication().getSize();
+			if (vmLoad >= cpuExcess) {
+				if (vmAppSize < bigVmMinAppSize) {
+					bigVmMinAppSize = vmAppSize;
+					bigVmMinLoad = vmLoad;
+					bigVm = vm;
+				}
+				else if (vmAppSize == bigVmMinAppSize) {
+					if (vmLoad < bigVmMinLoad) {
+						bigVmMinLoad = vmLoad;
+						bigVm = vm;
+					}
+				}
+			}
+			else {
+				if (vmAppSize < smallVmMinAppSize) {
+					smallVmMinAppSize = vmAppSize;
+					smallVmMaxLoad = vmLoad;
+					smallVm = vm;
+				}
+				else if (vmAppSize == bigVmMinAppSize) {
+					if (vmLoad > smallVmMaxLoad) {
+						smallVmMaxLoad = vmLoad;
+						smallVm = vm;
+					}
+				}
+			}
+		}
+		
+		if (null != bigVm)			// Found VM large enough to terminate stress situation and w/ minimum application size.
+			return bigVm;
+		else						// There was no large enough VM, so the largest one w/ minimum application size was selected.
+			return smallVm;
 	}
 	
 	/**
@@ -424,6 +547,9 @@ public class AppRelocationPolicyLevel1 extends Policy {
 	protected void classifyVms(ArrayList<VmStatus> vms, ArrayList<VmStatus> independent, ArrayList<VmStatus> antiAffinity, ArrayList<VmStatus> affinity) {
 		
 		for (VmStatus vm : vms) {
+			
+			// TODO: Accessing remote object (VM). Redesign mgmt. system to avoid this trick.
+			
 			switch (vm.getVm().getTaskInstance().getTask().getConstraintType()) {
 			case INDEPENDENT:
 				independent.add(vm);
@@ -443,6 +569,9 @@ public class AppRelocationPolicyLevel1 extends Policy {
 	private VmStatus findHostingVm(InteractiveTask task, ArrayList<VmStatus> vms) {
 		
 		for (VmStatus vm : vms) {
+			
+			// TODO: Accessing remote object (VM). Redesign mgmt. system to avoid this trick.
+			
 			if (vm.getVm().getTaskInstance().getTask().getId() == task.getId())
 				return vm;
 		}
@@ -458,6 +587,9 @@ public class AppRelocationPolicyLevel1 extends Policy {
 			VmStatus vm = copy.get(0);
 			
 			// Get Affinity-set for the Task instance hosted in this VM.
+			
+			// TODO: Accessing remote object (VM). Redesign mgmt. system to avoid this trick.
+			
 			InteractiveTask vmTask = (InteractiveTask) vm.getVm().getTaskInstance().getTask();
 			ArrayList<InteractiveTask> affinitySet = ((InteractiveApplication) vmTask.getApplication()).getAffinitySet(vmTask);
 			
@@ -480,6 +612,9 @@ public class AppRelocationPolicyLevel1 extends Policy {
 	private boolean isHostingTask(Task task, HostData host) {
 		
 		for (VmStatus vm : host.getCurrentStatus().getVms()) {
+			
+			// TODO: Accessing remote object (VM). Redesign mgmt. system to avoid this trick.
+			
 			if (vm.getVm().getTaskInstance().getTask().getId() == task.getId())
 				return true;
 		}
@@ -555,19 +690,141 @@ public class AppRelocationPolicyLevel1 extends Policy {
 		return targets;
 	}
 	
+	protected HostData placeVmWherever(VmStatus request, Collection<HostData> targets) {
+		
+		Resources reqResources = new Resources();
+		reqResources.setCpu(request.getCpu());
+		reqResources.setMemory(request.getMemory());
+		reqResources.setBandwidth(request.getBandwidth());
+		reqResources.setStorage(request.getStorage());
+		
+		for (HostData target : targets) {
+			
+			// Check that target Host is capable and has enough capacity left to host the VM, 
+			// and also that it will not exceed the target utilization.
+			if (HostData.canHost(request.getVMDescription().getCores(), request.getVMDescription().getCoreCapacity(), reqResources, target.getSandboxStatus(), target.getHostDescription()) &&
+				(target.getSandboxStatus().getResourcesInUse().getCpu() + request.getCpu()) / target.getHostDescription().getResourceCapacity().getCpu() <= targetUtilization) {
+				
+				// Add a dummy placeholder VM to keep track of placed VM resource requirements.
+				target.getSandboxStatus().instantiateVm(new VmStatus(request.getVMDescription().getCores(),	request.getVMDescription().getCoreCapacity(), reqResources));
+				
+				return new InstantiateVmAction(target, request, event);
+			}
+		}
+		
+		return null;
+	}
+	
+	protected Map<Integer, HostData> placeVmsApart(ArrayList<VmStatus> antiAffinitySet,	Collection<HostData> targets) {
+		ArrayList<InstantiateVmAction> actions = new ArrayList<InstantiateVmAction>();
+		
+		// Create copy of target hosts' list for manipulation.
+		Collection<HostData> hosts = new ArrayList<HostData>(targets);
+		
+		for (VmAllocationRequest request : antiAffinitySet) {
+			
+			Resources reqResources = new Resources();
+			reqResources.setCpu(request.getCpu());
+			reqResources.setMemory(request.getMemory());
+			reqResources.setBandwidth(request.getBandwidth());
+			reqResources.setStorage(request.getStorage());
+			
+			HostData targetHost = null;
+			for (HostData target : hosts) {
+				
+				// Check that target Host is capable and has enough capacity left to host the VM, 
+				// and also that it will not exceed the target utilization.
+				if (HostData.canHost(request.getVMDescription().getCores(), request.getVMDescription().getCoreCapacity(), reqResources, target.getSandboxStatus(), target.getHostDescription()) &&
+					(target.getSandboxStatus().getResourcesInUse().getCpu() + request.getCpu()) / target.getHostDescription().getResourceCapacity().getCpu() <= targetUtilization) {
+					
+					targetHost = target;
+					
+					// Add a dummy placeholder VM to keep track of placed VM resource requirements.
+					target.getSandboxStatus().instantiateVm(new VmStatus(request.getVMDescription().getCores(),	request.getVMDescription().getCoreCapacity(), reqResources));
+					
+					break;
+				}
+			}
+			
+			if (null != targetHost) {
+				actions.add(new InstantiateVmAction(targetHost, request, event));
+				// Remove host from target hosts' list, so that it is not considered again here.
+				hosts.remove(targetHost);
+			}
+			else
+				return null;
+		}
+		
+		assert antiAffinitySet.size() == actions.size();
+		assert targets.size() == hosts.size() + actions.size();
+		
+		return actions;
+	}
+	
+	protected Map<Integer, HostData> placeVmsTogether(ArrayList<VmStatus> affinitySet, Collection<HostData> targets) {
+		ArrayList<InstantiateVmAction> actions = new ArrayList<InstantiateVmAction>();
+		
+		int maxReqCores = 0;
+		int maxReqCoreCapacity = 0;
+		int totalCpu = 0;
+		int totalMemory = 0;
+		int totalBandwidth = 0;
+		int totalStorage = 0;
+		for (VmAllocationRequest request : affinitySet) {
+			if (request.getVMDescription().getCores() > maxReqCores)
+				maxReqCores = request.getVMDescription().getCores();
+			
+			if (request.getVMDescription().getCoreCapacity() > maxReqCoreCapacity)
+				maxReqCoreCapacity = request.getVMDescription().getCoreCapacity();
+			
+			totalCpu += request.getCpu();
+			totalMemory += request.getMemory();
+			totalBandwidth += request.getBandwidth();
+			totalStorage += request.getStorage();
+		}
+		Resources totalReqResources = new Resources(totalCpu, totalMemory, totalBandwidth, totalStorage);
+		
+		for (HostData target : targets) {
+			
+			// Check that target Host is capable and has enough capacity left to host the VM, 
+			// and also that it will not exceed the target utilization.
+			if (HostData.canHost(maxReqCores, maxReqCoreCapacity, totalReqResources, target.getSandboxStatus(), target.getHostDescription()) &&
+				(target.getSandboxStatus().getResourcesInUse().getCpu() + totalCpu) / target.getHostDescription().getResourceCapacity().getCpu() <= targetUtilization) {
+				
+				for (VmAllocationRequest request : affinitySet) {
+					
+					Resources reqResources = new Resources();
+					reqResources.setCpu(request.getCpu());
+					reqResources.setMemory(request.getMemory());
+					reqResources.setBandwidth(request.getBandwidth());
+					reqResources.setStorage(request.getStorage());
+					
+					// Add dummy placeholder VM to keep track of placed VM' resource requirements.
+					target.getSandboxStatus().instantiateVm(new VmStatus(request.getVMDescription().getCores(),	request.getVMDescription().getCoreCapacity(), reqResources));
+					
+					actions.add(new InstantiateVmAction(target, request, event));
+				}
+				
+				return actions;
+			}
+		}
+		
+		return null;
+	}
+	
 	@Override
 	public void onInstall() {
-		// TODO Auto-generated method stub
+		// Auto-generated method stub
 	}
 
 	@Override
 	public void onManagerStart() {
-		// TODO Auto-generated method stub
+		// Auto-generated method stub
 	}
 
 	@Override
 	public void onManagerStop() {
-		// TODO Auto-generated method stub
+		// Auto-generated method stub
 	}
 
 }
