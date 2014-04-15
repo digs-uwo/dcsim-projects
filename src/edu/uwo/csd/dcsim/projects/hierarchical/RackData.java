@@ -69,6 +69,13 @@ public class RackData {
 		return false;
 	}
 	
+	public static boolean canHost(AppStatus application, RackStatusVector currentStatus, RackDescription rackDescription) {
+		if (RackData.calculateMinHostActivations(application, currentStatus, rackDescription.getHostDescription()) >= 0)
+			return true;
+		
+		return false;
+	}
+	
 	/**
 	 * Verifies whether the given Rack can meet the resource requirements of the application,
 	 * based on the Rack's status vector.
@@ -79,7 +86,7 @@ public class RackData {
 		// TODO: THIS METHOD DOES NOT CHECK THE HW CAPABILITIES OF THE RACK; THAT SHOULD BE DONE AT A HIGHER LEVEL.
 		// AT THIS STAGE, WE ASSUME THAT ANY REQUEST THAT COMES THIS WAY WOULD HAVE ITS HW NEEDS MET (I.E., CPU CORES & CORE CAPACITY).
 		
-		// TODO: THIS METHOD NEEDS TO BE RE-WORKED (MODULARIZED).
+		// TODO: REFACTOR THIS METHOD.
 		
 		// Get Rack status vector.
 		RackStatusVector statusVector = currentStatus.copy();
@@ -224,7 +231,157 @@ public class RackData {
 		return statusVector.vector[statusVector.iActive] - currentStatus.vector[currentStatus.iActive];
 	}
 	
-	protected static void updateSpareCapacityVector(RackStatusVector statusVector, Resources reminder, int count) {
+	/**
+	 * Verifies whether the given Rack can meet the resource requirements of the application,
+	 * based on the Rack's status vector.
+	 */
+	public static int calculateMinHostActivations(AppStatus application, RackStatusVector currentStatus, HostDescription hostDescription) {
+		int failed = -1;
+		
+		// TODO: THIS METHOD DOES NOT CHECK THE HW CAPABILITIES OF THE RACK; THAT SHOULD BE DONE AT A HIGHER LEVEL.
+		// AT THIS STAGE, WE ASSUME THAT ANY REQUEST THAT COMES THIS WAY WOULD HAVE ITS HW NEEDS MET (I.E., CPU CORES & CORE CAPACITY).
+		
+		// TODO: REFACTOR THIS METHOD.
+		
+		// Get Rack status vector.
+		RackStatusVector statusVector = currentStatus.copy();
+		
+		// Affinity sets
+		for (ArrayList<VmStatus> affinitySet : application.getAffinityVms()) {
+			
+			// Calculate total resource needs of the VMs in the affinity set.
+			Resources totalReqResources = new Resources();
+			for (VmStatus vm : affinitySet) {
+				totalReqResources = totalReqResources.add(vm.getResourcesInUse());
+			}
+			
+			// Check if a currently active Host has enough spare capacity to host the set.
+			boolean found = false;
+			for (int i = statusVector.vmVector.length - 1; i >= 0; i--) {
+				if (RackData.theresEnoughCapacity(totalReqResources, statusVector.vmVector[i])) {
+					if (statusVector.vector[i] > 0) {
+						found = true;
+						statusVector.vector[i]--;
+						Resources reminder = statusVector.vmVector[i].subtract(totalReqResources);
+						RackData.updateSpareCapacityVector(statusVector, reminder, 1);
+						break;
+					}
+				}
+				else
+					break;
+			}
+			
+			if (!found) {	// Activate a new Host.
+				if (statusVector.vector[statusVector.iSuspended] > 0 || statusVector.vector[statusVector.iPoweredOff] > 0) {
+					Resources hostCapacity = hostDescription.getResourceCapacity();
+					if (RackData.theresEnoughCapacity(totalReqResources, hostCapacity)) {
+						found = true;
+						if (statusVector.vector[statusVector.iSuspended] > 0)
+							statusVector.vector[statusVector.iSuspended]--;
+						else
+							statusVector.vector[statusVector.iPoweredOff]--;
+						statusVector.vector[statusVector.iActive]++;
+						Resources reminder = hostCapacity.subtract(totalReqResources);
+						RackData.updateSpareCapacityVector(statusVector, reminder, 1);
+					}
+					else
+						return failed;
+				}
+				else
+					return failed;
+			}
+		}
+		
+		// Anti-affinity sets
+		for (ArrayList<VmStatus> antiAffinitySet : application.getAntiAffinityVms()) {
+			
+			// Note: All VMs in the set have equal size and MUST be placed in different Hosts each.
+			
+			// TODO: Is is true that all VMs in the set can be considered equal in terms of resource usage? Only if they are perfectly load balanced...
+			
+			if (antiAffinitySet.size() == 0)	// Checking that the set is not empty -- which should never occur, but...
+				continue;
+			Resources vmSize = antiAffinitySet.get(0).getResourcesInUse();
+			int nVms = antiAffinitySet.size();
+			
+			// for each VM, see if there's a Host that can take it; modify vector accordingly
+			for (int i = 0; i < statusVector.vmVector.length; i++) {
+				
+				if (RackData.theresEnoughCapacity(vmSize, statusVector.vmVector[i])) {
+					int hosts = Math.min(nVms, statusVector.vector[i]);
+					Resources reminder = statusVector.vmVector[i].subtract(vmSize);
+					RackData.updateSpareCapacityVector(statusVector, reminder, hosts);
+					nVms -= hosts;
+					statusVector.vector[i] -= hosts;
+				}
+				if (nVms == 0)	// All VMs were accounted for.
+					break;
+			}
+			
+			// If there still are VMs to account for, active suspended Hosts.
+			if (nVms > 0 && statusVector.vector[statusVector.iSuspended] > 0) {
+				int hosts = Math.min(nVms, statusVector.vector[statusVector.iSuspended]);
+				Resources hostCapacity = hostDescription.getResourceCapacity();
+				Resources reminder = hostCapacity.subtract(vmSize);
+				RackData.updateSpareCapacityVector(statusVector, reminder, hosts);
+				nVms -= hosts;
+				statusVector.vector[statusVector.iSuspended] -= hosts;
+				statusVector.vector[statusVector.iActive] += hosts;
+			}
+			
+			// If there still are VMs to account for, active powered-off Hosts.
+			if (nVms > 0 && statusVector.vector[statusVector.iPoweredOff] > 0) {
+				int hosts = Math.min(nVms, statusVector.vector[statusVector.iPoweredOff]);
+				Resources hostCapacity = hostDescription.getResourceCapacity();
+				Resources reminder = hostCapacity.subtract(vmSize);
+				RackData.updateSpareCapacityVector(statusVector, reminder, hosts);
+				nVms -= hosts;
+				statusVector.vector[statusVector.iPoweredOff] -= hosts;
+				statusVector.vector[statusVector.iActive] += hosts;
+			}
+			
+			if (nVms > 0)
+				return failed;
+		}
+		
+		// Independent set
+		for (VmStatus vm : application.getIndependentVms()) {
+			// for each VM, see if there's a Host that can take it; modify vector accordingly
+			boolean found = false;
+			for (int i = 0; i < statusVector.vmVector.length; i++) {
+				if (RackData.theresEnoughCapacity(vm.getResourcesInUse(), statusVector.vmVector[i])) {
+					found = true;
+					statusVector.vector[i]--;
+					Resources reminder = statusVector.vmVector[i].subtract(vm.getResourcesInUse());
+					RackData.updateSpareCapacityVector(statusVector, reminder, 1);
+					break;
+				}
+			}
+			
+			if (!found) {	// Activate a new Host.
+				if (statusVector.vector[statusVector.iSuspended] > 0 || statusVector.vector[statusVector.iPoweredOff] > 0) {
+					Resources hostCapacity = hostDescription.getResourceCapacity();
+					if (RackData.theresEnoughCapacity(vm.getResourcesInUse(), hostCapacity)) {
+						if (statusVector.vector[statusVector.iSuspended] > 0)
+							statusVector.vector[statusVector.iSuspended]--;
+						else
+							statusVector.vector[statusVector.iPoweredOff]--;
+						statusVector.vector[statusVector.iActive]++;
+						Resources reminder = hostCapacity.subtract(vm.getResourcesInUse());
+						RackData.updateSpareCapacityVector(statusVector, reminder, 1);
+					}
+					else
+						return failed;
+				}
+				else
+					return failed;
+			}
+		}
+		
+		return statusVector.vector[statusVector.iActive] - currentStatus.vector[currentStatus.iActive];
+	}
+	
+	private static void updateSpareCapacityVector(RackStatusVector statusVector, Resources reminder, int count) {
 		
 		for (int i = statusVector.vmVector.length - 1; i >= 0; i--) {
 			if (theresEnoughCapacity(statusVector.vmVector[i], reminder)) {
@@ -234,7 +391,7 @@ public class RackData {
 		}
 	}
 	
-	protected static boolean theresEnoughCapacity(Resources requiredResources, Resources availableResources) {
+	private static boolean theresEnoughCapacity(Resources requiredResources, Resources availableResources) {
 		// Check available resources.
 		if (availableResources.getCpu() < requiredResources.getCpu())
 			return false;
