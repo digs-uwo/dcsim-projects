@@ -191,6 +191,7 @@ public class AppRelocationPolicyLevel1 extends Policy {
 		for (VmStatus vm : independent) {
 			
 			for (HostData target : targets) {
+				
 				// Check that the target host is not currently involved in migrations,
 				// that the target host has enough capacity left to host the VM, 
 				// and that the migration won't push the Host's utilization above the target utilization threshold.
@@ -225,6 +226,7 @@ public class AppRelocationPolicyLevel1 extends Policy {
 		for (VmStatus vm : antiAffinity) {
 			
 			for (HostData target : targets) {
+				
 				// Check that the target host is not currently involved in migrations,
 				// that the target host has enough capacity left to host the VM, 
 				// and that the migration won't push the Host's utilization above the target utilization threshold.
@@ -287,6 +289,7 @@ public class AppRelocationPolicyLevel1 extends Policy {
 			}
 			
 			for (HostData target : targets) {
+				
 				// Check that the target host is not currently involved in migrations,
 				// that the target host has enough capacity left to host the VM, 
 				// and that the migration won't push the Host's utilization above the target utilization threshold.
@@ -464,6 +467,8 @@ public class AppRelocationPolicyLevel1 extends Policy {
 			}
 		}
 		
+		assert null != bigVm || null != smallVm; 
+		
 		if (null != bigVm)			// Found VM large enough to terminate stress situation and w/ minimum application size.
 			return bigVm;
 		else						// There was no large enough VM, so the largest one w/ minimum application size was selected.
@@ -544,8 +549,6 @@ public class AppRelocationPolicyLevel1 extends Policy {
 			case AFFINITY:
 				affinity.add(vm);
 				break;
-			default:
-				break;
 			}
 		}
 	}
@@ -556,7 +559,8 @@ public class AppRelocationPolicyLevel1 extends Policy {
 			
 			// TODO: Accessing remote object (VM). Redesign mgmt. system to avoid this trick.
 			
-			if (vm.getVm().getTaskInstance().getTask().getId() == task.getId())
+			InteractiveTask vmTask = (InteractiveTask) vm.getVm().getTaskInstance().getTask();
+			if (vmTask.getId() == task.getId() && vmTask.getApplication().getId() == task.getApplication().getId())
 				return vm;
 		}
 		
@@ -580,7 +584,12 @@ public class AppRelocationPolicyLevel1 extends Policy {
 			// Build the set of VMs hosting the Tasks in the previously found Affinity-set.
 			ArrayList<VmStatus> affinitySetVms = new ArrayList<VmStatus>();
 			for (InteractiveTask task : affinitySet) {
-				affinitySetVms.add(this.findHostingVm(task, copy));
+//				affinitySetVms.add(this.findHostingVm(task, copy));
+				VmStatus hostingVm = this.findHostingVm(task, copy);
+				if (null != hostingVm)
+					affinitySetVms.add(hostingVm);
+				else
+					hostingVm.getId(); // I expect this to crash... but we should never get here, right?
 			}
 			
 			affinitySets.add(affinitySetVms);
@@ -595,11 +604,12 @@ public class AppRelocationPolicyLevel1 extends Policy {
 	 */
 	private boolean isHostingTask(Task task, HostData host) {
 		
-		for (VmStatus vm : host.getCurrentStatus().getVms()) {
+		for (VmStatus vm : host.getSandboxStatus().getVms()) {
 			
 			// TODO: Accessing remote object (VM). Redesign mgmt. system to avoid this trick.
 			
-			if (vm.getVm().getTaskInstance().getTask().getId() == task.getId())
+			InteractiveTask vmTask = (InteractiveTask) vm.getVm().getTaskInstance().getTask();
+			if (vmTask.getId() == task.getId() && vmTask.getApplication().getId() == task.getApplication().getId())
 				return true;
 		}
 		
