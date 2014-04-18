@@ -81,6 +81,8 @@ public class AppRelocationPolicyLevel1 extends Policy {
 	 */
 	public void execute(AppMigAcceptEvent event) {
 		
+		simulation.getLogger().debug("AppRelocationPolicyLevel1 - MigRequest accepted - AppId: " + event.getApplication().getId());
+		
 		// Get entry (and source Hosts) from migration requests record.
 		MigRequestEntry entry = manager.getCapability(MigRequestRecord.class).getEntry(event.getApplication(), manager);
 		Map<Integer, HostData> sourceHostMap = entry.getSourceHosts();
@@ -93,6 +95,9 @@ public class AppRelocationPolicyLevel1 extends Policy {
 			pair.getValue().invalidateStatus(simulation.getSimulationTime());
 			// Trigger migration.
 			new MigrationAction(pair.getValue().getHostManager(), pair.getValue().getHost(), targetHostMap.get(pair.getKey()), pair.getKey()).execute(simulation, this);
+			
+			simulation.getLogger().debug("AppRelocationPolicyLevel1 - Migrating VM #" + pair.getKey() + " from Host #" + pair.getValue().getId() + " to Host #" + targetHostMap.get(pair.getKey()).getId());
+			
 		}
 		
 		// Delete entry from migration requests record.
@@ -103,6 +108,9 @@ public class AppRelocationPolicyLevel1 extends Policy {
 	 * This event can only come from the DC Manager, signaling that nobody can accept the migration request.
 	 */
 	public void execute(AppMigRejectEvent event) {
+		
+		simulation.getLogger().debug("AppRelocationPolicyLevel1 - MigRequest rejected - AppId: " + event.getApplication().getId());
+		
 		// Delete entry from migration requests record.
 		MigRequestRecord record = manager.getCapability(MigRequestRecord.class);
 		record.removeEntry(record.getEntry(event.getApplication(), event.getOrigin()));
@@ -112,6 +120,8 @@ public class AppRelocationPolicyLevel1 extends Policy {
 	 * This event comes from the Cluster Manager, trying to migrate an application to this Rack.
 	 */
 	public void execute(AppMigRequestEvent event) {
+		
+		simulation.getLogger().debug("AppRelocationPolicyLevel1 - New MigRequest - AppId: " + event.getApplication().getId());
 		
 		// Find target Hosts in this Rack for the VMs that compose the migrating application.
 		Map<Integer, HostData> vmHostMap = this.findMigrationTargets(event.getApplication());
@@ -126,9 +136,14 @@ public class AppRelocationPolicyLevel1 extends Policy {
 				targets.put(entry.getKey(), entry.getValue().getHost());
 			}
 			
+			simulation.getLogger().debug("AppRelocationPolicyLevel1 - ACCEPTED.");
+			
 			simulation.sendEvent(new AppMigAcceptEvent(event.getOrigin(), event.getApplication(), targets));
 		}
 		else {	// Otherwise, send message to ClusterManager rejecting the migration request.
+			
+			simulation.getLogger().debug("AppRelocationPolicyLevel1 - REJECTED.");
+			
 			int rackId = manager.getCapability(RackManager.class).getRack().getId();
 			simulation.sendEvent(new AppMigRejectEvent(target, event.getApplication(), event.getOrigin(), rackId));
 		}
@@ -156,6 +171,9 @@ public class AppRelocationPolicyLevel1 extends Policy {
 	 * a feasible VM migration with target Host inside the Rack.
 	 */
 	protected boolean performInternalVmRelocation(int hostId) {
+		
+		simulation.getLogger().debug("AppRelocationPolicyLevel1 - Internal Relocation process for Host#" + hostId);
+		
 		HostPoolManager hostPool = manager.getCapability(HostPoolManager.class);
 		Collection<HostData> hosts = hostPool.getHosts();
 		
@@ -177,16 +195,17 @@ public class AppRelocationPolicyLevel1 extends Policy {
 		// Create sorted list of target Hosts.
 		ArrayList<HostData> targets = this.orderTargetHosts(partiallyUtilized, underUtilized, empty);
 		
-		// Obtain source Host's VMs, and sort them, removing small VMs from consideration for migration.
-		ArrayList<VmStatus> vmList = this.orderSourceVms(source.getCurrentStatus().getVms(), source);
-		
 		// Classify source Host's VMs according to the constraint-type of their hosted Task instance.
 		ArrayList<VmStatus> independent = new ArrayList<VmStatus>();
 		ArrayList<VmStatus> antiAffinity = new ArrayList<VmStatus>();
 		ArrayList<VmStatus> affinity = new ArrayList<VmStatus>();
-		this.classifyVms(vmList, independent, antiAffinity, affinity);
+		this.classifyVms(source.getCurrentStatus().getVms(), independent, antiAffinity, affinity);
 		
 		// Process Independent VMs.
+		
+		// Sort VMs, removing small VMs from consideration for migration.
+		independent = this.orderSourceVms(independent, source);
+		
 		MigrationAction mig = null;
 		for (VmStatus vm : independent) {
 			
@@ -209,6 +228,8 @@ public class AppRelocationPolicyLevel1 extends Policy {
 					
 					mig = new MigrationAction(source.getHostManager(), source.getHost(), target.getHost(), vm.getId());
 					
+					simulation.getLogger().debug("AppRelocationPolicyLevel1 - Migrating (Independent) VM #" + vm.getId() + " from Host #" + source.getId() + " to Host #" + target.getId());
+					
 					break;		// Found VM migration. Exit loop.
 				}
 			}
@@ -223,6 +244,10 @@ public class AppRelocationPolicyLevel1 extends Policy {
 		}
 		
 		// Process Anti-affinity VMs.
+		
+		// Sort VMs, removing small VMs from consideration for migration.
+		antiAffinity = this.orderSourceVms(antiAffinity, source);
+		
 		for (VmStatus vm : antiAffinity) {
 			
 			for (HostData target : targets) {
@@ -245,6 +270,8 @@ public class AppRelocationPolicyLevel1 extends Policy {
 					
 					mig = new MigrationAction(source.getHostManager(), source.getHost(), target.getHost(), vm.getId());
 					
+					simulation.getLogger().debug("AppRelocationPolicyLevel1 - Migrating (Anti-affinity) VM #" + vm.getId() + " from Host #" + source.getId() + " to Host #" + target.getId());
+					
 					break;		// Found VM migration. Exit loop.
 				}
 			}
@@ -264,6 +291,9 @@ public class AppRelocationPolicyLevel1 extends Policy {
 		ArrayList<ArrayList<VmStatus>> affinitySets = this.groupVmsByAffinity(affinity);
 		
 		// If there's more than one Affinity-set, sort them in increasing order by size.
+		
+		// TODO: Shouldn't we also consider the total CPU load of each Affinity set when sorting? Otherwise, we may migrate a set of VMs with not enough load to terminate the stress situation.
+		
 		if (affinitySets.size() > 1)
 			Collections.sort(affinitySets, new Comparator<List<?>>(){
 				@Override
@@ -303,6 +333,9 @@ public class AppRelocationPolicyLevel1 extends Policy {
 					for (VmStatus v : affinitySet) {
 						source.getSandboxStatus().migrate(v, target.getSandboxStatus());
 						migActions.add(new MigrationAction(source.getHostManager(), source.getHost(), target.getHost(), v.getId()));
+						
+						simulation.getLogger().debug("AppRelocationPolicyLevel1 - Migrating (Affinity) VM #" + v.getId() + " from Host #" + source.getId() + " to Host #" + target.getId());
+						
 					}
 					
 					// Invalidate source and target status, as we know them to be incorrect until the next status update arrives.
@@ -323,6 +356,8 @@ public class AppRelocationPolicyLevel1 extends Policy {
 			return true;
 		}
 		
+		simulation.getLogger().debug("AppRelocationPolicyLevel1 - Internal Relocation process FAILED.");
+		
 		return false;
 	}
 	
@@ -333,6 +368,9 @@ public class AppRelocationPolicyLevel1 extends Policy {
 	 * The ClusterManager is contacted for it to find a target Rack for the migration.
 	 */
 	protected void performExternalVmRelocation(int hostId) {
+		
+		simulation.getLogger().debug("AppRelocationPolicyLevel1 - External Relocation process for Host#" + hostId);
+		
 		HostPoolManager hostPool = manager.getCapability(HostPoolManager.class);
 		
 		// Find VM to migrate away.
@@ -341,6 +379,8 @@ public class AppRelocationPolicyLevel1 extends Policy {
 		// TODO: Accessing remote object (VM). Redesign mgmt. system to avoid this trick.
 		
 		AppStatus application = new AppStatus((InteractiveApplication) candidateVm.getVm().getTaskInstance().getTask().getApplication());
+		
+		simulation.getLogger().debug("AppRelocationPolicyLevel1 - Trying to migrate away appId: " + application.getId() + " (#vms = " + application.getAllVms().size());
 		
 		// Build source Hosts map.
 		// TODO: This could be something built in a Rack capability or something.
@@ -589,7 +629,7 @@ public class AppRelocationPolicyLevel1 extends Policy {
 				if (null != hostingVm)
 					affinitySetVms.add(hostingVm);
 				else
-					hostingVm.getId(); // I expect this to crash... but we should never get here, right?
+					throw new RuntimeException("Failed to find VM hosting instance of Task#" + task.getId() + " from App#" + task.getApplication().getId());
 			}
 			
 			affinitySets.add(affinitySetVms);

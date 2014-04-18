@@ -46,6 +46,8 @@ public class AppPlacementPolicyLevel3 extends Policy {
 			if (!this.processRequest(new ConstrainedAppAllocationRequest((InteractiveApplication) application))) {
 				event.setFailed(true);
 				
+				System.out.println("AppPlacementPolicyLevel3 - PLACEMENT FAILED - AppId: " + application.getId());
+				
 				// Record failure to complete placement request.
 				if (simulation.isRecordingMetrics()) {
 					simulation.getSimulationMetrics().getApplicationMetrics().incrementApplicationPlacementsFailed();
@@ -59,6 +61,8 @@ public class AppPlacementPolicyLevel3 extends Policy {
 	 */
 	public void execute(PlacementRejectEvent event) {
 		
+		simulation.getLogger().debug("AppPlacementPolicyLevel3 - New Placement reject - AppId: " + event.getRequest().getId());
+		
 		// Mark sender's status as invalid (to avoid choosing sender again in the next step).
 		Collection<ClusterData> clusters = manager.getCapability(ClusterPoolManager.class).getClusters();
 		for (ClusterData cluster : clusters) {
@@ -70,6 +74,9 @@ public class AppPlacementPolicyLevel3 extends Policy {
 		
 		// Search again for a placement target.
 		if (!this.processRequest(event.getRequest())) {
+			
+			System.out.println("AppPlacementPolicyLevel3 - PLACEMENT FAILED - AppId: " + event.getRequest().getId());
+			
 			// Record failure to complete placement request.
 			if (simulation.isRecordingMetrics()) {
 				simulation.getSimulationMetrics().getApplicationMetrics().incrementApplicationPlacementsFailed();
@@ -80,7 +87,7 @@ public class AppPlacementPolicyLevel3 extends Policy {
 	protected boolean processRequest(ConstrainedAppAllocationRequest request) {
 		ClusterData targetCluster = null;
 		
-		simulation.getLogger().debug(this.getClass() + " - New Placement request.");
+		simulation.getLogger().debug("AppPlacementPolicyLevel3.processRequest() - AppId: " + request.getId());
 		
 		ArrayList<ClusterData> clusters = new ArrayList<ClusterData>(manager.getCapability(ClusterPoolManager.class).getClusters());
 		
@@ -205,7 +212,7 @@ public class AppPlacementPolicyLevel3 extends Policy {
 		
 		if (null != targetCluster) {
 			
-			simulation.getLogger().debug(this.getClass() + " - Found placement target: Cluster #" + targetCluster.getId());
+			simulation.getLogger().debug("AppPlacementPolicyLevel3.processRequest() - AppId: " + request.getId() + " - Found placement target: Cluster #" + targetCluster.getId());
 			
 			// Found target. Send placement request.
 			simulation.sendEvent(new PlacementRequestEvent(targetCluster.getClusterManager(), request));
@@ -220,8 +227,7 @@ public class AppPlacementPolicyLevel3 extends Policy {
 		}
 		
 		// Could not find suitable target Cluster in the Data Centre.
-		
-		simulation.getLogger().debug(this.getClass() + " - Failed to find placement target.");
+		simulation.getLogger().debug("AppPlacementPolicyLevel3.processRequest() - AppId: " + request.getId() + " - Failed to find placement target.");
 		
 		return false;
 	}

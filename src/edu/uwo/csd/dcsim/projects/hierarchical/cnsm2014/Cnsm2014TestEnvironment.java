@@ -105,11 +105,23 @@ public class Cnsm2014TestEnvironment {
 		SwitchFactory coreSwitch = new SwitchFactory(1000000, 48, 656);	// 1 Gbps
 		
 		// Define Host types.
+		// Power Efficiency: 46.51 cpu/watt
 		Host.Builder proLiantDL380G5QuadCore = HostModels.ProLiantDL380G5QuadCore(simulation).privCpu(500).privBandwidth(131072)
 				.resourceManagerFactory(new DefaultResourceManagerFactory())
 				.resourceSchedulerFactory(new DefaultResourceSchedulerFactory());
 		
+		// Power Efficiency: 85.84 cpu/watt
 		Host.Builder proLiantDL160G5E5420 = HostModels.ProLiantDL160G5E5420(simulation).privCpu(500).privBandwidth(131072)
+				.resourceManagerFactory(new DefaultResourceManagerFactory())
+				.resourceSchedulerFactory(new DefaultResourceSchedulerFactory());
+		
+		// Power Efficiency: 85.84 cpu/watt
+		Host.Builder ProLiantDL160G5E5420B = HostModels.ProLiantDL160G5E5420B(simulation).privCpu(500).privBandwidth(131072)
+				.resourceManagerFactory(new DefaultResourceManagerFactory())
+				.resourceSchedulerFactory(new DefaultResourceSchedulerFactory());
+		
+		// Power Efficiency: 102.67 cpu/watt
+		Host.Builder ProLiantDL380G6EightCoreB = HostModels.ProLiantDL380G6EightCoreB(simulation).privCpu(500).privBandwidth(131072)
 				.resourceManagerFactory(new DefaultResourceManagerFactory())
 				.resourceSchedulerFactory(new DefaultResourceSchedulerFactory());
 		
@@ -124,6 +136,16 @@ public class Cnsm2014TestEnvironment {
 				.switchFactory(edgeSwitch);
 //				.switchFactory(switch10g48p);
 		
+		Rack.Builder seriesC = new Rack.Builder(simulation).nSlots(40).nHosts(nHosts)
+				.hostBuilder(ProLiantDL160G5E5420B)
+				.switchFactory(edgeSwitch);
+//				.switchFactory(switch10g48p);
+		
+		Rack.Builder seriesD = new Rack.Builder(simulation).nSlots(40).nHosts(nHosts)
+				.hostBuilder(ProLiantDL380G6EightCoreB)
+				.switchFactory(edgeSwitch);
+//				.switchFactory(switch10g48p);
+		
 		// Define Cluster types.
 		Cluster.Builder series09 = new Cluster.Builder(simulation).nRacks(nRacks).nSwitches(1)
 				.rackBuilder(seriesA)
@@ -135,6 +157,16 @@ public class Cnsm2014TestEnvironment {
 				.switchFactory(coreSwitch);
 //				.switchFactory(switch40g24p);
 		
+		Cluster.Builder series12 = new Cluster.Builder(simulation).nRacks(nRacks).nSwitches(1)
+				.rackBuilder(seriesC)
+				.switchFactory(coreSwitch);
+//				.switchFactory(switch40g24p);
+		
+		Cluster.Builder series13 = new Cluster.Builder(simulation).nRacks(nRacks).nSwitches(1)
+				.rackBuilder(seriesD)
+				.switchFactory(coreSwitch);
+//				.switchFactory(switch40g24p);
+		
 		// Create data centre.
 		DataCentre dc = new DataCentre(simulation, coreSwitch);
 //		DataCentre dc = new DataCentre(simulation, switch40g24p);
@@ -143,9 +175,9 @@ public class Cnsm2014TestEnvironment {
 		// Create clusters in data centre.
 		for (int i = 0; i < nClusters; i++) {
 			if (i % 2 == 0)
-				dc.addCluster(series09.build());
+				dc.addCluster(series12.build());
 			else
-				dc.addCluster(series11.build());
+				dc.addCluster(series13.build());
 		}
 		
 		return dc;
@@ -158,7 +190,8 @@ public class Cnsm2014TestEnvironment {
 	 */
 	
 	public Application createApplication() {
-		return createApplication(appGenerationRandom.nextInt(N_APP_TEMPLATES));
+//		return createApplication(appGenerationRandom.nextInt(N_APP_TEMPLATES));
+		return createApplication(0);	// Testing...
 	}
 	
 	public Application createApplication(int appTemplate) {

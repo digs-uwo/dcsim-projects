@@ -68,6 +68,9 @@ public class AppPlacementPolicyLevel1 extends Policy {
 			}
 		}
 		else {	// Contact ClusterManager - reject placement request.
+			
+			simulation.getLogger().debug("AppPlacementPolicyLevel1 - New Placement request - AppId: " + event.getRequest().getId() + " - Failed to find target Hosts for placement.");
+			
 			int rackId = manager.getCapability(RackManager.class).getRack().getId();
 			simulation.sendEvent(new PlacementRejectEvent(target, event.getRequest(), rackId));
 		}
@@ -77,6 +80,8 @@ public class AppPlacementPolicyLevel1 extends Policy {
 		ArrayList<InstantiateVmAction> actions = new ArrayList<InstantiateVmAction>();
 		
 		ConstrainedAppAllocationRequest request = event.getRequest();
+		
+		simulation.getLogger().debug("AppPlacementPolicyLevel1.processRequest() - AppId: " + request.getId());
 		
 		Collection<HostData> hosts = manager.getCapability(HostPoolManager.class).getHosts();
 		
@@ -120,6 +125,8 @@ public class AppPlacementPolicyLevel1 extends Policy {
 		
 		// If we don't have a Placement action for each allocation request, then there's an implementation error somewhere.
 		assert request.getAllVmAllocationRequests().size() == actions.size();
+		
+		simulation.getLogger().debug("AppPlacementPolicyLevel1.processRequest() - AppId: " + request.getId() + " - Found target Hosts for placement.");
 		
 		return actions;
 	}

@@ -17,12 +17,14 @@ import edu.uwo.csd.dcsim.management.VmStatus;
  */
 public class AppStatus {
 
+	private int id = -1;
 	//private InteractiveApplication application;
 	private ArrayList<VmStatus> independentVms;
 	private ArrayList<ArrayList<VmStatus>> antiAffinityVms;
 	private ArrayList<ArrayList<VmStatus>> affinityVms;
 	
 	public AppStatus(InteractiveApplication application) {
+		id = application.getId();
 //		this.application = application;
 		
 		// Generate constrain sets.
@@ -48,6 +50,10 @@ public class AppStatus {
 			}
 			affinityVms.add(vms);
 		}
+	}
+	
+	public int getId() {
+		return id;
 	}
 	
 //	public InteractiveApplication getApplication() {

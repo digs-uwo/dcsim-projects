@@ -70,6 +70,9 @@ public class AppConsolidationPolicyLevel1 extends Policy {
 	 * Performs the VM Consolidation process.
 	 */
 	public void execute() {
+		
+		simulation.getLogger().debug("AppConsolidationPolicyLevel1 - Running...");
+		
 		SequentialManagementActionExecutor actionExecutor = new SequentialManagementActionExecutor();
 		
 		Collection<HostData> hosts = manager.getCapability(HostPoolManager.class).getHosts();
@@ -156,6 +159,8 @@ public class AppConsolidationPolicyLevel1 extends Policy {
 			
 			if (success) {
 				
+				assert vmHostMap.size() == vmList.size();
+				
 				// Invalidate source Host's status, as we know it to be incorrect until the next status update arrives.
 				source.invalidateStatus(simulation.getSimulationTime());
 				// Remove source Host from list of potential targets.
@@ -170,12 +175,18 @@ public class AppConsolidationPolicyLevel1 extends Policy {
 					sources.remove(target);
 					
 					migrations.addAction(new MigrationAction(source.getHostManager(), source.getHost(),	target.getHost(), entry.getKey()));
+					
+					simulation.getLogger().debug("AppConsolidationPolicyLevel1 - Migrating VM #" + entry.getKey() + " from Host #" + source.getId() + " to Host #" + target.getHost().getId());
+					
 				}
 				
 				// Source Host will be empty after these migrations, so shut it down.
 				shutdownActions.addAction(new ShutdownHostAction(source.getHost()));
 			}
 			else {
+				
+				simulation.getLogger().debug("AppConsolidationPolicyLevel1 - Failed to completely migrate load away from Host #" + source.getId());
+				
 				if (!vmHostMap.isEmpty()) {
 					// Undo resource reservation on successfully selected target Hosts.
 					for (VmStatus vm : vmList) {
@@ -300,9 +311,11 @@ public class AppConsolidationPolicyLevel1 extends Policy {
 			for (HostData target : targets) {
 				
 				// Check that source and target are different hosts, 
+				// that source has lower utilization than target, 
 				// that target Host is capable and has enough capacity left to host the VM, 
 				// and that the migration won't push the Host's utilization above the target utilization threshold.
-				if (source != target && 
+				if (source != target &&
+					this.calculateHostAvgCpuUtilization(source) < this.calculateHostAvgCpuUtilization(target) &&
 					HostData.canHost(maxReqCores, maxReqCoreCapacity, totalReqResources, target.getSandboxStatus(), target.getHostDescription()) &&
 					(target.getSandboxStatus().getResourcesInUse().getCpu() + totalReqResources.getCpu()) / target.getHostDescription().getResourceCapacity().getCpu() <= targetUtilization) {
 					
@@ -347,10 +360,12 @@ public class AppConsolidationPolicyLevel1 extends Policy {
 			for (HostData target : targets) {
 				
 				// Check that source and target are different hosts, 
+				// that source has lower utilization than target, 
 				// that target Host is capable and has enough capacity left to host the VM, 
 				// that the migration won't push the Host's utilization above the target utilization threshold,
 				// and that the target is not already hosting an instance of the Task hosted in the VM.
 				if (source != target && 
+					this.calculateHostAvgCpuUtilization(source) < this.calculateHostAvgCpuUtilization(target) &&
 					HostData.canHost(vm, target.getSandboxStatus(), target.getHostDescription()) && 
 					(target.getSandboxStatus().getResourcesInUse().getCpu() + vm.getResourcesInUse().getCpu()) / target.getHostDescription().getResourceCapacity().getCpu() <= targetUtilization &&
 					!this.isHostingTask(vm.getVm().getTaskInstance().getTask(), target)) {
@@ -394,9 +409,11 @@ public class AppConsolidationPolicyLevel1 extends Policy {
 			for (HostData target : targets) {
 				
 				// Check that source and target are different hosts, 
+				// that source has lower utilization than target, 
 				// that target Host is capable and has enough capacity left to host the VM, 
 				// and that the migration won't push the Host's utilization above the target utilization threshold.
 				if (source != target && 
+					this.calculateHostAvgCpuUtilization(source) < this.calculateHostAvgCpuUtilization(target) &&
 					HostData.canHost(vm, target.getSandboxStatus(), target.getHostDescription()) &&
 					(target.getSandboxStatus().getResourcesInUse().getCpu() + vm.getResourcesInUse().getCpu()) / target.getHostDescription().getResourceCapacity().getCpu() <= targetUtilization) {
 					
@@ -447,14 +464,14 @@ public class AppConsolidationPolicyLevel1 extends Policy {
 	private ArrayList<ArrayList<VmStatus>> groupVmsByAffinity(ArrayList<VmStatus> vms) {
 		ArrayList<ArrayList<VmStatus>> affinitySets = new ArrayList<ArrayList<VmStatus>>();
 		
-		simulation.getLogger().debug(this.getClass() + " - groupVmsByAffinity().");
-		simulation.getLogger().debug("#vms = " + vms.size());
-		for (VmStatus vm : vms) {
-			simulation.getLogger().debug("vmId: " + vm.getId() +
-					" - instanceId: " + vm.getVm().getTaskInstance().getId() +
-					" - taskId: " + vm.getVm().getTaskInstance().getTask().getId() +
-					" - appId: " + vm.getVm().getTaskInstance().getTask().getApplication().getId());
-		}
+//		simulation.getLogger().debug(this.getClass() + " - groupVmsByAffinity().");
+//		simulation.getLogger().debug("#vms = " + vms.size());
+//		for (VmStatus vm : vms) {
+//			simulation.getLogger().debug("vmId: " + vm.getId() +
+//					" - instanceId: " + vm.getVm().getTaskInstance().getId() +
+//					" - taskId: " + vm.getVm().getTaskInstance().getTask().getId() +
+//					" - appId: " + vm.getVm().getTaskInstance().getTask().getApplication().getId());
+//		}
 		
 		ArrayList<VmStatus> copy = new ArrayList<VmStatus>(vms);
 		while (copy.size() > 0) {
@@ -465,13 +482,13 @@ public class AppConsolidationPolicyLevel1 extends Policy {
 			// TODO: Accessing remote object (VM). Redesign mgmt. system to avoid this trick.
 			
 			InteractiveTask vmTask = (InteractiveTask) vm.getVm().getTaskInstance().getTask();
-			simulation.getLogger().debug("vmId: " + vm.getId() + " - taskId: " + vmTask.getId());
+//			simulation.getLogger().debug("vmId: " + vm.getId() + " - taskId: " + vmTask.getId());
 			
 			ArrayList<InteractiveTask> affinitySet = ((InteractiveApplication) vmTask.getApplication()).getAffinitySet(vmTask);
-			simulation.getLogger().debug("vmId: " + vm.getId() + " - affinity-set");
-			for (InteractiveTask task : affinitySet) {
-				simulation.getLogger().debug("vmId: " + vm.getId() + " - * taskId: " + task.getId());
-			}
+//			simulation.getLogger().debug("vmId: " + vm.getId() + " - affinity-set");
+//			for (InteractiveTask task : affinitySet) {
+//				simulation.getLogger().debug("vmId: " + vm.getId() + " - * taskId: " + task.getId());
+//			}
 			
 			// Build the set of VMs hosting the Tasks in the previously found Affinity-set.
 			ArrayList<VmStatus> affinitySetVms = new ArrayList<VmStatus>();
@@ -481,7 +498,7 @@ public class AppConsolidationPolicyLevel1 extends Policy {
 				if (null != hostingVm)
 					affinitySetVms.add(hostingVm);
 				else
-					hostingVm.getId(); // I expect this to crash... but we should never get here, right?
+					throw new RuntimeException("Failed to find VM hosting instance of Task#" + task.getId() + " from App#" + task.getApplication().getId());
 			}
 			
 			affinitySets.add(affinitySetVms);
