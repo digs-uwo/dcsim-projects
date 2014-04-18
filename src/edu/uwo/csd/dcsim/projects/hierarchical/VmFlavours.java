@@ -34,7 +34,8 @@ public final class VmFlavours {
 	}
 	
 	public static Resources tiny() {
-		return new Resources(1, 2500, 1024, 12800, 1024);
+		//return new Resources(1, 2500, 1024, 12800, 1024);
+		return new Resources(1, 2400, 1024, 12800, 1024);
 	}
 	
 	public static Resources small() {
