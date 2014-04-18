@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import edu.uwo.csd.dcsim.core.Simulation;
 import edu.uwo.csd.dcsim.management.HostData;
 import edu.uwo.csd.dcsim.management.VmStatus;
 import edu.uwo.csd.dcsim.management.capabilities.ManagerCapability;
@@ -14,27 +15,31 @@ public class VmMarkovChainManager extends ManagerCapability {
 	
 	private double upperThreshold;
 	
+	private Map<Integer, HostProbabilitySolver> hostSolvers = new HashMap<Integer, HostProbabilitySolver>();
 	private Map<Integer, VmMarkovChain> vmMCs = new HashMap<Integer, VmMarkovChain>();
 	
 	public VmMarkovChainManager(double upperThreshold) {
 		this.upperThreshold = upperThreshold;
 	}
 	
-	public void updateHosts(List<HostData> hosts) {
-		for (HostData host : hosts) updateHost(host);
+
+	public void updateHost(HostData host, Simulation simulation) {
+		
+		//ensure there is a HostProbabilitySolver created for this host
+		if (!hostSolvers.containsKey(host.getId())) hostSolvers.put(host.getId(), new HostProbabilitySolver(host, simulation));
+		
+		//update individual VM markov chains
+		for (VmStatus vm : host.getCurrentStatus().getVms()) updateVm(vm, simulation);
 	}
 	
-	public void updateHost(HostData host) {
-		for (VmStatus vm : host.getCurrentStatus().getVms()) updateVm(vm);
-	}
-	
-	public void updateVm(VmStatus vm) {
+	private void updateVm(VmStatus vm, Simulation simulation) {
 		VmMarkovChain vmMC;
 		if (vmMCs.containsKey(vm.getId())) {
 			vmMC = vmMCs.get(vm.getId());
 			vmMC.recordState(vm);
 		} else {
-			vmMC = new VmMarkovChain(vm);
+			//vmMC = new VmMarkovChainOriginal(vm, simulation);
+			vmMC = new VmMarkovChainUpdateOnChange(vm, simulation);
 			vmMCs.put(vm.getId(), vmMC);
 		}
 	}
@@ -45,7 +50,7 @@ public class VmMarkovChainManager extends ManagerCapability {
 			vmList.add(vmMCs.get(vm.getId()));
 		}
 		
-		return HostProbabilitySolver.computeStressProbability(host, vmList, upperThreshold);
+		return hostSolvers.get(host.getId()).computeStressProbability(host, vmList, upperThreshold);
 	}
 	
 }

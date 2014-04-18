@@ -16,7 +16,7 @@ public class VmMarkovChainUpdatePolicy extends Policy {
 		HostPoolManager hostPool = manager.getCapability(HostPoolManager.class);
 		VmMarkovChainManager mcMan = manager.getCapability(VmMarkovChainManager.class);
 		
-		mcMan.updateHost(hostPool.getHost(event.getHostStatus().getId()));
+		mcMan.updateHost(hostPool.getHost(event.getHostStatus().getId()), simulation);
 	}
 
 	@Override

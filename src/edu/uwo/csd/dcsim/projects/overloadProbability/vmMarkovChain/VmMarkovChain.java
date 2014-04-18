@@ -1,18 +1,26 @@
 package edu.uwo.csd.dcsim.projects.overloadProbability.vmMarkovChain;
 
+import edu.uwo.csd.dcsim.core.Simulation;
 import edu.uwo.csd.dcsim.management.VmStatus;
 
-public class VmMarkovChain {
+public abstract class VmMarkovChain {
 
-	private int id;
-	private UtilizationState[] states = new UtilizationState[5];
-	private UtilizationState currentState = null;
-	private long cpu;
-	private long globalTransitionCount = 0;
+	protected Simulation simulation;
 	
-	public VmMarkovChain(VmStatus vmStatus) {
+	protected int id;
+	protected UtilizationState[] states = new UtilizationState[5];
+	protected UtilizationState currentState = null;
+	protected long cpu;
+	protected long globalTransitionCount = 0;
+	
+	public static long nUpdates = 0; //TODO remove
+	
+	public VmMarkovChain(VmStatus vmStatus, Simulation simulation) {
+		this.simulation = simulation;
+		
 		//initialize states
 		states = createUtilizationStates();
+		for (UtilizationState state : states) state.initialize();
 		
 		//set current state
 		currentState = states[findState(getUtilization(vmStatus))];
@@ -24,23 +32,27 @@ public class VmMarkovChain {
 	public void recordState(VmStatus vmStatus) {
 		UtilizationState nextState = states[findState(getUtilization(vmStatus))];
 		
-		currentState.updateTransitionProbabilities(nextState);
+		updateTransitionP(currentState, nextState);
 		
 		currentState = nextState;
 	}
 	
-	private double getUtilization(VmStatus vm) {
+	public int getCurrentStateIndex() {
+		return findStateIndex(currentState);
+	}
+	
+	protected double getUtilization(VmStatus vm) {
 		return vm.getResourcesInUse().getCpu() / (double)(vm.getCoreCapacity() * vm.getCores());
 	}
 	
-	private int findState(double util) {
+	protected int findState(double util) {
 		for (int i = 0; i < states.length; ++i) {
 			if (util <= states[i].rangeUpper) return i;
 		}
 		return -1;
 	}
 	
-	private int findStateIndex(UtilizationState state) {
+	protected int findStateIndex(UtilizationState state) {
 		for (int i = 0; i < states.length; ++i) {
 			if (states[i] == state) return i;
 		}
@@ -81,17 +93,13 @@ public class VmMarkovChain {
 				System.out.printf("   %-8.3f", states[i].transitionProbabilities[j]);
 			}
 			System.out.println("");
+			System.out.println("nUpdates=" + nUpdates + "\n");
 		}
 	}
 	
 	public UtilizationState[] createUtilizationStates() {
 		UtilizationState[] states = new UtilizationState[5];
 		
-//		states[0] = new UtilizationState(0, 0.2);
-//		states[1] = new UtilizationState(0.2, 0.5);
-//		states[2] = new UtilizationState(0.5, 0.7);
-//		states[3] = new UtilizationState(0.7, 0.9);
-//		states[4] = new UtilizationState(0.9, 1.0);
 		states[0] = new UtilizationState(0, 0.2);
 		states[1] = new UtilizationState(0.2, 0.4);
 		states[2] = new UtilizationState(0.4, 0.6);
@@ -101,21 +109,44 @@ public class VmMarkovChain {
 		return states;
 	}
 	
+	protected abstract void updateTransitionP(UtilizationState currentState, UtilizationState toState);
+	
 	public class UtilizationState {
-		private double rangeLower;
-		private double rangeUpper;
+		protected double rangeLower;
+		protected double rangeUpper;
 
-		private double[] transitionProbabilities = new double[5];
+		protected double[] transitionProbabilities = new double[5];
+		protected long totalTransitions = 0;
+		protected long[] transitionCounts = new long[5];
+		
+		protected double[] newTransitionProbabilities = new double[5];
+		protected long newTotalTransitions = 0;
+		protected long[] newTransitionCounts = new long[5];
+		
+		protected long lastProbabilityUpdate = 0;
 		
 		
-		private long totalTransitions = 0;
-		private long[] transitionCounts = new long[5];
 			
-		private UtilizationState(double rangeLower, double rangeUpper) {
+		protected UtilizationState(double rangeLower, double rangeUpper) {
 			this.rangeLower = rangeLower;
 			this.rangeUpper = rangeUpper;
 			
 			for (int i = 0; i < transitionProbabilities.length; ++i) transitionProbabilities[i] = 0;
+		}
+		
+		/**
+		 * Initialize the transition probability of remaining in the same state to '1'
+		 */
+		public void initialize() {
+			transitionProbabilities[findStateIndex(this)] = 1;
+		}
+		
+		protected void updateTransitionProbabilities(){
+			transitionProbabilities = newTransitionProbabilities;
+			totalTransitions = newTotalTransitions;
+			transitionCounts = newTransitionCounts;
+			
+			nUpdates++;
 		}
 		
 		public double getRangeUpper() {
@@ -135,16 +166,10 @@ public class VmMarkovChain {
 			return transitionProbabilities;
 		}
 		
-		public void updateTransitionProbabilities(UtilizationState toState) {
-			++transitionCounts[findStateIndex(toState)];
-			++totalTransitions;
-			++globalTransitionCount;
-
-			for (int i = 0; i < transitionProbabilities.length; ++i) {
-				transitionProbabilities[i] = transitionCounts[i] / (double) totalTransitions;
-			}
+		public long getLastProbabilityUpdate() {
+			return lastProbabilityUpdate;
 		}
-		
+				
 	}
 	
 }

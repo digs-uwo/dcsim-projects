@@ -39,14 +39,14 @@ public class StressProbabilityExperiment extends SimulationTask {
 	
 	private static final int RACK_SIZE = 40; //40
 	private static final int N_RACKS = 8; //8
-	private static final int N_APPS_MAX = 500; //50
-	private static final int N_APPS_MIN = 500; //10
+	private static final int N_APPS_MAX = 200; //50
+	private static final int N_APPS_MIN = 100; //10
 	private static final double CHANGES_PER_DAY = 0.5; //0.5
-	private static final boolean DYNAMIC_ARRIVALS = false; //true
+	private static final boolean DYNAMIC_ARRIVALS = true; //true
 		
 	private static final boolean CSV_OUTPUT = false;
 	
-	private static final boolean STRESS_PROBABILITY = true;
+	private static final boolean STRESS_PROBABILITY = false;
 	
 	private static final long[] randomSeeds = {6198910678692541341l,
 		5646441053220106016l,
@@ -158,7 +158,9 @@ public class StressProbabilityExperiment extends SimulationTask {
 	
 	@Override
 	public void setup(Simulation simulation) {
-			
+		
+		simulation.getSimulationMetrics().addCustomMetricCollection(new StressProbabilityMetrics(simulation));
+		
 		Environment environment = new Environment(simulation, RACK_SIZE, N_RACKS);
 		environment.createDataCentre(simulation);
 		
@@ -195,6 +197,9 @@ public class StressProbabilityExperiment extends SimulationTask {
 			if (STRESS_PROBABILITY) {
 				dcAM.installPolicy(new VmRelocationPolicyProbability(lower, upper, target, pThreshold), SimTime.minutes(10), SimTime.days(1) + SimTime.minutes(20) + 2);
 				dcAM.installPolicy(new VmConsolidationPolicyProbability(lower, upper, target), SimTime.hours(1), SimTime.days(1) + SimTime.hours(1) + 3);
+				
+//				dcAM.installPolicy(new VmRelocationPolicyProbability(lower, upper, target, pThreshold), SimTime.minutes(10), SimTime.minutes(20) + 2);
+//				dcAM.installPolicy(new VmConsolidationPolicyProbability(lower, upper, target), SimTime.hours(1), SimTime.hours(1) + 3);
 			} else {
 				dcAM.installPolicy(new VmRelocationPolicyFFIMDHybrid(lower, upper, target), SimTime.minutes(10), SimTime.days(1) + SimTime.minutes(20) + 2);
 				dcAM.installPolicy(new VmConsolidationPolicyFFDDIHybrid(lower, upper, target), SimTime.hours(1), SimTime.days(1) + SimTime.hours(1) + 3);
