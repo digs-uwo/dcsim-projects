@@ -113,7 +113,15 @@ public class AppConsolidationPolicyLevel1 extends Policy {
 		ArrayList<HostData> sources = this.orderSourceHosts(unsortedSources);
 		ArrayList<HostData> targets = this.orderTargetHosts(partiallyUtilized, underUtilized);
 		
-		SequentialManagementActionExecutor migrations = new SequentialManagementActionExecutor();
+		// TODO: Consolidation actions should probably be triggered sequentially, so as not to create
+		// too much overhead on the source and target hosts. However, the resource reservation for the
+		// consolidation actions should be issued immediately, so that no other decision making process
+		// decides to use the same resources that pending consolidation actions are expecting to use.
+		// Given that currently resource reservation doesn't happen until an action is issued, I'm forced
+		// to issue consolidation actions concurrently so as to avoid the problem stated above.
+		ConcurrentManagementActionExecutor migrations = new ConcurrentManagementActionExecutor();
+		//SequentialManagementActionExecutor migrations = new SequentialManagementActionExecutor();
+		
 		shutdownActions = new ConcurrentManagementActionExecutor();
 		
 		HostData source = null;
