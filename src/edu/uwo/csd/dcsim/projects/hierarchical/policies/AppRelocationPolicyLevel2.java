@@ -118,6 +118,11 @@ public class AppRelocationPolicyLevel2 extends Policy {
 				}
 			}
 			targetRack = mostLoaded;
+			
+			// If we have not found a target Rack among the subset of active Racks, activate a new Rack.
+			if (null == targetRack && active.size() < racks.size()) {
+				targetRack = this.getInactiveRack(racks);
+			}
 		}
 		
 		if (null != targetRack) {
