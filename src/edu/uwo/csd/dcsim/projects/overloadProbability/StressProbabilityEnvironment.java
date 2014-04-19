@@ -47,14 +47,20 @@ public abstract class StressProbabilityEnvironment {
 	public static final double[] TRACE_AVG = {0.32, 0.25, 0.32, 0.72, 0.74, 0.77, 0.83};
 	public static final long APP_RAMPUP_TIME = SimTime.hours(6);
 	
-	public static final int VM_CORES = 2;
-	public static final int VM_CORE_CAPACITY = 2500;
-	public static final int VM_MEM = 1635; //1024;
+//	public static final int VM_CORES = 2;
+//	public static final int VM_CORE_CAPACITY = 2500;
+//	public static final int VM_MEM = 1635; //1024;
 	public static final int VM_BW = 0;
 	public static final int VM_STORE = 0;
 	
+	public static final int[] VM_SIZES = {1500, 2500, 2500};
+	public static final int[] VM_CORES = {1, 1, 2};
+	public static final int[] VM_RAM = {512, 1024, 1024};
+	public static final int N_VM_SIZES = 3;
+	
 	int hostsPerRack;
 	int nRacks;
+	int nClusters;
 	int nApps = 0;
 	Simulation simulation;
 	AutonomicManager dcAM;
@@ -62,10 +68,11 @@ public abstract class StressProbabilityEnvironment {
 	Random envRandom;
 	Random appGenerationRandom;
 		
-	public StressProbabilityEnvironment(Simulation simulation, int hostsPerRack, int nRacks, ObjectBuilder<LoadBalancer> loadBalancerBuilder) {
+	public StressProbabilityEnvironment(Simulation simulation, int hostsPerRack, int nRacks, int nClusters, ObjectBuilder<LoadBalancer> loadBalancerBuilder) {
 		this.simulation = simulation;
 		this.hostsPerRack = hostsPerRack;
 		this.nRacks = nRacks;
+		this.nClusters = nClusters;
 		
 		envRandom = new Random(simulation.getRandom().nextLong());
 		appGenerationRandom = new Random(simulation.getRandom().nextLong());
@@ -81,11 +88,21 @@ public abstract class StressProbabilityEnvironment {
 				.resourceManagerFactory(new DefaultResourceManagerFactory())
 				.resourceSchedulerFactory(new DefaultResourceSchedulerFactory());
 		
+		Host.Builder proLiantDL380G5QuadCore = HostModels.ProLiantDL380G5QuadCore(simulation).privCpu(500).privBandwidth(131072)
+				.resourceManagerFactory(new DefaultResourceManagerFactory())
+				.resourceSchedulerFactory(new DefaultResourceSchedulerFactory());
+		
 		//Define Racks
 		SwitchFactory switch10g48p = new SwitchFactory(10000000, 48, 100);
 		
+		//uses proLiantDL160G5E5420
 		Rack.Builder seriesA = new Rack.Builder(simulation).nSlots(40).nHosts(hostsPerRack)
 				.hostBuilder(proLiantDL160G5E5420)
+				.switchFactory(switch10g48p);
+		
+//		//uses proLiantDL380G5QuadCore
+		Rack.Builder seriesB = new Rack.Builder(simulation).nSlots(40).nHosts(hostsPerRack)
+				.hostBuilder(proLiantDL380G5QuadCore)
 				.switchFactory(switch10g48p);
 		
 		// Define Cluster
@@ -93,6 +110,10 @@ public abstract class StressProbabilityEnvironment {
 		
 		Cluster.Builder series09 = new Cluster.Builder(simulation).nRacks(nRacks).nSwitches(1)
 				.rackBuilder(seriesA)
+				.switchFactory(switch40g24p);
+		
+		Cluster.Builder series11 = new Cluster.Builder(simulation).nRacks(nRacks).nSwitches(1)
+				.rackBuilder(seriesB)
 				.switchFactory(switch40g24p);
 		
 		
@@ -103,8 +124,15 @@ public abstract class StressProbabilityEnvironment {
 
 		processDcAM(dcAM);
 		
-		//add single cluster
-		dc.addCluster(series09.build());
+		// Create clusters in data centre.
+		for (int i = 0; i < nClusters; i++) {
+			if (i % 2 == 0)
+				dc.addCluster(series09.build());
+			else
+				dc.addCluster(series11.build());
+		}
+		
+//		dc.addCluster(series09.build());
 		
 		for (Cluster cluster : dc.getClusters()) {
 			for (Rack rack : cluster.getRacks()) {
@@ -133,8 +161,15 @@ public abstract class StressProbabilityEnvironment {
 		
 		InteractiveApplication.Builder appBuilder;
 		
+			
+		int cores = VM_CORES[nApps % N_VM_SIZES];
+		int coreCapacity = VM_SIZES[nApps % N_VM_SIZES];
+		int memory = VM_RAM[nApps % N_VM_SIZES];
+		int bandwidth = VM_BW;	// 100 Mb/s
+		int storage = VM_STORE;	// 1 GB
+		
 		appBuilder = new InteractiveApplication.Builder(simulation).thinkTime(4)
-				.task(1, 1, new Resources(VM_CORES, VM_CORE_CAPACITY, VM_MEM, VM_BW, VM_STORE), 0.01, 1, loadBalancerBuilder);
+				.task(1, 1, new Resources(cores, coreCapacity, memory, bandwidth, storage), 0.01, 1, loadBalancerBuilder);
 		
 		InteractiveApplication app = appBuilder.build();
 		app.setWorkload(workload);

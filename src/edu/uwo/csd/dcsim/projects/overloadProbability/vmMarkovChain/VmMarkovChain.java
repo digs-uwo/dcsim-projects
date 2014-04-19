@@ -26,7 +26,8 @@ public abstract class VmMarkovChain {
 		currentState = states[findState(getUtilization(vmStatus))];
 		
 		id = vmStatus.getId();
-		cpu = vmStatus.getCoreCapacity() * vmStatus.getCores();
+		//cpu = vmStatus.getCoreCapacity() * vmStatus.getCores(); //TODO should this be host core capacity?
+		cpu = vmStatus.getHostCoreCapacity() * vmStatus.getCores();
 	}
 	
 	public void recordState(VmStatus vmStatus) {
@@ -42,14 +43,14 @@ public abstract class VmMarkovChain {
 	}
 	
 	protected double getUtilization(VmStatus vm) {
-		return vm.getResourcesInUse().getCpu() / (double)(vm.getCoreCapacity() * vm.getCores());
+		return vm.getResourcesInUse().getCpu() / (double)(vm.getHostCoreCapacity() * vm.getCores());
 	}
 	
 	protected int findState(double util) {
 		for (int i = 0; i < states.length; ++i) {
 			if (util <= states[i].rangeUpper) return i;
 		}
-		return -1;
+		throw new RuntimeException("Utilization State not found! util=" + util);
 	}
 	
 	protected int findStateIndex(UtilizationState state) {
@@ -173,3 +174,4 @@ public abstract class VmMarkovChain {
 	}
 	
 }
+

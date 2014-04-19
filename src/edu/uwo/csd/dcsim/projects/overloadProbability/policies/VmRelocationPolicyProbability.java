@@ -229,7 +229,7 @@ public class VmRelocationPolicyProbability extends Policy {
 				} else if (avgCpuUtilization < lowerThreshold) {
 					underUtilized.add(host);
 				} else if (mcMan.calculateOverloadProbability(host) >= pThreshold) {
-					System.out.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Stress Probability High!");
+//					System.out.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Stress Probability High!");
 					stressed.add(host);
 				} else {
 					partiallyUtilized.add(host);

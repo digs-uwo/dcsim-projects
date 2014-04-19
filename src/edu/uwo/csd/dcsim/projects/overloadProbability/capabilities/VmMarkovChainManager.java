@@ -14,12 +14,14 @@ import edu.uwo.csd.dcsim.projects.overloadProbability.vmMarkovChain.*;
 public class VmMarkovChainManager extends ManagerCapability {
 	
 	private double upperThreshold;
+	private int filterSize;
 	
 	private Map<Integer, HostProbabilitySolver> hostSolvers = new HashMap<Integer, HostProbabilitySolver>();
 	private Map<Integer, VmMarkovChain> vmMCs = new HashMap<Integer, VmMarkovChain>();
 	
-	public VmMarkovChainManager(double upperThreshold) {
+	public VmMarkovChainManager(double upperThreshold, int filterSize) {
 		this.upperThreshold = upperThreshold;
+		this.filterSize = filterSize;
 	}
 	
 
@@ -50,7 +52,7 @@ public class VmMarkovChainManager extends ManagerCapability {
 			vmList.add(vmMCs.get(vm.getId()));
 		}
 		
-		return hostSolvers.get(host.getId()).computeStressProbability(host, vmList, upperThreshold);
+		return hostSolvers.get(host.getId()).computeStressProbability(host, vmList, upperThreshold, filterSize);
 	}
 	
 }

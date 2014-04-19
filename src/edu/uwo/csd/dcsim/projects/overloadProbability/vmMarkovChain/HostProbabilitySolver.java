@@ -7,8 +7,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import edu.uwo.csd.dcsim.common.Tuple;
 import edu.uwo.csd.dcsim.core.Simulation;
 import edu.uwo.csd.dcsim.management.HostData;
+import edu.uwo.csd.dcsim.management.VmStatus;
 import edu.uwo.csd.dcsim.projects.overloadProbability.StressProbabilityMetrics;
 import edu.uwo.csd.dcsim.projects.overloadProbability.vmMarkovChain.VmMarkovChain.UtilizationState;
 
@@ -32,7 +34,7 @@ public class HostProbabilitySolver {
 		hostId = host.getId();
 	}
 	
-	public double computeStressProbability(HostData host, ArrayList<VmMarkovChain> completeVMlist, double threshold) {
+	public double computeStressProbability(HostData host, ArrayList<VmMarkovChain> completeVMlist, double threshold, int filterSize) {
 	
 		long startTime;
 		long endTime;
@@ -40,15 +42,19 @@ public class HostProbabilitySolver {
 		startTime = System.currentTimeMillis();
 		double p = 0;
 		long nPerm = 0;
-		
-		Integer[] states = new Integer[completeVMlist.size()];
+			
+		int[] states = new int[completeVMlist.size()];
 		VmMarkovChain[] vms = new VmMarkovChain[completeVMlist.size()];
 		double[] stateUtil = new double[completeVMlist.size()];
 		double[] stateP = new double[completeVMlist.size()];
+		int[] vmFilter;
 		double sP;
 		double util = 0;
 		double hostCpu = (double)host.getHostDescription().getResourceCapacity().getCpu();
 		
+		int[] vmUtil = new int[completeVMlist.size()];
+		
+		//move arraylist into normal array
 		{
 			int i = 0;
 			for (VmMarkovChain vm : completeVMlist) {
@@ -58,7 +64,19 @@ public class HostProbabilitySolver {
 			}
 		}
 		int vmPosition = 0;
-				
+		
+		for (int i = 0; i < vms.length; ++i) {
+			for (VmStatus vm : host.getCurrentStatus().getVms()) {
+				if (vm.getId() == vms[i].id) {
+					vmUtil[i] = vm.getResourcesInUse().getCpu();
+					continue;
+				}
+			}
+		}
+		
+		//filter VMs
+		vmFilter = filterVms(host, vms, vmUtil, threshold, filterSize);
+		
 		/*
 		 * Main iteration loop. Continue until the VM stack is empty.
 		 */
@@ -67,11 +85,21 @@ public class HostProbabilitySolver {
 			//advance to next state of current VM
 			VmMarkovChain currentVm = vms[vmPosition];
 			int state = -1;
-			for (int i = states[vmPosition] + 1; i < currentVm.states.length; ++i) {
-				if ((sP = currentVm.currentState.transitionProbabilities[i]) > 0) {
-					state = i;
-					stateP[vmPosition] = sP; 
-					break;
+			
+			if (vmFilter[vmPosition] == 1) {
+				for (int i = states[vmPosition] + 1; i < currentVm.states.length; ++i) {
+					if ((sP = currentVm.currentState.transitionProbabilities[i]) > 0) {
+						state = i;
+						stateP[vmPosition] = sP; 
+						break;
+					}
+				}
+			} else {
+				if (states[vmPosition] == -1) {
+					state = currentVm.getCurrentStateIndex();
+					stateP[vmPosition] = 1;
+				} else {
+					state = -1;
 				}
 			}
 			
@@ -80,7 +108,11 @@ public class HostProbabilitySolver {
 				--vmPosition;
 			} else {				
 				states[vmPosition] = state;
-				stateUtil[vmPosition] = currentVm.getCpu() * currentVm.getStates()[state].getValue();
+				if (vmFilter[vmPosition] == 1) {
+					stateUtil[vmPosition] = currentVm.getCpu() * currentVm.getStates()[state].getValue();
+				} else {
+					stateUtil[vmPosition] = vmUtil[vmPosition];
+				}
 				
 				//if remainingVMs is empty
 				if (vmPosition == vms.length - 1) {
@@ -111,22 +143,106 @@ public class HostProbabilitySolver {
 		return p;
 	}
 	
-	private int[] filterVms(HostData host, ArrayList<VmMarkovChain> completeVMlist, double threshold) {
-		int[] vmFilter = new int[completeVMlist.size()];
+	private int[] filterVms(HostData host, VmMarkovChain[] vmList, int[] vmUtil, double threshold, int filterSize) {
+			
+		int[] vmFilter = new int[vmList.length];
+		double[] vmScore = new double[vmList.length];
+		int nFiltered = 0;
 		
-		
-		//first, compute VM "ranking"
+		//initialize filter
+		if (filterSize != -1) {
+			for (int i = 0; i < vmFilter.length; ++i) vmFilter[i] = 0;
+		} else {
+			for (int i = 0; i < vmFilter.length; ++i) vmFilter[i] = 1;
+			return vmFilter; //filterSize == -1 indicates no filtering
+		}
+
+		//first, compute VM "score"
 			/*
-			 * options for ranking:
+			 * options for score:
 			 * 1. impact: compute "predicted" vm usage (in CPU units, not %), based on all possible state transitions. impact = abs(predicted - current)
 			 * 2. negative impact: for each possible *upward* transition, sum transP*(newcpu - current). Need alternate ordering for tie breakers, such as normal 'impact'
+			 * 3. amplitude: "predict" for downward and upward change, take sum of absolute values
 			 */
-
 		
-		//sort by potential ranking
+		//score by potential impact
+//		VmMarkovChain vm;
+//		double predicted;
+//		for (int i = 0; i < vmList.length; ++i) {
+//			vmScore[i] = 0;
+//			predicted = 0;
+//			
+//			//iterate through each possible next state
+//			for (int s = 0; s < vmList[i].getStates().length; ++s) {
+//				predicted += vmList[i].cpu * vmList[i].currentState.transitionProbabilities[s]; WRONG!! MULTIPLY BY STATE VALUE!!
+//			}
+//			
+//			vmScore[i] = Math.abs(predicted - (vmList[i].currentState.getValue() * vmList[i].cpu));
+//		}
 		
-		//mark the first 'x' VMs for use
-			//vmFilter[i] = 1 if completeVMlist[i] passes the filter, 0 otherwise
+		//score by potential negative impact
+//		VmMarkovChain vm;
+//		double predicted;
+//		for (int i = 0; i < vmList.length; ++i) {
+//			vmScore[i] = 0;
+//			predicted = 0;
+//			
+//			//iterate through each possible next state
+//			for (int s = vmList[i].getCurrentStateIndex(); s < vmList[i].getStates().length; ++s) {
+//				predicted += vmList[i].cpu * vmList[i].currentState.transitionProbabilities[s] * vmList[i].getStates()[s].getValue();
+//			}
+//			
+//			vmScore[i] = Math.abs(predicted - (vmList[i].currentState.getValue() * vmList[i].cpu));
+//		}
+		
+		//score by amplitude
+		VmMarkovChain vm;
+		double predictedUp;
+		double predictedDown;
+		int currentState;
+//		double currentValue;
+		for (int i = 0; i < vmList.length; ++i) {
+			vmScore[i] = 0;
+			predictedUp = 0;
+			predictedDown = 0;
+			currentState = vmList[i].getCurrentStateIndex();			
+			
+			//iterate through each possible next state
+			for (int s = 0; s < vmList[i].getStates().length; ++s) {
+				if (s < currentState) {
+					predictedDown += vmList[i].cpu * vmList[i].currentState.transitionProbabilities[s] * (vmUtil[i] - vmList[i].getStates()[s].getValue());
+				} else if (s > currentState) {
+					predictedUp += vmList[i].cpu * vmList[i].currentState.transitionProbabilities[s] * (vmList[i].getStates()[s].getValue() - vmUtil[i]);					
+				}
+			}
+			
+			vmScore[i] = predictedDown + predictedUp;
+		}
+		
+		
+		//filter by score, vmFilter[i] = 1 if completeVMlist[i] passes the filter, 0 otherwise
+		double count = 0;
+		double max;
+		int v;
+		while (count < filterSize) {
+			max = -1;
+			v = -1;
+			for (int i = 0; i < vmScore.length; ++i) {
+				if (vmFilter[i] == 0 && vmScore[i] > max) {
+					max = vmScore[i];
+					v = i;
+				}
+			}
+			if (max != -1) {
+				vmFilter[v] = 1;
+				++count;
+				++nFiltered;
+			} else {
+				count = filterSize; //no more VMs, terminate
+			}
+		}
+		
+		simulation.getSimulationMetrics().getCustomMetricCollection(StressProbabilityMetrics.class).addFilteredVms(vmList.length - nFiltered);
 		
 		return vmFilter;
 	}

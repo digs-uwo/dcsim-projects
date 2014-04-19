@@ -13,6 +13,7 @@ import edu.uwo.csd.dcsim.core.metrics.MetricCollection;
 public class StressProbabilityMetrics extends MetricCollection {
 	
 	DescriptiveStatistics algorithmExecTime = new DescriptiveStatistics();
+	DescriptiveStatistics filteredVms = new DescriptiveStatistics();
 
 	public StressProbabilityMetrics(Simulation simulation) {
 		super(simulation);
@@ -28,6 +29,10 @@ public class StressProbabilityMetrics extends MetricCollection {
 	public void addAlgExecTime(long time) {
 		algorithmExecTime.addValue(time);
 	}
+	
+	public void addFilteredVms(int n) {
+		filteredVms.addValue(n);
+	}
 
 	@Override
 	public void printDefault(Logger out) {
@@ -36,8 +41,11 @@ public class StressProbabilityMetrics extends MetricCollection {
 		out.info("   average: " + algorithmExecTime.getMean());
 		out.info("   max: " + algorithmExecTime.getMax());
 		out.info("   min: " + algorithmExecTime.getMin());
-
-		
+		out.info("Filtered VMs");
+		out.info("   total: " + filteredVms.getSum());
+		out.info("   average: " + filteredVms.getMean());
+		out.info("   max: " + filteredVms.getMax());
+		out.info("   min: " + filteredVms.getMin());
 	}
 
 	@Override
@@ -48,6 +56,11 @@ public class StressProbabilityMetrics extends MetricCollection {
 		metrics.add(new Tuple<String, Object>("algRuntimeMax", algorithmExecTime.getMax()));
 		metrics.add(new Tuple<String, Object>("algRuntimeMin", algorithmExecTime.getMin()));
 		
+		metrics.add(new Tuple<String, Object>("filteredVmsSum", filteredVms.getSum()));
+		metrics.add(new Tuple<String, Object>("filteredVmsMean", filteredVms.getMean()));
+		metrics.add(new Tuple<String, Object>("filteredVmsMax", filteredVms.getMax()));
+		metrics.add(new Tuple<String, Object>("filteredVmsMin", filteredVms.getMin()));
+				
 		return metrics;
 	}
 
