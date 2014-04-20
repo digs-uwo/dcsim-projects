@@ -29,9 +29,9 @@ public final class VmFlavours {
 	 */
 	private VmFlavours() {}
 	
-	public static Resources xtiny() {
-		return new Resources(1, 2500, 512, 12800, 1024);
-	}
+	/**
+	 * Standard VM sizes defined by OpenStack.
+	 */
 	
 	public static Resources tiny() {
 		//return new Resources(1, 2500, 1024, 12800, 1024);
@@ -52,6 +52,27 @@ public final class VmFlavours {
 	
 	public static Resources xlarge() {
 		return new Resources(8, 2500, 16384, 12800, 1024);
+	}
+	
+	/**
+	 * Extra VM sizes.
+	 */
+	
+	public static Resources xtiny() {
+		//return new Resources(1, 2500, 512, 12800, 1024);
+		return new Resources(1, 2400, 512, 12800, 1024);
+	}
+	
+	public static Resources manfi1() {
+		return new Resources(1, 1500, 512, 12800, 1024);
+	}
+	
+	public static Resources manfi2() {
+		return new Resources(1, 2400, 1024, 12800, 1024);
+	}
+	
+	public static Resources manfi3() {
+		return new Resources(2, 2400, 1024, 12800, 1024);
 	}
 	
 	/**
