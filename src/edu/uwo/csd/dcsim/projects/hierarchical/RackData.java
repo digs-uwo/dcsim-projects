@@ -111,9 +111,9 @@ public class RackData {
 			boolean found = false;
 			for (int i = statusVector.vmVector.length - 1; i >= 0; i--) {
 				if (RackData.theresEnoughCapacity(totalReqResources, statusVector.vmVector[i])) {
-					if (statusVector.vector[i] > 0) {
+					if (statusVector.vector[statusVector.iVmVector + i] > 0) {
 						found = true;
-						statusVector.vector[i]--;
+						statusVector.vector[statusVector.iVmVector + i]--;
 						Resources reminder = statusVector.vmVector[i].subtract(totalReqResources);
 						RackData.updateSpareCapacityVector(statusVector, reminder, 1);
 						break;
@@ -158,11 +158,11 @@ public class RackData {
 			for (int i = 0; i < statusVector.vmVector.length; i++) {
 				
 				if (RackData.theresEnoughCapacity(vmSize, statusVector.vmVector[i])) {
-					int hosts = Math.min(nVms, statusVector.vector[i]);
+					int hosts = Math.min(nVms, statusVector.vector[statusVector.iVmVector + i]);
 					Resources reminder = statusVector.vmVector[i].subtract(vmSize);
 					RackData.updateSpareCapacityVector(statusVector, reminder, hosts);
 					nVms -= hosts;
-					statusVector.vector[i] -= hosts;
+					statusVector.vector[statusVector.iVmVector + i] -= hosts;
 				}
 				if (nVms == 0)	// All VMs were accounted for.
 					break;
@@ -201,7 +201,7 @@ public class RackData {
 			for (int i = 0; i < statusVector.vmVector.length; i++) {
 				if (RackData.theresEnoughCapacity(req.getResources(), statusVector.vmVector[i])) {
 					found = true;
-					statusVector.vector[i]--;
+					statusVector.vector[statusVector.iVmVector + i]--;
 					Resources reminder = statusVector.vmVector[i].subtract(req.getResources());
 					RackData.updateSpareCapacityVector(statusVector, reminder, 1);
 					break;
@@ -259,9 +259,9 @@ public class RackData {
 			boolean found = false;
 			for (int i = statusVector.vmVector.length - 1; i >= 0; i--) {
 				if (RackData.theresEnoughCapacity(totalReqResources, statusVector.vmVector[i])) {
-					if (statusVector.vector[i] > 0) {
+					if (statusVector.vector[statusVector.iVmVector + i] > 0) {
 						found = true;
-						statusVector.vector[i]--;
+						statusVector.vector[statusVector.iVmVector + i]--;
 						Resources reminder = statusVector.vmVector[i].subtract(totalReqResources);
 						RackData.updateSpareCapacityVector(statusVector, reminder, 1);
 						break;
@@ -308,11 +308,11 @@ public class RackData {
 			for (int i = 0; i < statusVector.vmVector.length; i++) {
 				
 				if (RackData.theresEnoughCapacity(vmSize, statusVector.vmVector[i])) {
-					int hosts = Math.min(nVms, statusVector.vector[i]);
+					int hosts = Math.min(nVms, statusVector.vector[statusVector.iVmVector + i]);
 					Resources reminder = statusVector.vmVector[i].subtract(vmSize);
 					RackData.updateSpareCapacityVector(statusVector, reminder, hosts);
 					nVms -= hosts;
-					statusVector.vector[i] -= hosts;
+					statusVector.vector[statusVector.iVmVector + i] -= hosts;
 				}
 				if (nVms == 0)	// All VMs were accounted for.
 					break;
@@ -351,7 +351,7 @@ public class RackData {
 			for (int i = 0; i < statusVector.vmVector.length; i++) {
 				if (RackData.theresEnoughCapacity(vm.getResourcesInUse(), statusVector.vmVector[i])) {
 					found = true;
-					statusVector.vector[i]--;
+					statusVector.vector[statusVector.iVmVector + i]--;
 					Resources reminder = statusVector.vmVector[i].subtract(vm.getResourcesInUse());
 					RackData.updateSpareCapacityVector(statusVector, reminder, 1);
 					break;
@@ -385,7 +385,7 @@ public class RackData {
 		
 		for (int i = statusVector.vmVector.length - 1; i >= 0; i--) {
 			if (theresEnoughCapacity(statusVector.vmVector[i], reminder)) {
-				statusVector.vector[i] += count;
+				statusVector.vector[statusVector.iVmVector + i] += count;
 				break;
 			}
 		}
