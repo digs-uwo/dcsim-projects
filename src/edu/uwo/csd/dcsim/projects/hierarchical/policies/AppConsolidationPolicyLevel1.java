@@ -27,6 +27,7 @@ import edu.uwo.csd.dcsim.management.action.MigrationAction;
 import edu.uwo.csd.dcsim.management.action.SequentialManagementActionExecutor;
 import edu.uwo.csd.dcsim.management.action.ShutdownHostAction;
 import edu.uwo.csd.dcsim.management.capabilities.HostPoolManager;
+import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.RackManager;
 
 /**
  * This policy implements the VM Consolidation process using a greedy algorithm. 
@@ -71,7 +72,8 @@ public class AppConsolidationPolicyLevel1 extends Policy {
 	 */
 	public void execute() {
 		
-		simulation.getLogger().debug("AppConsolidationPolicyLevel1 - Running...");
+		simulation.getLogger().debug("[Rack #" + manager.getCapability(RackManager.class).getRack().getId() + "]"
+				+ " AppConsolidationPolicyLevel1 - Running...");
 		
 		SequentialManagementActionExecutor actionExecutor = new SequentialManagementActionExecutor();
 		
@@ -184,7 +186,8 @@ public class AppConsolidationPolicyLevel1 extends Policy {
 					
 					migrations.addAction(new MigrationAction(source.getHostManager(), source.getHost(),	target.getHost(), entry.getKey()));
 					
-					simulation.getLogger().debug("AppConsolidationPolicyLevel1 - Migrating VM #" + entry.getKey() + " from Host #" + source.getId() + " to Host #" + target.getHost().getId());
+					simulation.getLogger().debug("[Rack #" + manager.getCapability(RackManager.class).getRack().getId() + "]"
+							+ " AppConsolidationPolicyLevel1 - Migrating VM #" + entry.getKey() + " from Host #" + source.getId() + " to Host #" + target.getHost().getId());
 					
 				}
 				
@@ -193,7 +196,8 @@ public class AppConsolidationPolicyLevel1 extends Policy {
 			}
 			else {
 				
-				simulation.getLogger().debug("AppConsolidationPolicyLevel1 - Failed to completely migrate load away from Host #" + source.getId());
+				simulation.getLogger().debug("[Rack #" + manager.getCapability(RackManager.class).getRack().getId() + "]"
+						+ " AppConsolidationPolicyLevel1 - Failed to completely migrate load away from Host #" + source.getId());
 				
 				if (!vmHostMap.isEmpty()) {
 					// Undo resource reservation on successfully selected target Hosts.
@@ -506,7 +510,7 @@ public class AppConsolidationPolicyLevel1 extends Policy {
 				if (null != hostingVm)
 					affinitySetVms.add(hostingVm);
 				else
-					throw new RuntimeException("Failed to find VM hosting instance of Task#" + task.getId() + " from App#" + task.getApplication().getId());
+					throw new RuntimeException("Failed to find VM hosting instance of Task #" + task.getId() + " from App #" + task.getApplication().getId());
 			}
 			
 			affinitySets.add(affinitySetVms);

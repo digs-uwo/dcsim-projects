@@ -37,6 +37,10 @@ public class AppRelocationPolicyLevel2 extends Policy {
 	 * This event can come from a Rack in this Cluster or from the DC Manager.
 	 */
 	public void execute(AppMigRequestEvent event) {
+		
+		simulation.getLogger().debug("[Cluster #" + manager.getCapability(ClusterManager.class).getCluster().getId() + "]"
+				+ " AppRelocationPolicyLevel2 - New MigRequest - App #" + event.getApplication().getId());
+		
 		MigRequestEntry entry = new MigRequestEntry(event.getApplication(), event.getOrigin(), event.getSender());
 		
 		// Store info about migration request just received.
@@ -49,6 +53,10 @@ public class AppRelocationPolicyLevel2 extends Policy {
 	 * This event can only come from Racks in this Cluster in response to migration requests sent by the ClusterManager.
 	 */
 	public void execute(AppMigRejectEvent event) {
+		
+		simulation.getLogger().debug("[Cluster #" + manager.getCapability(ClusterManager.class).getCluster().getId() + "]"
+				+ " AppRelocationPolicyLevel2 - New Migration reject - App #" + event.getApplication().getId());
+		
 		// Mark sender's status as invalid (to avoid choosing sender again in the next step).
 		Collection<RackData> racks = manager.getCapability(RackPoolManager.class).getRacks();
 		for (RackData rack : racks) {
@@ -67,6 +75,10 @@ public class AppRelocationPolicyLevel2 extends Policy {
 	 * 
 	 */
 	protected void searchForAppMigrationTarget(MigRequestEntry entry) {
+		
+		simulation.getLogger().debug("[Cluster #" + manager.getCapability(ClusterManager.class).getCluster().getId() + "]"
+				+ " AppRelocationPolicyLevel2 - Searching for target Rack...");
+		
 		RackPoolManager rackPool = manager.getCapability(RackPoolManager.class);
 		ArrayList<RackData> racks = new ArrayList<RackData>(rackPool.getRacks());
 		
@@ -126,6 +138,10 @@ public class AppRelocationPolicyLevel2 extends Policy {
 		}
 		
 		if (null != targetRack) {
+			
+			simulation.getLogger().debug("[Cluster #" + manager.getCapability(ClusterManager.class).getCluster().getId() + "]"
+					+ " AppRelocationPolicyLevel2 - App #" + entry.getApplication().getId() + " - Found migration target: Rack #" + targetRack.getId());
+			
 			// Found target. Send migration request.
 			simulation.sendEvent(new AppMigRequestEvent(targetRack.getRackManager(), entry.getApplication(), entry.getOrigin(), 0));
 			
@@ -142,11 +158,19 @@ public class AppRelocationPolicyLevel2 extends Policy {
 			// If event's sender belongs in this Cluster, request assistance from DC Manager 
 			// to find a target Host for the VM migration in another Cluster.
 			if (null != rackPool.getRack(entry.getSender())) {
+				
+				simulation.getLogger().debug("[Cluster #" + manager.getCapability(ClusterManager.class).getCluster().getId() + "]"
+						+ " AppRelocationPolicyLevel2 - App #" + entry.getApplication().getId() + " - Failed to find migration target. Contact DC Manager.");
+				
 				simulation.sendEvent(new AppMigRequestEvent(target, entry.getApplication(), entry.getOrigin(), clusterId));
 			}
 			// Event's sender does not belong in this Cluster.
 			else {
 				// Migration request was sent by DC Manager. Reject migration request.
+				
+				simulation.getLogger().debug("[Cluster #" + manager.getCapability(ClusterManager.class).getCluster().getId() + "]"
+						+ " AppRelocationPolicyLevel2 - App #" + entry.getApplication().getId() + " - Failed to find migration target. Reject migration request.");
+				
 				simulation.sendEvent(new AppMigRejectEvent(target, entry.getApplication(), entry.getOrigin(), clusterId));
 			}
 			

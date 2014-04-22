@@ -38,6 +38,9 @@ public class AppRelocationPolicyLevel3 extends Policy {
 	 * This event can only come from a Cluster in the Data Centre.
 	 */
 	public void execute(AppMigRequestEvent event) {
+		
+		simulation.getLogger().debug("[DC Manager] AppRelocationPolicyLevel3 - New MigRequest - App #" + event.getApplication().getId());
+		
 		MigRequestEntry entry = new MigRequestEntry(event.getApplication(), event.getOrigin(), event.getSender());
 		
 		// Store info about migration request just received.
@@ -50,6 +53,9 @@ public class AppRelocationPolicyLevel3 extends Policy {
 	 * This event can only come from a Cluster in response to a migration request sent by the DC Manager.
 	 */
 	public void execute(AppMigRejectEvent event) {
+		
+		simulation.getLogger().debug("[DC Manager] AppPlacementPolicyLevel3 - New Migration reject - App #" + event.getApplication().getId());
+		
 		// Mark sender's status as invalid (to avoid choosing sender again in the next step).
 		Collection<ClusterData> clusters = manager.getCapability(ClusterPoolManager.class).getClusters();
 		for (ClusterData cluster : clusters) {
@@ -69,6 +75,8 @@ public class AppRelocationPolicyLevel3 extends Policy {
 	 */
 	protected void searchForAppMigrationTarget(MigRequestEntry entry) {
 		ClusterData targetCluster = null;
+		
+		simulation.getLogger().debug("[DC Manager] AppRelocationPolicyLevel3 - Searching for target Cluster...");
 		
 		ArrayList<ClusterData> clusters = new ArrayList<ClusterData>(manager.getCapability(ClusterPoolManager.class).getClusters());
 		
@@ -181,7 +189,7 @@ public class AppRelocationPolicyLevel3 extends Policy {
 		
 		if (null != targetCluster) {
 			
-			simulation.getLogger().debug(this.getClass() + " - Found relocation target: Cluster #" + targetCluster.getId());
+			simulation.getLogger().debug("[DC Manager] Found relocation target: Cluster #" + targetCluster.getId());
 			
 			// Found target. Send migration request.
 			simulation.sendEvent(new AppMigRequestEvent(targetCluster.getClusterManager(), entry.getApplication(), entry.getOrigin(), 0));
@@ -195,7 +203,7 @@ public class AppRelocationPolicyLevel3 extends Policy {
 		// Could not find suitable target Cluster in the Data Centre.
 		else {
 			
-			simulation.getLogger().debug(this.getClass() + " - Failed to find relocation target.");
+			simulation.getLogger().debug("[DC Manager] Failed to find relocation target.");
 			
 			// Contact RackManager origin to reject migration request.
 			simulation.sendEvent(new AppMigRejectEvent(entry.getOrigin(), entry.getApplication(), entry.getOrigin(), 0));

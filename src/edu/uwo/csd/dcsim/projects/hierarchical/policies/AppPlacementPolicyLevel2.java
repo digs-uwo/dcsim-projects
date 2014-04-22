@@ -43,7 +43,8 @@ public class AppPlacementPolicyLevel2 extends Policy {
 	 */
 	public void execute(PlacementRejectEvent event) {
 		
-		simulation.getLogger().debug("AppPlacementPolicyLevel2 - New Placement reject - AppId: " + event.getRequest().getId());
+		simulation.getLogger().debug("[Cluster #" + manager.getCapability(ClusterManager.class).getCluster().getId() + "]"
+				+ " AppPlacementPolicyLevel2 - New Placement reject - App #" + event.getRequest().getId());
 		
 		// Mark sender's status as invalid (to avoid choosing sender again in the next step).
 		Collection<RackData> racks = manager.getCapability(RackPoolManager.class).getRacks();
@@ -61,7 +62,8 @@ public class AppPlacementPolicyLevel2 extends Policy {
 	protected void processRequest(ConstrainedAppAllocationRequest request) {
 		RackData targetRack = null;
 		
-		simulation.getLogger().debug("AppPlacementPolicyLevel2.processRequest() - AppId: " + request.getId());
+		simulation.getLogger().debug("[Cluster #" + manager.getCapability(ClusterManager.class).getCluster().getId() + "]"
+				+ " AppPlacementPolicyLevel2.processRequest() - App #" + request.getId());
 		
 		Collection<RackData> racks = manager.getCapability(RackPoolManager.class).getRacks();
 		
@@ -122,7 +124,8 @@ public class AppPlacementPolicyLevel2 extends Policy {
 		
 		if (null != targetRack) {
 			
-			simulation.getLogger().debug("AppPlacementPolicyLevel2.processRequest() - AppId: " + request.getId() + " - Found placement target: Rack #" + targetRack.getId());
+			simulation.getLogger().debug("[Cluster #" + manager.getCapability(ClusterManager.class).getCluster().getId() + "]"
+					+ " AppPlacementPolicyLevel2.processRequest() - App #" + request.getId() + " - Found placement target: Rack #" + targetRack.getId());
 			
 			// Found target. Send placement request.
 			simulation.sendEvent(new PlacementRequestEvent(targetRack.getRackManager(), request));
@@ -136,7 +139,8 @@ public class AppPlacementPolicyLevel2 extends Policy {
 		// Could not find suitable target Rack in the Cluster.
 		else {
 			
-			simulation.getLogger().debug("AppPlacementPolicyLevel2.processRequest() - AppId: " + request.getId() + " - Failed to find placement target.");
+			simulation.getLogger().debug("[Cluster #" + manager.getCapability(ClusterManager.class).getCluster().getId() + "]"
+					+ " AppPlacementPolicyLevel2.processRequest() - App #" + request.getId() + " - Failed to find placement target.");
 			
 			int clusterId = manager.getCapability(ClusterManager.class).getCluster().getId();
 			

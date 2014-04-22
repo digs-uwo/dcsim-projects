@@ -191,7 +191,8 @@ public class Cnsm2014TestEnvironment {
 	
 	public Application createApplication() {
 //		return createApplication(appGenerationRandom.nextInt(N_APP_TEMPLATES));
-		return createApplication(0);	// Testing...
+		return createApplication(appGenerationRandom.nextInt(5));	// Testing...
+		//return createApplication(0);	// Testing...
 	}
 	
 	public Application createApplication(int appTemplate) {
@@ -209,47 +210,51 @@ public class Cnsm2014TestEnvironment {
 //		int storage = 1024;	// 1 GB
 		
 		
+		//Resources[] VM_TYPES = {VmFlavours.tiny(), VmFlavours.tiny(), VmFlavours.tiny()};
+		Resources[] VM_TYPES = {VmFlavours.manfi1(), VmFlavours.manfi2(), VmFlavours.manfi3()};
+		int vmType = appGenerationRandom.nextInt(3);
+		
+	
 		
 		
 		InteractiveApplication.Builder appBuilder;
 		switch(appTemplate) {
 		case 0:
 			appBuilder = new InteractiveApplication.Builder(simulation).thinkTime(4)
-//						.task(1, 1, new Resources(2500,1024,0,0), 0.03, 1);
-						.task(1, 1, VmFlavours.tiny(), 0.03, 1);
+						.task(1, 1, VM_TYPES[vmType], 0.03, 1);
 			break;
 		case 1:
 			appBuilder = new InteractiveApplication.Builder(simulation).thinkTime(4)
-						.task(1, 1, VmFlavours.tiny(), 0.005, 1)
-						.task(1, 1, VmFlavours.tiny(), 0.03, 1);
+						.task(1, 1, VM_TYPES[vmType], 0.005, 1)
+						.task(1, 1, VM_TYPES[vmType], 0.03, 1);
 			break;
 		case 2:
 			appBuilder = new InteractiveApplication.Builder(simulation).thinkTime(4)
-						.task(1, 1, VmFlavours.tiny(), 0.005, 1)
-						.task(1, 1, VmFlavours.tiny(), 0.02, 1)
-						.task(1, 1, VmFlavours.tiny(), 0.01, 1);
+						.task(1, 1, VM_TYPES[vmType], 0.005, 1)
+						.task(1, 1, VM_TYPES[vmType], 0.02, 1)
+						.task(1, 1, VM_TYPES[vmType], 0.01, 1);
 			break;
 		case 3:
 			int rand = 2 + appGenerationRandom.nextInt(3);		// range: 2..4
 			appBuilder = new InteractiveApplication.Builder(simulation).thinkTime(4)
-						.task(1, 1, VmFlavours.tiny(), 0.005, 1)
-						.task(rand, rand, VmFlavours.tiny(), 0.005, 1)
-						.task(1, 1, VmFlavours.tiny(), 0.02, 1)
-						.task(1, 1, VmFlavours.tiny(), 0.01, 1);
+						.task(1, 1, VM_TYPES[vmType], 0.005, 1)
+						.task(rand, rand, VM_TYPES[vmType], 0.005, 1)
+						.task(1, 1, VM_TYPES[vmType], 0.02, 1)
+						.task(1, 1, VM_TYPES[vmType], 0.01, 1);
 			break;
 		case 4:
 			int higher = 4 + appGenerationRandom.nextInt(3);	// range: 4..6
 			int lower = 2 + appGenerationRandom.nextInt(2);		// range: 2..3
 			appBuilder = new InteractiveApplication.Builder(simulation).thinkTime(4)
-						.task(1, 1, VmFlavours.tiny(), 0.005, 1)
-						.task(higher, higher, VmFlavours.tiny(), 0.005, 1)
-						.task(1, 1, VmFlavours.tiny(), 0.005, 1)
-						.task(lower, lower, VmFlavours.tiny(), 0.02, 1)
-						.task(1, 1, VmFlavours.tiny(), 0.01, 1);
+						.task(1, 1, VM_TYPES[vmType], 0.005, 1)
+						.task(higher, higher, VM_TYPES[vmType], 0.005, 1)
+						.task(1, 1, VM_TYPES[vmType], 0.005, 1)
+						.task(lower, lower, VM_TYPES[vmType], 0.02, 1)
+						.task(1, 1, VM_TYPES[vmType], 0.01, 1);
 			break;
 		default: //case 5 (shouldn't occur)
 			appBuilder = new InteractiveApplication.Builder(simulation).thinkTime(4)
-						.task(1, 1, VmFlavours.tiny(), 0.03, 1);
+						.task(1, 1, VM_TYPES[vmType], 0.03, 1);
 		}
 		
 		InteractiveApplication app = appBuilder.build();
