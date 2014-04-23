@@ -11,6 +11,7 @@ import java.util.Map;
 import edu.uwo.csd.dcsim.application.InteractiveApplication;
 import edu.uwo.csd.dcsim.application.InteractiveTask;
 import edu.uwo.csd.dcsim.application.Task;
+import edu.uwo.csd.dcsim.common.Tuple;
 import edu.uwo.csd.dcsim.common.Utility;
 import edu.uwo.csd.dcsim.host.Host;
 import edu.uwo.csd.dcsim.host.Resources;
@@ -23,11 +24,13 @@ import edu.uwo.csd.dcsim.management.VmStatus;
 import edu.uwo.csd.dcsim.management.VmStatusComparator;
 import edu.uwo.csd.dcsim.management.action.MigrationAction;
 import edu.uwo.csd.dcsim.management.capabilities.HostPoolManager;
+import edu.uwo.csd.dcsim.management.events.MigrationCompletedEvent;
 import edu.uwo.csd.dcsim.projects.centralized.events.StressCheckEvent;
 import edu.uwo.csd.dcsim.projects.hierarchical.AppStatus;
 import edu.uwo.csd.dcsim.projects.hierarchical.MigRequestEntry;
 import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.MigRequestRecord;
 import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.RackManager;
+import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.VmMigrationsManager;
 import edu.uwo.csd.dcsim.projects.hierarchical.events.AppMigAcceptEvent;
 import edu.uwo.csd.dcsim.projects.hierarchical.events.AppMigRequestEvent;
 import edu.uwo.csd.dcsim.projects.hierarchical.events.AppMigRejectEvent;
@@ -68,6 +71,7 @@ public class AppRelocationPolicyLevel1 extends Policy {
 	public AppRelocationPolicyLevel1(AutonomicManager target, double lowerThreshold, double upperThreshold, double targetUtilization) {
 		addRequiredCapability(HostPoolManager.class);
 		addRequiredCapability(MigRequestRecord.class);
+		addRequiredCapability(VmMigrationsManager.class);
 		
 		this.target = target;
 		
@@ -116,7 +120,14 @@ public class AppRelocationPolicyLevel1 extends Policy {
 		
 		// Delete entry from migration requests record.
 		MigRequestRecord record = manager.getCapability(MigRequestRecord.class);
-		record.removeEntry(record.getEntry(event.getApplication(), event.getOrigin()));
+		MigRequestEntry entry = record.getEntry(event.getApplication(), event.getOrigin());
+		record.removeEntry(entry);
+		
+		// The VMs had been marked for migration. Clear them.
+		VmMigrationsManager ongoingMigs = manager.getCapability(VmMigrationsManager.class);
+		for (VmStatus vm : entry.getApplication().getAllVms()) {
+			ongoingMigs.removeMigratingVm(vm.getId());
+		}
 	}
 	
 	/**
@@ -150,9 +161,17 @@ public class AppRelocationPolicyLevel1 extends Policy {
 			simulation.getLogger().debug("[Rack #" + manager.getCapability(RackManager.class).getRack().getId() + "]"
 					+ " AppRelocationPolicyLevel1 - REJECTED.");
 			
-			int rackId = manager.getCapability(RackManager.class).getRack().getId();
-			simulation.sendEvent(new AppMigRejectEvent(target, event.getApplication(), event.getOrigin(), rackId));
+			simulation.sendEvent(new AppMigRejectEvent(target, event.getApplication(), event.getOrigin(), manager.getCapability(RackManager.class).getRack().getId()));
 		}
+	}
+	
+	public void execute(MigrationCompletedEvent event) {
+		VmMigrationsManager ongoingMigs = manager.getCapability(VmMigrationsManager.class);
+		
+//		if (!ongoingMigs.removeMigratingVm(event.getVmId()))
+//			throw new RuntimeException("Migration of VM #" + event.getVmId() + " completed, but the migration was NOT registered as actually happening.");
+		
+		ongoingMigs.removeMigratingVm(event.getVmId());
 	}
 	
 	/**
@@ -167,9 +186,15 @@ public class AppRelocationPolicyLevel1 extends Policy {
 			
 			// Perform VM Relocation process within the scope of the Rack.
 			// If it fails, request assistance from ClusterManager.
-			boolean success = this.performInternalVmRelocation(event.getHostId());
-			if (!success)
-				this.performExternalVmRelocation(event.getHostId());
+			if (!this.performInternalVmRelocation(event.getHostId())) {
+				
+				simulation.getLogger().debug("[Rack #" + manager.getCapability(RackManager.class).getRack().getId() + "]"
+						+ " AppRelocationPolicyLevel1 - Internal Relocation process FAILED.");
+				
+				if (!this.performExternalVmRelocation(event.getHostId()))
+					simulation.getLogger().debug("[Rack #" + manager.getCapability(RackManager.class).getRack().getId() + "]"
+							+ " AppRelocationPolicyLevel1 - External Relocation process FAILED.");
+			}
 		}
 	}
 	
@@ -182,6 +207,7 @@ public class AppRelocationPolicyLevel1 extends Policy {
 		simulation.getLogger().debug("[Rack #" + manager.getCapability(RackManager.class).getRack().getId() + "]"
 				+ " AppRelocationPolicyLevel1 - Internal Relocation process for Host #" + hostId);
 		
+		VmMigrationsManager ongoingMigs = manager.getCapability(VmMigrationsManager.class);
 		HostPoolManager hostPool = manager.getCapability(HostPoolManager.class);
 		Collection<HostData> hosts = hostPool.getHosts();
 		
@@ -217,6 +243,10 @@ public class AppRelocationPolicyLevel1 extends Policy {
 		MigrationAction mig = null;
 		for (VmStatus vm : independent) {
 			
+			// Skip VMs migrating out or scheduled to do so.
+			if (ongoingMigs.isMigrating(vm.getId()))
+				continue;
+			
 			for (HostData target : targets) {
 				
 				// Check that the target host is not currently involved in migrations,
@@ -248,6 +278,7 @@ public class AppRelocationPolicyLevel1 extends Policy {
 		}
 		
 		if (null != mig) {		// Trigger migration and exit.
+			ongoingMigs.addMigratingVm(mig.getVmId());
 			mig.execute(simulation, this);
 			return true;
 		}
@@ -258,6 +289,10 @@ public class AppRelocationPolicyLevel1 extends Policy {
 		antiAffinity = this.orderSourceVms(antiAffinity, source);
 		
 		for (VmStatus vm : antiAffinity) {
+			
+			// Skip VMs migrating out or scheduled to do so.
+			if (ongoingMigs.isMigrating(vm.getId()))
+				continue;
 			
 			for (HostData target : targets) {
 				
@@ -291,6 +326,7 @@ public class AppRelocationPolicyLevel1 extends Policy {
 		}
 		
 		if (null != mig) {		// Trigger migration and exit.
+			ongoingMigs.addMigratingVm(mig.getVmId());
 			mig.execute(simulation, this);
 			return true;
 		}
@@ -313,6 +349,11 @@ public class AppRelocationPolicyLevel1 extends Policy {
 			});
 		
 		for (ArrayList<VmStatus> affinitySet : affinitySets) {
+			
+			// Skip VMs migrating out or scheduled to do so.
+			// Since these VMs are constrained by affinity, if one VM is migration, we know that the others in the affinity-set are, too.
+			if (!affinitySet.isEmpty() && ongoingMigs.isMigrating(affinitySet.get(0).getId()))
+				continue;
 			
 			// Calculate total required resources for all the VMs in the Affinity-set.
 			int maxReqCores = 0;
@@ -362,13 +403,12 @@ public class AppRelocationPolicyLevel1 extends Policy {
 		}
 		
 		if (migActions.size() > 0) {		// Trigger migrations and exit.
-			for (MigrationAction action : migActions)
+			for (MigrationAction action : migActions) {
+				ongoingMigs.addMigratingVm(action.getVmId());
 				action.execute(simulation, this);
+			}
 			return true;
 		}
-		
-		simulation.getLogger().debug("[Rack #" + manager.getCapability(RackManager.class).getRack().getId() + "]"
-				+ " AppRelocationPolicyLevel1 - Internal Relocation process FAILED.");
 		
 		return false;
 	}
@@ -379,19 +419,18 @@ public class AppRelocationPolicyLevel1 extends Policy {
 	 * An application hosted in a VM in the stressed Host is selected to be migrated away from the Rack.
 	 * The ClusterManager is contacted for it to find a target Rack for the migration.
 	 */
-	protected void performExternalVmRelocation(int hostId) {
+	protected boolean performExternalVmRelocation(int hostId) {
 		
 		simulation.getLogger().debug("[Rack #" + manager.getCapability(RackManager.class).getRack().getId() + "]"
 				+ " AppRelocationPolicyLevel1 - External Relocation process for Host #" + hostId);
 		
+		VmMigrationsManager ongoingMigs = manager.getCapability(VmMigrationsManager.class);
 		HostPoolManager hostPool = manager.getCapability(HostPoolManager.class);
 		
-		// Find VM to migrate away.
-		VmStatus candidateVm = this.findCandidateVm(hostPool.getHost(hostId));
-		
-		// TODO: Accessing remote object (VM). Redesign mgmt. system to avoid this trick.
-		
-		AppStatus application = new AppStatus((InteractiveApplication) candidateVm.getVm().getTaskInstance().getTask().getApplication());
+		// Find Application to migrate away.
+		AppStatus application = this.findCandidateApp(hostPool.getHost(hostId));
+		if (null == application)
+			return false;
 		
 		simulation.getLogger().debug("[Rack #" + manager.getCapability(RackManager.class).getRack().getId() + "]"
 				+ " AppRelocationPolicyLevel1 - Trying to migrate away App #" + application.getId() + " (#vms = " + application.getAllVms().size() + ")");
@@ -415,6 +454,9 @@ public class AppRelocationPolicyLevel1 extends Policy {
 		Map<Integer, HostData> sourceHostMap = new HashMap<Integer, HostData>();
 		for (VmStatus vm : application.getAllVms()) {
 			sourceHostMap.put(vm.getId(), vmHostMap.get(vm.getId()));
+			
+			// Mark VMs as scheduled for migration.
+			ongoingMigs.addMigratingVm(vm.getId());
 		}
 		
 		// Request assistance from ClusterManager to find a target Rack to which to migrate the selected application.
@@ -422,6 +464,8 @@ public class AppRelocationPolicyLevel1 extends Policy {
 		
 		// Keep track of the migration request just sent.
 		manager.getCapability(MigRequestRecord.class).addEntry(new MigRequestEntry(application, manager, sourceHostMap));
+		
+		return true;
 	}
 	
 	protected Map<Integer, HostData> findMigrationTargets(AppStatus application) {
@@ -474,67 +518,93 @@ public class AppRelocationPolicyLevel1 extends Policy {
 	}
 	
 	/**
-	 * Selects a VM to be migrated away from the Rack containing the given Host.
+	 * Returns an Application that can be migrated away from the Rack containing the given Host.
 	 * 
-	 * Returns null ONLY if the given Host is not hosting any VMs.
+	 * The method returns null if all the VMs in the given Host are migrating out or are scheduled to do so,
+	 * or the Applications associated to the hosted VMs are not available for migration.
 	 */
-	protected VmStatus findCandidateVm(HostData source) {
-		
-		// Obtain source Host's VMs and sort them in increasing order by application size (i.e., the number of VMs
-		// that compose the application (partially or completely) hosted in the VM).
-		// Obtain source Host's VMs, and sort them, removing small VMs from consideration for migration.
-		ArrayList<VmStatus> vmList = source.getCurrentStatus().getVms();
+	protected AppStatus findCandidateApp(HostData source) {
 		
 		// Determine the amount of CPU load to get rid of to bring the Host back to its target utilization.
 		//double cpuExcess = source.getCurrentStatus().getResourcesInUse().getCpu() - source.getHostDescription().getResourceCapacity().getCpu() * this.targetUtilization;
 		double cpuExcess = (this.calculateHostAvgCpuUtilization(source) - this.targetUtilization) * source.getHostDescription().getResourceCapacity().getCpu();
 		
-		VmStatus bigVm = null;
-		int bigVmMinAppSize = Integer.MAX_VALUE;
-		int bigVmMinLoad = Integer.MAX_VALUE;
-		VmStatus smallVm = null;
-		int smallVmMinAppSize = Integer.MAX_VALUE;
-		int smallVmMaxLoad = Integer.MIN_VALUE;
-		for (VmStatus vm : vmList) {
-			int vmLoad = vm.getResourcesInUse().getCpu();
+		// Classify VMs according to their CPU load.
+		ArrayList<VmStatus> bigVmList = new ArrayList<VmStatus>();
+		ArrayList<VmStatus> smallVmList = new ArrayList<VmStatus>();
+		for (VmStatus vm : source.getCurrentStatus().getVms()) {
+			if (vm.getResourcesInUse().getCpu() >= cpuExcess)
+				bigVmList.add(vm);
+			else
+				smallVmList.add(vm);
+		}
+		
+		// Process VMs with higher load.
+		
+		// Weed out applications with VMs migrating out or scheduled to do so.
+		ArrayList<Tuple<VmStatus, AppStatus>> vmAppList = new ArrayList<Tuple<VmStatus, AppStatus>>();
+		for (VmStatus vm : bigVmList) {
 			
 			// TODO: Accessing remote object (VM). Redesign mgmt. system to avoid this trick.
 			
-			int vmAppSize = vm.getVm().getTaskInstance().getTask().getApplication().getSize();
-			if (vmLoad >= cpuExcess) {
-				if (vmAppSize < bigVmMinAppSize) {
-					bigVmMinAppSize = vmAppSize;
-					bigVmMinLoad = vmLoad;
-					bigVm = vm;
-				}
-				else if (vmAppSize == bigVmMinAppSize) {
-					if (vmLoad < bigVmMinLoad) {
-						bigVmMinLoad = vmLoad;
-						bigVm = vm;
-					}
-				}
+			AppStatus app = new AppStatus((InteractiveApplication) vm.getVm().getTaskInstance().getTask().getApplication());
+			if (this.canMigrate(app))
+				vmAppList.add(new Tuple<VmStatus, AppStatus>(vm, app));
+		}
+		
+		// Find candidate application: has the smallest size and its associated VM has the smallest load.
+		Tuple<VmStatus, AppStatus> candidate = null;
+		int minAppSize = Integer.MAX_VALUE;
+		int minLoad = Integer.MAX_VALUE;
+		for (Tuple<VmStatus, AppStatus> tuple : vmAppList) {
+			int appSize = tuple.b.getAllVms().size();
+			int vmLoad = tuple.a.getResourcesInUse().getCpu();
+			if (appSize < minAppSize) {
+				minAppSize = appSize;
+				minLoad = vmLoad;
+				candidate = tuple;
 			}
-			else {
-				if (vmAppSize < smallVmMinAppSize) {
-					smallVmMinAppSize = vmAppSize;
-					smallVmMaxLoad = vmLoad;
-					smallVm = vm;
-				}
-				else if (vmAppSize == bigVmMinAppSize) {
-					if (vmLoad > smallVmMaxLoad) {
-						smallVmMaxLoad = vmLoad;
-						smallVm = vm;
-					}
-				}
+			else if (appSize == minAppSize && vmLoad < minLoad) {
+				minLoad = vmLoad;
+				candidate = tuple;
 			}
 		}
 		
-		assert null != bigVm || null != smallVm; 
+		if (null != candidate)
+			return candidate.b;
 		
-		if (null != bigVm)			// Found VM large enough to terminate stress situation and w/ minimum application size.
-			return bigVm;
-		else						// There was no large enough VM, so the largest one w/ minimum application size was selected.
-			return smallVm;
+		// Process VMs with lower load.
+		
+		// Weed out applications with VMs migrating out or scheduled to do so.
+		vmAppList = new ArrayList<Tuple<VmStatus, AppStatus>>();
+		for (VmStatus vm : smallVmList) {
+			
+			// TODO: Accessing remote object (VM). Redesign mgmt. system to avoid this trick.
+			
+			AppStatus app = new AppStatus((InteractiveApplication) vm.getVm().getTaskInstance().getTask().getApplication());
+			if (this.canMigrate(app))
+				vmAppList.add(new Tuple<VmStatus, AppStatus>(vm, app));
+		}
+		
+		// Find candidate application: has the smallest size and its associated VM has the largest load.
+		candidate = null;
+		minAppSize = Integer.MAX_VALUE;
+		int maxLoad = Integer.MAX_VALUE;
+		for (Tuple<VmStatus, AppStatus> tuple : vmAppList) {
+			int appSize = tuple.b.getAllVms().size();
+			int vmLoad = tuple.a.getResourcesInUse().getCpu();
+			if (appSize < minAppSize) {
+				minAppSize = appSize;
+				maxLoad = vmLoad;
+				candidate = tuple;
+			}
+			else if (appSize == minAppSize && vmLoad > maxLoad) {
+				maxLoad = vmLoad;
+				candidate = tuple;
+			}
+		}
+		
+		return (null != candidate)? candidate.b : null;
 	}
 	
 	/**
@@ -559,6 +629,23 @@ public class AppRelocationPolicyLevel1 extends Policy {
 		}
 		
 		return Utility.roundDouble(avgCpuInUse / host.getHostDescription().getResourceCapacity().getCpu());
+	}
+	
+	/**
+	 * Determines whether an Application is available for migration or not.
+	 * 
+	 * It returns true if all the VMs that compose the application are not migrating out
+	 * or scheduled to do so. Otherwise, it returns false.
+	 */
+	private boolean canMigrate(AppStatus application) {
+		VmMigrationsManager ongoingMigs = manager.getCapability(VmMigrationsManager.class);
+		
+		for (VmStatus vm : application.getAllVms()) {
+			if (ongoingMigs.isMigrating(vm.getId()))
+				return false;
+		}
+		
+		return true;
 	}
 	
 	/**
