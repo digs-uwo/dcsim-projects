@@ -70,4 +70,9 @@
             <classpath refid="digs-projects.classpath"/>
         </java>
     </target>
+    <target name="StressProbabilityExperiment">
+        <java classname="edu.uwo.csd.dcsim.projects.overloadProbability.StressProbabilityExperiment" failonerror="true" fork="yes">
+            <classpath refid="digs-projects.classpath"/>
+        </java>
+    </target>
 </project>
