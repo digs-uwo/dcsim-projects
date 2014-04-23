@@ -40,7 +40,7 @@ public class StressProbabilityExperiment extends SimulationTask {
 	
 	//NOTE: total hosts = N_CLUSTERS * N_RACKS * RACK_SIZE
 	private static final int RACK_SIZE = 40; //40
-	private static final int N_RACKS = 2; //2
+	private static final int N_RACKS = 4; //2
 	private static final int N_CLUSTERS = 2; //2
 	
 	private static final int N_APPS_MAX = 500; //500
@@ -48,10 +48,7 @@ public class StressProbabilityExperiment extends SimulationTask {
 	private static final double CHANGES_PER_DAY = 0.25; //0.25
 	private static final boolean DYNAMIC_ARRIVALS = true; //true
 		
-	private static final boolean CSV_OUTPUT = false;
-	
-	private static final boolean STRESS_PROBABILITY = true;
-	private static final boolean STATIC = false;
+	private static final boolean CSV_OUTPUT = true;
 	
 	private static final long[] randomSeeds = {6198910678692541341l,
 		5646441053220106016l,
@@ -63,7 +60,7 @@ public class StressProbabilityExperiment extends SimulationTask {
 		-6452776964812569334l,
 		-7148920787255940546l,
 		8311271444423629559l};
-	private static final long N_SEEDS = 1; //10
+	private static final long N_SEEDS = 10; //10
 
 	/*
 	 * Main
@@ -82,9 +79,22 @@ public class StressProbabilityExperiment extends SimulationTask {
 		
 		System.out.println("Starting StressProbabilityExperiment");
 		
-		System.out.println("0.3");
-		runSimulationSet(printStream, 0.8, 0.75, 0.4, 0.3, 10);
-	
+		//static
+		runSimulationSet(printStream, 0.8, 0.75, 0.4, 0.3, 10, true, false); 
+		
+		//dynamic, threshold
+		runSimulationSet(printStream, 0.8, 0.75, 0.4, 0.3, 10, false, false); 
+		runSimulationSet(printStream, 0.9, 0.85, 0.4, 0.3, 10, false, false);
+		runSimulationSet(printStream, 0.95, 0.9, 0.4, 0.3, 10, false, false);
+		
+		runSimulationSet(printStream, 0.8, 0.75, 0.5, 0.3, 10, false, false); 
+		runSimulationSet(printStream, 0.9, 0.85, 0.5, 0.3, 10, false, false);
+		runSimulationSet(printStream, 0.95, 0.9, 0.5, 0.3, 10, false, false);
+		
+		//dynamic, probability
+		runSimulationSet(printStream, 0.8, 0.75, 0.4, 0.3, 10, false, true);
+		runSimulationSet(printStream, 0.8, 0.75, 0.5, 0.3, 10, false, true);
+		
 		printStream.println("Done");
 		printStream.close();
 		
@@ -95,7 +105,9 @@ public class StressProbabilityExperiment extends SimulationTask {
 			double target,
 			double lower,
 			double pThreshold,
-			int filterSize) {
+			int filterSize,
+			boolean fixed,
+			boolean probability) {
 		
 		logger.info("Started New Simulation Set");
 		logger.info(upper + "," + target + "," + lower);
@@ -104,7 +116,7 @@ public class StressProbabilityExperiment extends SimulationTask {
 		SimulationExecutor executor = new SimulationExecutor();
 		for (int i = 0; i < N_SEEDS; ++i)  {
 			StressProbabilityExperiment e = new StressProbabilityExperiment("stress-probability-" + (i + 1), randomSeeds[i]);
-			e.setParameters(upper, target, lower, pThreshold, filterSize);
+			e.setParameters(upper, target, lower, pThreshold, filterSize, fixed, probability);
 			executor.addTask(e);
 		}
 		
@@ -113,7 +125,9 @@ public class StressProbabilityExperiment extends SimulationTask {
 		if (CSV_OUTPUT) {
 			//output CSV
 			out.println("Autoscale+Reallocation Experiment");
-			out.println("upper=" + upper + " | target=" + target + " | lower=" + lower);
+			out.println("upper=" + upper + " | target=" + target + " | lower=" + lower + 
+					" | pThreshold=" + pThreshold + " | filterSize=" + filterSize +
+					" | fixed=" + fixed + " | probability=" + probability);
 			
 			for(SimulationTask task : completedTasks) {
 				if (completedTasks.indexOf(task) == 0) {
@@ -145,6 +159,8 @@ public class StressProbabilityExperiment extends SimulationTask {
 	private double lower = 0.60;
 	private double pThreshold = 0.2;
 	private int filterSize = -1;
+	private boolean fixed = false;
+	private boolean probability = false;
 	
 	public StressProbabilityExperiment(String name, long randomSeed) {
 		super(name, DURATION);
@@ -157,13 +173,17 @@ public class StressProbabilityExperiment extends SimulationTask {
 			double target,
 			double lower,
 			double pThreshold,
-			int filterSize) {
+			int filterSize,
+			boolean fixed,
+			boolean probability) {
 		
 		this.upper = upper;
 		this.target = target;
 		this.lower = lower;
 		this.pThreshold = pThreshold;
 		this.filterSize = filterSize;
+		this.fixed = fixed;
+		this.probability = probability;
 	}
 	
 	@Override
@@ -200,7 +220,7 @@ public class StressProbabilityExperiment extends SimulationTask {
 			dcAM.addCapability(mcMan);
 			
 			dcAM.installPolicy(new HostStatusPolicy(10));
-			if (STATIC) {
+			if (fixed) {
 				dcAM.installPolicy(new BasicApplicationPlacementPolicy());
 			} else {
 				dcAM.installPolicy(new ApplicationPlacementPolicy(lower, upper, target));
@@ -208,8 +228,8 @@ public class StressProbabilityExperiment extends SimulationTask {
 			dcAM.installPolicy(new VmMarkovChainUpdatePolicy());
 			
 			//NOTE, we are starting a day late to give the markov chains time to collect data
-			if (!STATIC) {
-				if (STRESS_PROBABILITY) {
+			if (!fixed) {
+				if (probability) {
 					dcAM.installPolicy(new VmRelocationPolicyProbability(lower, upper, target, pThreshold), SimTime.minutes(10), SimTime.minutes(20) + 2);
 					dcAM.installPolicy(new VmConsolidationPolicyProbability(lower, upper, target), SimTime.hours(1), SimTime.hours(1) + 3);
 				} else {
