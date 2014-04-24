@@ -24,13 +24,12 @@ import edu.uwo.csd.dcsim.management.VmStatus;
 import edu.uwo.csd.dcsim.management.VmStatusComparator;
 import edu.uwo.csd.dcsim.management.action.MigrationAction;
 import edu.uwo.csd.dcsim.management.capabilities.HostPoolManager;
-import edu.uwo.csd.dcsim.management.events.MigrationCompletedEvent;
 import edu.uwo.csd.dcsim.projects.centralized.events.StressCheckEvent;
 import edu.uwo.csd.dcsim.projects.hierarchical.AppStatus;
 import edu.uwo.csd.dcsim.projects.hierarchical.MigRequestEntry;
 import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.MigRequestRecord;
 import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.RackManager;
-import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.VmMigrationsManager;
+import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.MigrationTrackingManager;
 import edu.uwo.csd.dcsim.projects.hierarchical.events.AppMigAcceptEvent;
 import edu.uwo.csd.dcsim.projects.hierarchical.events.AppMigRequestEvent;
 import edu.uwo.csd.dcsim.projects.hierarchical.events.AppMigRejectEvent;
@@ -71,7 +70,7 @@ public class AppRelocationPolicyLevel1 extends Policy {
 	public AppRelocationPolicyLevel1(AutonomicManager target, double lowerThreshold, double upperThreshold, double targetUtilization) {
 		addRequiredCapability(HostPoolManager.class);
 		addRequiredCapability(MigRequestRecord.class);
-		addRequiredCapability(VmMigrationsManager.class);
+		addRequiredCapability(MigrationTrackingManager.class);
 		
 		this.target = target;
 		
@@ -124,7 +123,7 @@ public class AppRelocationPolicyLevel1 extends Policy {
 		record.removeEntry(entry);
 		
 		// The VMs had been marked for migration. Clear them.
-		VmMigrationsManager ongoingMigs = manager.getCapability(VmMigrationsManager.class);
+		MigrationTrackingManager ongoingMigs = manager.getCapability(MigrationTrackingManager.class);
 		for (VmStatus vm : entry.getApplication().getAllVms()) {
 			ongoingMigs.removeMigratingVm(vm.getId());
 		}
@@ -165,15 +164,6 @@ public class AppRelocationPolicyLevel1 extends Policy {
 		}
 	}
 	
-	public void execute(MigrationCompletedEvent event) {
-		VmMigrationsManager ongoingMigs = manager.getCapability(VmMigrationsManager.class);
-		
-//		if (!ongoingMigs.removeMigratingVm(event.getVmId()))
-//			throw new RuntimeException("Migration of VM #" + event.getVmId() + " completed, but the migration was NOT registered as actually happening.");
-		
-		ongoingMigs.removeMigratingVm(event.getVmId());
-	}
-	
 	/**
 	 * Performs a stress check on the Host indicated by the event. If the host is stressed
 	 * and has no pending outgoing migrations, a Relocation process is started.
@@ -207,7 +197,7 @@ public class AppRelocationPolicyLevel1 extends Policy {
 		simulation.getLogger().debug("[Rack #" + manager.getCapability(RackManager.class).getRack().getId() + "]"
 				+ " AppRelocationPolicyLevel1 - Internal Relocation process for Host #" + hostId);
 		
-		VmMigrationsManager ongoingMigs = manager.getCapability(VmMigrationsManager.class);
+		MigrationTrackingManager ongoingMigs = manager.getCapability(MigrationTrackingManager.class);
 		HostPoolManager hostPool = manager.getCapability(HostPoolManager.class);
 		Collection<HostData> hosts = hostPool.getHosts();
 		
@@ -424,7 +414,7 @@ public class AppRelocationPolicyLevel1 extends Policy {
 		simulation.getLogger().debug("[Rack #" + manager.getCapability(RackManager.class).getRack().getId() + "]"
 				+ " AppRelocationPolicyLevel1 - External Relocation process for Host #" + hostId);
 		
-		VmMigrationsManager ongoingMigs = manager.getCapability(VmMigrationsManager.class);
+		MigrationTrackingManager ongoingMigs = manager.getCapability(MigrationTrackingManager.class);
 		HostPoolManager hostPool = manager.getCapability(HostPoolManager.class);
 		
 		// Find Application to migrate away.
@@ -638,7 +628,7 @@ public class AppRelocationPolicyLevel1 extends Policy {
 	 * or scheduled to do so. Otherwise, it returns false.
 	 */
 	private boolean canMigrate(AppStatus application) {
-		VmMigrationsManager ongoingMigs = manager.getCapability(VmMigrationsManager.class);
+		MigrationTrackingManager ongoingMigs = manager.getCapability(MigrationTrackingManager.class);
 		
 		for (VmStatus vm : application.getAllVms()) {
 			if (ongoingMigs.isMigrating(vm.getId()))

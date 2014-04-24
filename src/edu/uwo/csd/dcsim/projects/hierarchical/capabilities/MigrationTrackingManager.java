@@ -4,7 +4,7 @@ import java.util.HashSet;
 
 import edu.uwo.csd.dcsim.management.capabilities.ManagerCapability;
 
-public class VmMigrationsManager extends ManagerCapability {
+public class MigrationTrackingManager extends ManagerCapability {
 
 	private HashSet<Integer> migratingVms = new HashSet<Integer>();
 	

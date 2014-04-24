@@ -28,6 +28,7 @@ import edu.uwo.csd.dcsim.management.action.SequentialManagementActionExecutor;
 import edu.uwo.csd.dcsim.management.action.ShutdownHostAction;
 import edu.uwo.csd.dcsim.management.capabilities.HostPoolManager;
 import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.RackManager;
+import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.MigrationTrackingManager;
 
 /**
  * This policy implements the VM Consolidation process using a greedy algorithm. 
@@ -59,6 +60,7 @@ public class AppConsolidationPolicyLevel1 extends Policy {
 	 */
 	public AppConsolidationPolicyLevel1(AutonomicManager target, double lowerThreshold, double upperThreshold, double targetUtilization) {
 		addRequiredCapability(HostPoolManager.class);
+		addRequiredCapability(MigrationTrackingManager.class);
 		
 		this.target = target;
 		
@@ -77,6 +79,7 @@ public class AppConsolidationPolicyLevel1 extends Policy {
 		
 		SequentialManagementActionExecutor actionExecutor = new SequentialManagementActionExecutor();
 		
+		MigrationTrackingManager ongoingMigs = manager.getCapability(MigrationTrackingManager.class);
 		Collection<HostData> hosts = manager.getCapability(HostPoolManager.class).getHosts();
 		
 		// Reset the sandbox host status to the current host status.
@@ -129,7 +132,7 @@ public class AppConsolidationPolicyLevel1 extends Policy {
 		HostData source = null;
 		while (!sources.isEmpty()) {
 			source = sources.remove(0);
-			ArrayList<VmStatus> vmList = this.orderSourceVms(source.getCurrentStatus().getVms());
+			ArrayList<VmStatus> vmList = this.orderSourceVms(this.purgeSourceVms(source.getCurrentStatus().getVms()));
 			
 			// Classify source Host's VMs according to the constraint-type of their hosted Task instance.
 			ArrayList<VmStatus> independent = new ArrayList<VmStatus>();
@@ -185,6 +188,7 @@ public class AppConsolidationPolicyLevel1 extends Policy {
 					sources.remove(target);
 					
 					migrations.addAction(new MigrationAction(source.getHostManager(), source.getHost(),	target.getHost(), entry.getKey()));
+					ongoingMigs.addMigratingVm(entry.getKey());
 					
 					simulation.getLogger().debug("[Rack #" + manager.getCapability(RackManager.class).getRack().getId() + "]"
 							+ " AppConsolidationPolicyLevel1 - Migrating VM #" + entry.getKey() + " from Host #" + source.getId() + " to Host #" + target.getHost().getId());
@@ -585,6 +589,21 @@ public class AppConsolidationPolicyLevel1 extends Policy {
 		Collections.reverse(targets);
 		
 		return targets;
+	}
+	
+	/**
+	 * Returns the subset of VMs that are not migrating out or scheduled to do so.
+	 */
+	private ArrayList<VmStatus> purgeSourceVms(ArrayList<VmStatus> sourceVms) {
+		ArrayList<VmStatus> vms = new ArrayList<VmStatus>();
+		
+		MigrationTrackingManager ongoingMigs = manager.getCapability(MigrationTrackingManager.class);
+		for (VmStatus vm : sourceVms) {
+			if (!ongoingMigs.isMigrating(vm.getId()))
+				vms.add(vm);
+		}
+		
+		return vms;
 	}
 	
 	@Override
