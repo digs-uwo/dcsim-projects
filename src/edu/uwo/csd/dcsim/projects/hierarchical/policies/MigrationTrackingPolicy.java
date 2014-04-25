@@ -17,7 +17,7 @@ public class MigrationTrackingPolicy extends Policy {
 		if (!ongoingMigs.removeMigratingVm(event.getVmId()))
 			throw new RuntimeException("Migration of VM #" + event.getVmId() + " completed, but the migration was NOT registered as actually happening.");
 		
-//		ongoingMigs.removeMigratingVm(event.getVmId());
+		simulation.getLogger().debug("Migration of VM #" + event.getVmId() + " completed from Host #" + event.getSourceHostId() + " to Host #" + event.getTargetHostId());
 	}
 	
 	@Override
