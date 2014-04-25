@@ -1,7 +1,5 @@
 package edu.uwo.csd.dcsim.projects.hierarchical;
 
-import java.util.Map;
-
 import edu.uwo.csd.dcsim.management.AutonomicManager;
 import edu.uwo.csd.dcsim.management.HostData;
 import edu.uwo.csd.dcsim.management.VmStatus;
@@ -13,18 +11,17 @@ public class MigRequestEntry {
 	private AppStatus application;					// Application to migrate.
 	private VmStatus vm;							// VM to migrate.
 	
-	private HostData host = null;			// Source Host. Additional info stored by a RackManager that sends a migration request.
-	private Map<Integer, HostData> sourceHosts;
+	@Deprecated
+	private HostData host = null;					// Source Host. Additional info stored by a RackManager that sends a migration request.
 	
 	private int sender = 0;						// ID of the Rack or Cluster sending the request. Additional info stored by the DCManager or a ClusterManager when the migration request was sent by one of its Racks.
 	
 	// timestamp ?
 	// attempts ?
 	
-	public MigRequestEntry(AppStatus application, AutonomicManager origin, Map<Integer, HostData> sourceHosts) {
+	public MigRequestEntry(AppStatus application, AutonomicManager origin) {
 		this.application = application;
 		this.origin = origin;
-		this.sourceHosts = sourceHosts;
 	}
 	
 	public MigRequestEntry(AppStatus application, AutonomicManager origin, int sender) {
@@ -33,6 +30,12 @@ public class MigRequestEntry {
 		this.sender = sender;
 	}
 	
+	public MigRequestEntry(VmStatus vm, AutonomicManager origin) {
+		this.vm = vm;
+		this.origin = origin;
+	}
+	
+	@Deprecated
 	public MigRequestEntry(VmStatus vm, AutonomicManager origin, HostData host) {
 		this.vm = vm;
 		this.origin = origin;
@@ -51,9 +54,8 @@ public class MigRequestEntry {
 	
 	public VmStatus getVm() { return vm; }
 	
+	@Deprecated
 	public HostData getHost() { return host; }
-	
-	public Map<Integer, HostData> getSourceHosts() { return sourceHosts; }
 	
 	public int getSender() { return sender; }
 
