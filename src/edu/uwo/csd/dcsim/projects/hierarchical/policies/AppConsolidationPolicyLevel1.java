@@ -184,11 +184,14 @@ public class AppConsolidationPolicyLevel1 extends Policy {
 					
 					// Invalidate target Host's status, as we know it to be incorrect until the next status update arrives.
 					target.invalidateStatus(simulation.getSimulationTime());
+					
 					// Remove target Host from list of sources.
 					sources.remove(target);
 					
-					migrations.addAction(new MigrationAction(source.getHostManager(), source.getHost(),	target.getHost(), entry.getKey()));
+					// Mark VM as scheduled for migration.
 					ongoingMigs.addMigratingVm(entry.getKey());
+					
+					migrations.addAction(new MigrationAction(source.getHostManager(), source.getHost(),	target.getHost(), entry.getKey()));
 					
 					simulation.getLogger().debug("[Rack #" + manager.getCapability(RackManager.class).getRack().getId() + "]"
 							+ " AppConsolidationPolicyLevel1 - Migrating VM #" + entry.getKey() + " from Host #" + source.getId() + " to Host #" + target.getHost().getId());
@@ -480,15 +483,6 @@ public class AppConsolidationPolicyLevel1 extends Policy {
 	private ArrayList<ArrayList<VmStatus>> groupVmsByAffinity(ArrayList<VmStatus> vms) {
 		ArrayList<ArrayList<VmStatus>> affinitySets = new ArrayList<ArrayList<VmStatus>>();
 		
-//		simulation.getLogger().debug(this.getClass() + " - groupVmsByAffinity().");
-//		simulation.getLogger().debug("#vms = " + vms.size());
-//		for (VmStatus vm : vms) {
-//			simulation.getLogger().debug("vmId: " + vm.getId() +
-//					" - instanceId: " + vm.getVm().getTaskInstance().getId() +
-//					" - taskId: " + vm.getVm().getTaskInstance().getTask().getId() +
-//					" - appId: " + vm.getVm().getTaskInstance().getTask().getApplication().getId());
-//		}
-		
 		ArrayList<VmStatus> copy = new ArrayList<VmStatus>(vms);
 		while (copy.size() > 0) {
 			VmStatus vm = copy.get(0);
@@ -498,18 +492,12 @@ public class AppConsolidationPolicyLevel1 extends Policy {
 			// TODO: Accessing remote object (VM). Redesign mgmt. system to avoid this trick.
 			
 			InteractiveTask vmTask = (InteractiveTask) vm.getVm().getTaskInstance().getTask();
-//			simulation.getLogger().debug("vmId: " + vm.getId() + " - taskId: " + vmTask.getId());
 			
 			ArrayList<InteractiveTask> affinitySet = ((InteractiveApplication) vmTask.getApplication()).getAffinitySet(vmTask);
-//			simulation.getLogger().debug("vmId: " + vm.getId() + " - affinity-set");
-//			for (InteractiveTask task : affinitySet) {
-//				simulation.getLogger().debug("vmId: " + vm.getId() + " - * taskId: " + task.getId());
-//			}
 			
 			// Build the set of VMs hosting the Tasks in the previously found Affinity-set.
 			ArrayList<VmStatus> affinitySetVms = new ArrayList<VmStatus>();
 			for (InteractiveTask task : affinitySet) {
-//				affinitySetVms.add(this.findHostingVm(task, copy));
 				VmStatus hostingVm = this.findHostingVm(task, copy);
 				if (null != hostingVm)
 					affinitySetVms.add(hostingVm);
