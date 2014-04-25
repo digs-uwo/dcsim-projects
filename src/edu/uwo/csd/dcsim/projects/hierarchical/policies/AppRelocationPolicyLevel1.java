@@ -30,6 +30,7 @@ import edu.uwo.csd.dcsim.projects.hierarchical.MigRequestEntry;
 import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.MigRequestRecord;
 import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.RackManager;
 import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.MigrationTrackingManager;
+import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.VmHostMapManager;
 import edu.uwo.csd.dcsim.projects.hierarchical.events.AppMigAcceptEvent;
 import edu.uwo.csd.dcsim.projects.hierarchical.events.AppMigRequestEvent;
 import edu.uwo.csd.dcsim.projects.hierarchical.events.AppMigRejectEvent;
@@ -87,22 +88,27 @@ public class AppRelocationPolicyLevel1 extends Policy {
 		simulation.getLogger().debug("[Rack #" + manager.getCapability(RackManager.class).getRack().getId() + "]"
 				+ " AppRelocationPolicyLevel1 - MigRequest accepted - App #" + event.getApplication().getId());
 		
-		// Get entry (and source Hosts) from migration requests record.
+		// Get entry from migration requests record.
 		MigRequestEntry entry = manager.getCapability(MigRequestRecord.class).getEntry(event.getApplication(), manager);
-		Map<Integer, HostData> sourceHostMap = entry.getSourceHosts();
+		if (null == entry)
+			throw new RuntimeException("Received a migration request acceptance for App #" + event.getApplication().getId() + ", but there is no record of such a request being made.");
+		
+		VmHostMapManager vmHostMap = manager.getCapability(VmHostMapManager.class);
 		
 		// Get target Hosts from event.
 		Map<Integer, Host> targetHostMap = event.getTargetHosts();
 		
-		for (Map.Entry<Integer, HostData> pair : sourceHostMap.entrySet()) {
+		for (VmStatus vm : entry.getApplication().getAllVms()) {
+			HostData source = vmHostMap.getMapping(vm.getId());
+			
 			// Invalidate source Host' status, as we know it to be incorrect until the next status update arrives.
-			pair.getValue().invalidateStatus(simulation.getSimulationTime());
-			// Trigger migration.
-			new MigrationAction(pair.getValue().getHostManager(), pair.getValue().getHost(), targetHostMap.get(pair.getKey()), pair.getKey()).execute(simulation, this);
+			source.invalidateStatus(simulation.getSimulationTime());
 			
 			simulation.getLogger().debug("[Rack #" + manager.getCapability(RackManager.class).getRack().getId() + "]"
-					+ " AppRelocationPolicyLevel1 - Migrating VM #" + pair.getKey() + " from Host #" + pair.getValue().getId() + " to Host #" + targetHostMap.get(pair.getKey()).getId());
+					+ " AppRelocationPolicyLevel1 - Migrating VM #" + vm.getId() + " from Host #" + source.getId() + " to Host #" + targetHostMap.get(vm.getId()).getId());
 			
+			// Trigger migration.
+			new MigrationAction(source.getHostManager(), source.getHost(), targetHostMap.get(vm.getId()), vm.getId()).execute(simulation, this);
 		}
 		
 		// Delete entry from migration requests record.
@@ -441,6 +447,7 @@ public class AppRelocationPolicyLevel1 extends Policy {
 			}
 		}
 		
+		// TODO: Building this map is a waste. We never use it later on. REFACTOR.
 		Map<Integer, HostData> sourceHostMap = new HashMap<Integer, HostData>();
 		for (VmStatus vm : application.getAllVms()) {
 			sourceHostMap.put(vm.getId(), vmHostMap.get(vm.getId()));
