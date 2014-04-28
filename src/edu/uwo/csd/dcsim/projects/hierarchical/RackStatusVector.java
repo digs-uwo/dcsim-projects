@@ -1,5 +1,7 @@
 package edu.uwo.csd.dcsim.projects.hierarchical;
 
+import java.util.Arrays;
+
 import edu.uwo.csd.dcsim.host.Resources;
 
 /**
@@ -27,6 +29,11 @@ public class RackStatusVector {
 	
 	public RackStatusVector copy() {
 		return new RackStatusVector(this);
+	}
+	
+	@Override
+	public String toString() {
+		return Arrays.toString(vector);
 	}
 
 }
