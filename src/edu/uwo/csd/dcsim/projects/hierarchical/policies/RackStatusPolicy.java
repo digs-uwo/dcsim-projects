@@ -4,6 +4,7 @@ import java.util.ArrayList;
 
 import edu.uwo.csd.dcsim.core.Event;
 import edu.uwo.csd.dcsim.management.Policy;
+import edu.uwo.csd.dcsim.projects.hierarchical.RackStatus;
 import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.RackPoolManager;
 import edu.uwo.csd.dcsim.projects.hierarchical.events.RackStatusEvent;
 
@@ -22,7 +23,14 @@ public class RackStatusPolicy extends Policy {
 	public void execute(RackStatusEvent event) {		
 		RackPoolManager capability = manager.getCapability(RackPoolManager.class);
 		
-		capability.getRack(event.getRackStatus().getId()).addRackStatus(event.getRackStatus(), windowSize);
+		RackStatus status = event.getRackStatus();
+		
+		if (status.getStatusVector() == null)
+			simulation.getLogger().debug("Status update for Rack #" + status.getId() + " - No status vector.");
+		else
+			simulation.getLogger().debug("Status update for Rack #" + status.getId() + " - " + status.getStatusVector().toString());
+		
+		capability.getRack(status.getId()).addRackStatus(status, windowSize);
 	}
 
 	@Override
