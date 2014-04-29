@@ -68,11 +68,13 @@ public final class VmFlavours {
 	}
 	
 	public static Resources manfi2() {
-		return new Resources(1, 2500, 1024, 12800, 1024);
+		//return new Resources(1, 2500, 1024, 12800, 1024);
+		return new Resources(1, 2400, 1024, 12800, 1024);
 	}
 	
 	public static Resources manfi3() {
-		return new Resources(2, 2500, 1024, 12800, 1024);
+		//return new Resources(2, 2500, 1024, 12800, 1024);
+		return new Resources(2, 2400, 1024, 12800, 1024);
 	}
 	
 	/**

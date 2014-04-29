@@ -39,9 +39,9 @@ import edu.uwo.csd.dcsim.projects.hierarchical.policies.*;
  * @author Gaston Keller
  *
  */
-public class HierarchicalExperiment extends SimulationTask {
+public class TestyExp extends SimulationTask {
 
-	private static Logger logger = Logger.getLogger(HierarchicalExperiment.class);
+	private static Logger logger = Logger.getLogger(TestyExp.class);
 	
 	private static final long[] randomSeeds = {6198910678692541341l,
 		5646441053220106016l,
@@ -90,11 +90,11 @@ public class HierarchicalExperiment extends SimulationTask {
 		// Static load experiments.
 //		runSimulationSet(printStream, 400, SimTime.hours(40), SimTime.days(10), SimTime.days(2));
 //		runSimulationSet(printStream, 800, SimTime.hours(80), SimTime.days(12), SimTime.days(4));
-		//runSimulationSet(printStream, 1440, SimTime.hours(144), SimTime.days(14), SimTime.days(6));
+		runSimulationSet(printStream, 1440, SimTime.hours(144), SimTime.days(14), SimTime.days(6));
 //		runSimulationSet(printStream, 1600, SimTime.hours(160), SimTime.days(15), SimTime.days(7));
 		
 		// Random load experiments.
-		runSimulationSet(printStream, 800, 800, 1, SimTime.hours(80), SimTime.days(4), SimTime.days(12), SimTime.days(4));
+//		runSimulationSet(printStream, 800, 800, 1, SimTime.hours(80), SimTime.days(4), SimTime.days(12), SimTime.days(4));
 		
 		printStream.println("Done");
 		printStream.close();
@@ -163,7 +163,7 @@ public class HierarchicalExperiment extends SimulationTask {
 		List<SimulationTask> completedTasks;
 		SimulationExecutor executor = new SimulationExecutor();
 		for (int i = 0; i < N_SEEDS; ++i)  {
-			HierarchicalExperiment e = new HierarchicalExperiment("hierarchical-" + (i + 1), duration, metricRecordStart, randomSeeds[i]);
+			TestyExp e = new TestyExp("hierarchical-" + (i + 1), duration, metricRecordStart, randomSeeds[i]);
 			e.setParameters(lower, target, upper, serviceType, baseLoad, additionalLoad, changesPerDay, rampUpTime, startTime, duration);
 			executor.addTask(e);
 		}
@@ -209,12 +209,12 @@ public class HierarchicalExperiment extends SimulationTask {
 		}
 	}
 	
-	public HierarchicalExperiment(String name, long duration, long metricRecordStart) {
+	public TestyExp(String name, long duration, long metricRecordStart) {
 		super(name, duration);
 		this.setMetricRecordStart(metricRecordStart);
 	}
 	
-	public HierarchicalExperiment(String name, long duration, long metricRecordStart, long randomSeed) {
+	public TestyExp(String name, long duration, long metricRecordStart, long randomSeed) {
 		super(name, duration);
 		this.setMetricRecordStart(metricRecordStart);
 		this.setRandomSeed(randomSeed);
@@ -251,7 +251,7 @@ public class HierarchicalExperiment extends SimulationTask {
 	public void setup(Simulation simulation) {
 		
 		// Create data centre.
-		Cnsm2014TestEnvironment testEnv = new Cnsm2014TestEnvironment(simulation);
+		Testy testEnv = new Testy(simulation);
 		DataCentre dc = testEnv.createInfrastructure(simulation);
 		
 		// Create management infrastructure.

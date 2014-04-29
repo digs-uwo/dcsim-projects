@@ -31,7 +31,7 @@ import edu.uwo.csd.dcsim.projects.hierarchical.VmFlavours;
  * @author Gaston Keller
  *
  */
-public class Cnsm2014TestEnvironment {
+public class Testy {
 
 	public static final long ARRIVAL_SYNC_INTERVAL = SimTime.minutes(1);
 	
@@ -57,20 +57,20 @@ public class Cnsm2014TestEnvironment {
 //	public static final double[] TRACE_AVG = {0.32, 0.25, 0.32, 0.72, 0.74, 0.77, 0.83};
 	public static final long APP_RAMPUP_TIME = SimTime.hours(6);
 	
-	int nClusters = 5;
-	int nRacks = 4;
-	int nHosts = 20;
+	int nClusters = 3; //5;
+	int nRacks = 3; //4;
+	int nHosts = 10;
 	Simulation simulation;
 	AutonomicManager dcAM;
 	Random appGenerationRandom;
 	
-	public Cnsm2014TestEnvironment(Simulation simulation) {
+	public Testy(Simulation simulation) {
 		this.simulation = simulation;
 		
 		appGenerationRandom = new Random(simulation.getRandom().nextLong());
 	}
 	
-	public Cnsm2014TestEnvironment(Simulation simulation, int nClusters, int nRacks, int nHosts) {
+	public Testy(Simulation simulation, int nClusters, int nRacks, int nHosts) {
 		this.simulation = simulation;
 		this.nClusters = nClusters;
 		this.nRacks = nRacks;
@@ -175,7 +175,7 @@ public class Cnsm2014TestEnvironment {
 		// Create clusters in data centre.
 		for (int i = 0; i < nClusters; i++) {
 			if (i % 2 == 0)
-				dc.addCluster(series09.build());
+				dc.addCluster(series11.build());
 			else
 				dc.addCluster(series11.build());
 		}
@@ -210,8 +210,10 @@ public class Cnsm2014TestEnvironment {
 //		int storage = 1024;	// 1 GB
 		
 		
-		//Resources[] VM_TYPES = {VmFlavours.tiny(), VmFlavours.tiny(), VmFlavours.tiny()};
+//		Resources[] VM_TYPES = {VmFlavours.tiny(), VmFlavours.tiny(), VmFlavours.tiny()};
 		Resources[] VM_TYPES = {VmFlavours.manfi1(), VmFlavours.manfi2(), VmFlavours.manfi3()};
+//		Resources[] VM_TYPES = {VmFlavours.manfi2(), VmFlavours.manfi2(), VmFlavours.manfi2()};
+//		Resources[] VM_TYPES = {VmFlavours.manfi3(), VmFlavours.manfi3(), VmFlavours.manfi3()};
 		int vmType = appGenerationRandom.nextInt(3);
 		
 	
