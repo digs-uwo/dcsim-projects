@@ -87,6 +87,7 @@ public class HostProbabilitySolver {
 			int state = -1;
 			
 			if (vmFilter[vmPosition] == 1) {
+				//VM included in calculation, cycle through possible states
 				for (int i = states[vmPosition] + 1; i < currentVm.states.length; ++i) {
 					if ((sP = currentVm.currentState.transitionProbabilities[i]) > 0) {
 						state = i;
@@ -95,6 +96,7 @@ public class HostProbabilitySolver {
 					}
 				}
 			} else {
+				//VM filtered out, so only consider current state
 				if (states[vmPosition] == -1) {
 					state = currentVm.getCurrentStateIndex();
 					stateP[vmPosition] = 1;
@@ -108,12 +110,15 @@ public class HostProbabilitySolver {
 				--vmPosition;
 			} else {				
 				states[vmPosition] = state;
-				if (vmFilter[vmPosition] == 1) {
-					stateUtil[vmPosition] = currentVm.getCpu() * currentVm.getStates()[state].getValue();
-				} else {
-					stateUtil[vmPosition] = vmUtil[vmPosition];
-				}
 				
+				if (currentVm.getCurrentStateIndex() == state) {
+					//if we are looking at the VMs current state, use it's actual utilization
+					stateUtil[vmPosition] = vmUtil[vmPosition];
+				} else {
+					//otherwise, use the state value
+					stateUtil[vmPosition] = currentVm.getCpu() * currentVm.getStates()[state].getValue();
+				}
+
 				//if remainingVMs is empty
 				if (vmPosition == vms.length - 1) {
 					
@@ -147,7 +152,6 @@ public class HostProbabilitySolver {
 			
 		int[] vmFilter = new int[vmList.length];
 		double[] vmScore = new double[vmList.length];
-		int nFiltered = 0;
 		
 		//initialize filter
 		if (filterSize != -1) {
@@ -220,8 +224,10 @@ public class HostProbabilitySolver {
 		}
 		
 		
+		
+		
 		//filter by score, vmFilter[i] = 1 if completeVMlist[i] passes the filter, 0 otherwise
-		double count = 0;
+		int count = 0;
 		double max;
 		int v;
 		while (count < filterSize) {
@@ -236,13 +242,14 @@ public class HostProbabilitySolver {
 			if (max != -1) {
 				vmFilter[v] = 1;
 				++count;
-				++nFiltered;
 			} else {
-				count = filterSize; //no more VMs, terminate
+				break; //no more VMs, terminate
 			}
 		}
 		
-		simulation.getSimulationMetrics().getCustomMetricCollection(StressProbabilityMetrics.class).addFilteredVms(vmList.length - nFiltered);
+		if (vmList.length > filterSize) simulation.getSimulationMetrics().getCustomMetricCollection(StressProbabilityMetrics.class).nOverFilter++;
+		
+		simulation.getSimulationMetrics().getCustomMetricCollection(StressProbabilityMetrics.class).addFilteredVms(vmList.length - count);
 		
 		return vmFilter;
 	}

@@ -5,10 +5,14 @@ import edu.uwo.csd.dcsim.management.VmStatus;
 
 public abstract class VmMarkovChain {
 
+//	public static final double[] STATE_RANGES = {0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0};
+	public static final double[] STATE_RANGES = {0, 0.2, 0.4, 0.6, 0.8, 1.0};
+	public static final int N_STATES = STATE_RANGES.length - 1;
+	
 	protected Simulation simulation;
 	
 	protected int id;
-	protected UtilizationState[] states = new UtilizationState[5];
+	protected UtilizationState[] states = new UtilizationState[N_STATES];
 	protected UtilizationState currentState = null;
 	protected long cpu;
 	protected long globalTransitionCount = 0;
@@ -99,13 +103,11 @@ public abstract class VmMarkovChain {
 	}
 	
 	public UtilizationState[] createUtilizationStates() {
-		UtilizationState[] states = new UtilizationState[5];
+		UtilizationState[] states = new UtilizationState[N_STATES];
 		
-		states[0] = new UtilizationState(0, 0.2);
-		states[1] = new UtilizationState(0.2, 0.4);
-		states[2] = new UtilizationState(0.4, 0.6);
-		states[3] = new UtilizationState(0.6, 0.8);
-		states[4] = new UtilizationState(0.8, 1.0);		
+		for (int i = 0; i < STATE_RANGES.length - 1; ++i) {
+			states[i] = new UtilizationState(STATE_RANGES[i], STATE_RANGES[i + 1]);
+		}
 		
 		return states;
 	}
@@ -116,13 +118,13 @@ public abstract class VmMarkovChain {
 		protected double rangeLower;
 		protected double rangeUpper;
 
-		protected double[] transitionProbabilities = new double[5];
+		protected double[] transitionProbabilities = new double[N_STATES];
 		protected long totalTransitions = 0;
-		protected long[] transitionCounts = new long[5];
+		protected long[] transitionCounts = new long[N_STATES];
 		
-		protected double[] newTransitionProbabilities = new double[5];
+		protected double[] newTransitionProbabilities = new double[N_STATES];
 		protected long newTotalTransitions = 0;
-		protected long[] newTransitionCounts = new long[5];
+		protected long[] newTransitionCounts = new long[N_STATES];
 		
 		protected long lastProbabilityUpdate = 0;
 		
@@ -159,8 +161,8 @@ public abstract class VmMarkovChain {
 		}
 		
 		public double getValue() {
-			return rangeLower;
-//			return (rangeUpper + rangeLower) / 2;
+//			return rangeLower;
+			return (rangeUpper + rangeLower) / 2;
 		}
 		
 		public double[] getTransitionProbabilities() {

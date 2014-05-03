@@ -20,6 +20,8 @@ public class StressProbabilityMetrics extends MetricCollection {
 	long timeOver95 = 0;
 	long timeOver90 = 0;
 	
+	public long nOverFilter = 0;
+	
 	public StressProbabilityMetrics(Simulation simulation) {
 		super(simulation);
 		// TODO Auto-generated constructor stub
@@ -58,6 +60,7 @@ public class StressProbabilityMetrics extends MetricCollection {
 		out.info("   average: " + filteredVms.getMean());
 		out.info("   max: " + filteredVms.getMax());
 		out.info("   min: " + filteredVms.getMin());
+		out.info("   hosts larger than filter: " + nOverFilter);
 		out.info("-- HOST OVERUTIL --");
 		out.info("   > 90: " + SimTime.toHumanReadable(timeOver90));
 		out.info("   > 95: " + SimTime.toHumanReadable(timeOver95));

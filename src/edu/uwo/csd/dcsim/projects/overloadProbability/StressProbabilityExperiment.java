@@ -35,7 +35,7 @@ public class StressProbabilityExperiment extends SimulationTask {
 	
 	private static final long RAMP_UP_TIME = SimTime.hours(20); //20
 	private static final long APP_ARRIVAL_START_TIME =  SimTime.hours(24); //24
-	private static final long DURATION = SimTime.days(16); //16
+	private static final long DURATION = SimTime.days(8); //16
 	private static final long METRIC_RECORD_START = SimTime.hours(24); //24
 	
 	//NOTE: total hosts = N_CLUSTERS * N_RACKS * RACK_SIZE
@@ -48,7 +48,7 @@ public class StressProbabilityExperiment extends SimulationTask {
 	private static final double CHANGES_PER_DAY = 0.25; //0.25
 	private static final boolean DYNAMIC_ARRIVALS = true; //true
 		
-	private static final boolean CSV_OUTPUT = true;
+	private static final boolean CSV_OUTPUT = false;
 	
 	private static final long[] randomSeeds = {6198910678692541341l,
 		5646441053220106016l,
@@ -60,7 +60,7 @@ public class StressProbabilityExperiment extends SimulationTask {
 		-6452776964812569334l,
 		-7148920787255940546l,
 		8311271444423629559l};
-	private static final long N_SEEDS = 10; //10
+	private static final long N_SEEDS = 1; //10
 
 	/*
 	 * Main
@@ -80,20 +80,21 @@ public class StressProbabilityExperiment extends SimulationTask {
 		System.out.println("Starting StressProbabilityExperiment");
 		
 		//static
-		runSimulationSet(printStream, 0.8, 0.75, 0.4, 0.3, 10, true, false); 
+//		runSimulationSet(printStream, 0.8, 0.75, 0.4, 0.3, 10, true, false); 
 		
 		//dynamic, threshold
-		runSimulationSet(printStream, 0.8, 0.75, 0.4, 0.3, 10, false, false); 
-		runSimulationSet(printStream, 0.9, 0.85, 0.4, 0.3, 10, false, false);
-		runSimulationSet(printStream, 0.95, 0.9, 0.4, 0.3, 10, false, false);
+//		runSimulationSet(printStream, 0.8, 0.75, 0.4, 0.3, 10, false, false); 
+//		runSimulationSet(printStream, 0.9, 0.85, 0.4, 0.3, 10, false, false);
+//		runSimulationSet(printStream, 0.95, 0.9, 0.4, 0.3, 10, false, false);
 		
-		runSimulationSet(printStream, 0.8, 0.75, 0.5, 0.3, 10, false, false); 
-		runSimulationSet(printStream, 0.9, 0.85, 0.5, 0.3, 10, false, false);
-		runSimulationSet(printStream, 0.95, 0.9, 0.5, 0.3, 10, false, false);
+		//runSimulationSet(printStream, 0.8, 0.75, 0.5, 0.3, 10, false, false); 
+		//runSimulationSet(printStream, 0.9, 0.85, 0.5, 0.3, 10, false, false);
+		//runSimulationSet(printStream, 0.95, 0.9, 0.5, 0.3, 10, false, false);
 		
 		//dynamic, probability
-		runSimulationSet(printStream, 0.8, 0.75, 0.4, 0.3, 10, false, true);
-		runSimulationSet(printStream, 0.8, 0.75, 0.5, 0.3, 10, false, true);
+		runSimulationSet(printStream, 0.8, 0.75, 0.4, 0.8, -1, false, true);
+//		runSimulationSet(printStream, 0.9, 0.85, 0.4, 0.3, 10, false, true);	
+//		runSimulationSet(printStream, 0.8, 0.75, 0.5, 0.3, 10, false, true);
 		
 		printStream.println("Done");
 		printStream.close();
