@@ -53,6 +53,7 @@ public class HostProbabilitySolver {
 		double hostCpu = (double)host.getHostDescription().getResourceCapacity().getCpu();
 		
 		int[] vmUtil = new int[completeVMlist.size()];
+		long nStates = 0;
 		
 		//move arraylist into normal array
 		{
@@ -122,6 +123,8 @@ public class HostProbabilitySolver {
 				//if remainingVMs is empty
 				if (vmPosition == vms.length - 1) {
 					
+					++nStates;
+					
 					//update p with current state information
 					util = 0;
 					for (double u : stateUtil) util += u;
@@ -143,11 +146,12 @@ public class HostProbabilitySolver {
 		
 		endTime = System.currentTimeMillis();
 		
+		simulation.getSimulationMetrics().getCustomMetricCollection(StressProbabilityMetrics.class).addStateCombinations(nStates);
 		simulation.getSimulationMetrics().getCustomMetricCollection(StressProbabilityMetrics.class).addAlgExecTime(endTime - startTime);
 		
 		return p;
 	}
-	
+
 	private int[] filterVms(HostData host, VmMarkovChain[] vmList, int[] vmUtil, double threshold, int filterSize) {
 			
 		int[] vmFilter = new int[vmList.length];
@@ -158,6 +162,7 @@ public class HostProbabilitySolver {
 			for (int i = 0; i < vmFilter.length; ++i) vmFilter[i] = 0;
 		} else {
 			for (int i = 0; i < vmFilter.length; ++i) vmFilter[i] = 1;
+			simulation.getSimulationMetrics().getCustomMetricCollection(StressProbabilityMetrics.class).addVmsInCalc(vmList.length);
 			return vmFilter; //filterSize == -1 indicates no filtering
 		}
 
@@ -178,50 +183,56 @@ public class HostProbabilitySolver {
 //			
 //			//iterate through each possible next state
 //			for (int s = 0; s < vmList[i].getStates().length; ++s) {
-//				predicted += vmList[i].cpu * vmList[i].currentState.transitionProbabilities[s]; WRONG!! MULTIPLY BY STATE VALUE!!
-//			}
-//			
-//			vmScore[i] = Math.abs(predicted - (vmList[i].currentState.getValue() * vmList[i].cpu));
-//		}
-		
-		//score by potential negative impact
-//		VmMarkovChain vm;
-//		double predicted;
-//		for (int i = 0; i < vmList.length; ++i) {
-//			vmScore[i] = 0;
-//			predicted = 0;
-//			
-//			//iterate through each possible next state
-//			for (int s = vmList[i].getCurrentStateIndex(); s < vmList[i].getStates().length; ++s) {
 //				predicted += vmList[i].cpu * vmList[i].currentState.transitionProbabilities[s] * vmList[i].getStates()[s].getValue();
 //			}
 //			
-//			vmScore[i] = Math.abs(predicted - (vmList[i].currentState.getValue() * vmList[i].cpu));
+//			vmScore[i] = Math.abs(predicted - vmUtil[i]);
+//			
+//			if (vmScore[i] < 0) throw new RuntimeException("VM score less than 0!! " + vmScore[i]);
 //		}
 		
-		//score by amplitude
+		//score by potential negative impact
 		VmMarkovChain vm;
-		double predictedUp;
-		double predictedDown;
-		int currentState;
-//		double currentValue;
+		double predicted;
 		for (int i = 0; i < vmList.length; ++i) {
 			vmScore[i] = 0;
-			predictedUp = 0;
-			predictedDown = 0;
-			currentState = vmList[i].getCurrentStateIndex();			
+			predicted = 0;
 			
 			//iterate through each possible next state
-			for (int s = 0; s < vmList[i].getStates().length; ++s) {
-				if (s < currentState) {
-					predictedDown += vmList[i].cpu * vmList[i].currentState.transitionProbabilities[s] * (vmUtil[i] - vmList[i].getStates()[s].getValue());
-				} else if (s > currentState) {
-					predictedUp += vmList[i].cpu * vmList[i].currentState.transitionProbabilities[s] * (vmList[i].getStates()[s].getValue() - vmUtil[i]);					
-				}
+			for (int s = vmList[i].getCurrentStateIndex(); s < vmList[i].getStates().length; ++s) {
+				predicted += vmList[i].cpu * vmList[i].currentState.transitionProbabilities[s] * vmList[i].getStates()[s].getValue();
 			}
 			
-			vmScore[i] = predictedDown + predictedUp;
+			vmScore[i] = Math.abs(predicted - vmUtil[i]);
+			
+			if (vmScore[i] < 0) throw new RuntimeException("VM score less than 0!! " + vmScore[i]);
 		}
+		
+		//score by amplitude
+//		VmMarkovChain vm;
+//		double predictedUp;
+//		double predictedDown;
+//		int currentState;
+////		double currentValue;
+//		for (int i = 0; i < vmList.length; ++i) {
+//			vmScore[i] = 0;
+//			predictedUp = 0;
+//			predictedDown = 0;
+//			currentState = vmList[i].getCurrentStateIndex();			
+//			
+//			//iterate through each possible next state
+//			for (int s = 0; s < vmList[i].getStates().length; ++s) {
+//				if (s < currentState) {
+//					predictedDown +=  vmList[i].currentState.transitionProbabilities[s] * (vmUtil[i] - (vmList[i].cpu * vmList[i].getStates()[s].getValue()));
+//				} else if (s > currentState) {
+//					predictedUp += vmList[i].currentState.transitionProbabilities[s] * ((vmList[i].cpu * vmList[i].getStates()[s].getValue()) - vmUtil[i]);					
+//				}
+//			}
+//			
+//			vmScore[i] = predictedDown + predictedUp;
+//			
+//			if (vmScore[i] < 0) throw new RuntimeException("VM score less than 0!! " + vmScore[i]);
+//		}
 		
 		
 		
@@ -247,9 +258,16 @@ public class HostProbabilitySolver {
 			}
 		}
 		
+		if (count < filterSize && vmList.length >= filterSize) {
+			System.out.println("nVMs=" + vmList.length);
+			System.out.println("count=" + count + ", filterSize=" + filterSize);
+			throw new RuntimeException("VM Filtering missed VMs...");
+		}
+		
 		if (vmList.length > filterSize) simulation.getSimulationMetrics().getCustomMetricCollection(StressProbabilityMetrics.class).nOverFilter++;
 		
 		simulation.getSimulationMetrics().getCustomMetricCollection(StressProbabilityMetrics.class).addFilteredVms(vmList.length - count);
+		simulation.getSimulationMetrics().getCustomMetricCollection(StressProbabilityMetrics.class).addVmsInCalc(count);
 		
 		return vmFilter;
 	}

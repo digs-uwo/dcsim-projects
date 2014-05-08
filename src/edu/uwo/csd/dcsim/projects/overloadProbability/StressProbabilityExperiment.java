@@ -43,11 +43,12 @@ public class StressProbabilityExperiment extends SimulationTask {
 	private static final int N_RACKS = 4; //2
 	private static final int N_CLUSTERS = 2; //2
 	
-	private static final int N_APPS_MAX = 500; //500
-	private static final int N_APPS_MIN = 250; //250
+	private static final int N_APPS_MAX = 250; //500
+	private static final int N_APPS_MIN = 125; //250
 	private static final double CHANGES_PER_DAY = 0.25; //0.25
 	private static final boolean DYNAMIC_ARRIVALS = true; //true
-		
+	private static final boolean HALF_SIZE = false;
+	
 	private static final boolean CSV_OUTPUT = false;
 	
 	private static final long[] randomSeeds = {6198910678692541341l,
@@ -92,7 +93,7 @@ public class StressProbabilityExperiment extends SimulationTask {
 		//runSimulationSet(printStream, 0.95, 0.9, 0.5, 0.3, 10, false, false);
 		
 		//dynamic, probability
-		runSimulationSet(printStream, 0.8, 0.75, 0.4, 0.8, -1, false, true);
+		runSimulationSet(printStream, 0.8, 0.75, 0.4, 0.8, 3, false, true);
 //		runSimulationSet(printStream, 0.9, 0.85, 0.4, 0.3, 10, false, true);	
 //		runSimulationSet(printStream, 0.8, 0.75, 0.5, 0.3, 10, false, true);
 		
@@ -210,7 +211,7 @@ public class StressProbabilityExperiment extends SimulationTask {
 		
 		
 		public Environment(Simulation simulation, int hostsPerRack, int nRacks, int nClusters) {
-			super(simulation, hostsPerRack, nRacks, nClusters, new EqualShareLoadBalancer.Builder());
+			super(simulation, hostsPerRack, nRacks, nClusters, new EqualShareLoadBalancer.Builder(), HALF_SIZE);
 		}
 
 		@Override

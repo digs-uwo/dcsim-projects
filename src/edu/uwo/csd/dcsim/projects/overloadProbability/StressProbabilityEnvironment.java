@@ -67,8 +67,9 @@ public abstract class StressProbabilityEnvironment {
 	ObjectBuilder<LoadBalancer> loadBalancerBuilder;
 	Random envRandom;
 	Random appGenerationRandom;
+	boolean halfSize = false;
 		
-	public StressProbabilityEnvironment(Simulation simulation, int hostsPerRack, int nRacks, int nClusters, ObjectBuilder<LoadBalancer> loadBalancerBuilder) {
+	public StressProbabilityEnvironment(Simulation simulation, int hostsPerRack, int nRacks, int nClusters, ObjectBuilder<LoadBalancer> loadBalancerBuilder, boolean halfSize) {
 		this.simulation = simulation;
 		this.hostsPerRack = hostsPerRack;
 		this.nRacks = nRacks;
@@ -78,19 +79,34 @@ public abstract class StressProbabilityEnvironment {
 		appGenerationRandom = new Random(simulation.getRandom().nextLong());
 		this.loadBalancerBuilder = loadBalancerBuilder;
 
+		this.halfSize = halfSize;
+		
 	}
 	
 	public DataCentre createDataCentre(Simulation simulation) {
 		// Create data centre.
 		
+		Host.Builder proLiantDL160G5E5420;
+		Host.Builder proLiantDL380G5QuadCore;
+		
 		//Define Hosts
-		Host.Builder proLiantDL160G5E5420 = HostModels.ProLiantDL160G5E5420(simulation).privCpu(500).privBandwidth(131072)
+		if (!halfSize) {
+		proLiantDL160G5E5420 = HostModels.ProLiantDL160G5E5420(simulation).privCpu(500).privBandwidth(131072)
 				.resourceManagerFactory(new DefaultResourceManagerFactory())
 				.resourceSchedulerFactory(new DefaultResourceSchedulerFactory());
 		
-		Host.Builder proLiantDL380G5QuadCore = HostModels.ProLiantDL380G5QuadCore(simulation).privCpu(500).privBandwidth(131072)
+		proLiantDL380G5QuadCore = HostModels.ProLiantDL380G5QuadCore(simulation).privCpu(500).privBandwidth(131072)
 				.resourceManagerFactory(new DefaultResourceManagerFactory())
 				.resourceSchedulerFactory(new DefaultResourceSchedulerFactory());
+		} else{
+			proLiantDL160G5E5420 = HostModels.HalfProLiantDL160G5E5420(simulation).privCpu(500).privBandwidth(131072)
+					.resourceManagerFactory(new DefaultResourceManagerFactory())
+					.resourceSchedulerFactory(new DefaultResourceSchedulerFactory());
+			
+			proLiantDL380G5QuadCore = HostModels.HalfProLiantDL380G5QuadCore(simulation).privCpu(500).privBandwidth(131072)
+					.resourceManagerFactory(new DefaultResourceManagerFactory())
+					.resourceSchedulerFactory(new DefaultResourceSchedulerFactory());
+		}
 		
 		//Define Racks
 		SwitchFactory switch10g48p = new SwitchFactory(10000000, 48, 100);

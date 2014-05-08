@@ -17,6 +17,8 @@ public class StressProbabilityMetrics extends MetricCollection {
 	
 	DescriptiveStatistics algorithmExecTime = new DescriptiveStatistics();
 	DescriptiveStatistics filteredVms = new DescriptiveStatistics();
+	DescriptiveStatistics vmsInCalc = new DescriptiveStatistics();
+	DescriptiveStatistics stateCombinations = new DescriptiveStatistics();
 	long timeOver95 = 0;
 	long timeOver90 = 0;
 	
@@ -48,6 +50,14 @@ public class StressProbabilityMetrics extends MetricCollection {
 		filteredVms.addValue(n);
 	}
 
+	public void addVmsInCalc(int n) {
+		vmsInCalc.addValue(n);
+	}
+	
+	public void addStateCombinations(long n) {
+		stateCombinations.addValue(n);
+	}
+	
 	@Override
 	public void printDefault(Logger out) {
 		out.info("-- STRESS PROBABILITY --");
@@ -61,6 +71,16 @@ public class StressProbabilityMetrics extends MetricCollection {
 		out.info("   max: " + filteredVms.getMax());
 		out.info("   min: " + filteredVms.getMin());
 		out.info("   hosts larger than filter: " + nOverFilter);
+		out.info("VMs in Calculation");
+		out.info("   total: " + vmsInCalc.getSum());
+		out.info("   average: " + vmsInCalc.getMean());
+		out.info("   max: " + vmsInCalc.getMax());
+		out.info("   min: " + vmsInCalc.getMin());
+		out.info("State Combinations");
+		out.info("   total: " + stateCombinations.getSum());
+		out.info("   average: " + stateCombinations.getMean());
+		out.info("   max: " + stateCombinations.getMax());
+		out.info("   min: " + stateCombinations.getMin());
 		out.info("-- HOST OVERUTIL --");
 		out.info("   > 90: " + SimTime.toHumanReadable(timeOver90));
 		out.info("   > 95: " + SimTime.toHumanReadable(timeOver95));
