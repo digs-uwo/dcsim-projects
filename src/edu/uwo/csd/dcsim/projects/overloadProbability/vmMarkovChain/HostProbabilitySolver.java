@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -17,6 +18,8 @@ import edu.uwo.csd.dcsim.projects.overloadProbability.vmMarkovChain.VmMarkovChai
 
 public class HostProbabilitySolver {
 
+	public static final long MAX_STATES = (long)Math.pow(4, 10);
+	
 	private Simulation simulation;
 	
 	private int hostId;
@@ -55,6 +58,8 @@ public class HostProbabilitySolver {
 		int[] vmUtil = new int[completeVMlist.size()];
 		long nStates = 0;
 		
+		double pLimit;
+		
 		//move arraylist into normal array
 		{
 			int i = 0;
@@ -62,6 +67,7 @@ public class HostProbabilitySolver {
 				vms[i] = vm;
 				states[i] = -1;
 				++i;
+				vm.resetWorkingTransitions();
 			}
 		}
 		int vmPosition = 0;
@@ -77,6 +83,7 @@ public class HostProbabilitySolver {
 		
 		//filter VMs
 		vmFilter = filterVms(host, vms, vmUtil, threshold, filterSize);
+		pLimit = calculateProbabilityLimit(vms);
 		
 		/*
 		 * Main iteration loop. Continue until the VM stack is empty.
@@ -90,7 +97,8 @@ public class HostProbabilitySolver {
 			if (vmFilter[vmPosition] == 1) {
 				//VM included in calculation, cycle through possible states
 				for (int i = states[vmPosition] + 1; i < currentVm.states.length; ++i) {
-					if ((sP = currentVm.currentState.transitionProbabilities[i]) > 0) {
+					if ((sP = currentVm.currentState.workingTransitionProbabilities[i]) >= pLimit ||
+							(currentVm.getCurrentStateIndex() == i)) {
 						state = i;
 						stateP[vmPosition] = sP; 
 						break;
@@ -200,7 +208,7 @@ public class HostProbabilitySolver {
 			
 			//iterate through each possible next state
 			for (int s = vmList[i].getCurrentStateIndex(); s < vmList[i].getStates().length; ++s) {
-				predicted += vmList[i].cpu * vmList[i].currentState.transitionProbabilities[s] * vmList[i].getStates()[s].getValue();
+				predicted += vmList[i].cpu * vmList[i].currentState.workingTransitionProbabilities[s] * vmList[i].getStates()[s].getValue();
 			}
 			
 			vmScore[i] = Math.abs(predicted - vmUtil[i]);
@@ -272,77 +280,6 @@ public class HostProbabilitySolver {
 		return vmFilter;
 	}
 	
-	
-	public double computeStressProbabilityRecursive(HostData host, ArrayList<VmMarkovChain> vmMCs, double threshold) {
-		n = 0; //TODO remove
-		double overloadP;
-		
-		//check if the host state is different than last time
-		overloadP = getExistingCalculation(vmMCs, threshold); 
-		if (overloadP != -1) {
-			nSkipped++;
-		} else {	
-			overloadP = computeStressProbabilityRecursive(host, vmMCs, vmMCs, new ArrayList<Integer>(), threshold);
-			recordCalculation(vmMCs, overloadP, threshold);
-		}
-		nTotal++;
-//		System.out.println(">>>>>>Skipped = " + nSkipped + "/" + nTotal);
-		
-		//set previous states to current states
-		
-		//debugging output, TODO remove
-//		if (overloadP >= 0.2) {
-//			System.out.println("HOST #" + host.getId() + " with " + host.getCurrentStatus().getVms().size() + " vms, " + 
-//					(host.getCurrentStatus().getResourcesInUse().getCpu() / (double)host.getHostDescription().getResourceCapacity().getCpu()) + "util");
-//			System.out.println(n + " state combinations");
-//			for (VmMarkovChain vm : vmMCs) {
-//				System.out.println("----- VM #" + vm.getId() + " -----");
-//				vm.printTransitionMatrix();
-//				System.out.println("");
-//			}
-//			System.out.printf("overloadP=%.3f %n", overloadP);
-//		}
-		
-		return overloadP;
-	}
-	
-	private double computeStressProbabilityRecursive(HostData host, ArrayList<VmMarkovChain> vmMCs, ArrayList<VmMarkovChain> completeVmList, ArrayList<Integer> states, double threshold) {
-	
-		VmMarkovChain vmMC = vmMCs.get(0);
-		UtilizationState currentState = vmMC.getCurrentState();
-		double p = 0;
-		
-		for (int i = 0; i < vmMC.getStates().length; ++i) {
-			
-			//if there is no transition to this state, continue
-			if (currentState.getTransitionProbabilities()[i] == 0) continue;
-			
-			//create a new list of states
-			ArrayList<Integer> newStates = new ArrayList<Integer>();
-			newStates.addAll(states);
-			
-			//add current state to list
-			newStates.add(i);
-			
-			//find all possible states of other VMs
-			if (vmMCs.size() > 1) {
-				ArrayList<VmMarkovChain> remainingVms = new ArrayList<VmMarkovChain>();
-				remainingVms.addAll(vmMCs.subList(1, vmMCs.size()));
-				
-				p += computeStressProbabilityRecursive(host, remainingVms, completeVmList, newStates, threshold);
-			} else {
-				++n;
-				if (calculateStateUtilization(newStates, completeVmList, host) >= threshold) {
-					p += calculateStateProbability(newStates, completeVmList);				
-				}
-			}
-			
-		}
-
-		return p;
-		
-	}
-	
 	public double calculateStateUtilization(List<Integer> currentStates, ArrayList<VmMarkovChain> completeVmList, HostData host) {
 		double util = 0;
 
@@ -359,11 +296,89 @@ public class HostProbabilitySolver {
 		
 		for (int i = 0; i < states.size(); ++i) {
 			VmMarkovChain vm = completeVmList.get(i);
-			p = p * vm.getCurrentState().getTransitionProbabilities()[states.get(i)];
+			p = p * vm.getCurrentState().getWorkingTransitionProbabilities()[states.get(i)];
 			
 			if (p == 0) break;
 		}
 		return p;
+	}
+	
+	private double calculateProbabilityLimit(VmMarkovChain[] vmList) {
+		
+		double p = 1;
+		double max;
+		int maxVm;
+		int maxState;
+		HashSet<UtilizationState> statesIncluded = new HashSet<UtilizationState>();
+		int[] vmStates = new int[vmList.length];
+		long combinations = 1;
+		
+		for (int i = 0; i < vmStates.length; ++i) vmStates[i] = 1;
+		
+		while (combinations <= MAX_STATES) {
+			
+			max = 0;
+			maxVm = -1;
+			maxState = -1;
+			boolean found = false;
+			for (int i = 0; i < vmList.length; ++i) {
+				UtilizationState[] states = vmList[i].getStates();
+				for (int s = 0; s < states.length; ++s) {
+					if (states[s] != vmList[i].getCurrentState()) {
+						if (vmList[i].getCurrentState().transitionProbabilities[s] > max && 
+								vmList[i].getCurrentState().transitionProbabilities[s] <= p) {
+							
+							//check if not already included
+							if (!statesIncluded.contains(states[s])) {
+								//update max
+								max = vmList[i].getCurrentState().transitionProbabilities[s];
+								maxVm = i;
+								maxState = s;
+								
+								found = true;
+							}
+
+						}
+					}
+				}
+			}
+			
+			//no more states to include
+			if (!found) break;
+			
+			//include new state
+			statesIncluded.add(vmList[maxVm].getStates()[maxState]);
+			++vmStates[maxVm];
+			
+			//update p
+			p = max;
+			
+			//update combinations
+			combinations = 1;
+			for (int i = 0; i < vmStates.length; ++i) combinations *= vmStates[i];
+		}
+		
+		return p;
+	}
+	
+	private void reduceStates(VmMarkovChain[] vmList) {
+		ArrayList<Tuple<Integer, Integer>> stateTransitions = new ArrayList<Tuple<Integer, Integer>>();
+		int[] vmStates = new int[vmList.length];
+		long combinations = 1;
+		
+		for (int i = 0; i < vmStates.length; ++i) vmStates[i] = 1;
+		
+		while (combinations <= MAX_STATES) {
+			
+			for (int i = 0; i < vmList.length; ++i) {
+				
+			}
+			
+			//update combinations
+			combinations = 1;
+			for (int i = 0; i < vmStates.length; ++i) combinations *= vmStates[i];
+		}
+		
 	}
 	
 	

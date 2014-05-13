@@ -41,7 +41,7 @@ public class VmMarkovChainManager extends ManagerCapability {
 			vmMC.recordState(vm);
 		} else {
 			//vmMC = new VmMarkovChainOriginal(vm, simulation);
-			vmMC = new VmMarkovChainUpdateOnChange(vm, simulation);
+			vmMC = new VmMarkovChainOriginal(vm, simulation);
 			vmMCs.put(vm.getId(), vmMC);
 		}
 	}

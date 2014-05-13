@@ -112,12 +112,20 @@ public abstract class VmMarkovChain {
 		return states;
 	}
 	
+	public void resetWorkingTransitions() {
+		for (UtilizationState state : states) {
+			state.resetWorkingTransitions();
+		}
+	}
+	
 	protected abstract void updateTransitionP(UtilizationState currentState, UtilizationState toState);
 	
 	public class UtilizationState {
 		protected double rangeLower;
 		protected double rangeUpper;
 
+		protected double[] workingTransitionProbabilities = new double[N_STATES];
+		
 		protected double[] transitionProbabilities = new double[N_STATES];
 		protected long totalTransitions = 0;
 		protected long[] transitionCounts = new long[N_STATES];
@@ -163,6 +171,16 @@ public abstract class VmMarkovChain {
 		public double getValue() {
 //			return rangeLower;
 			return (rangeUpper + rangeLower) / 2;
+		}
+		
+		public double[] getWorkingTransitionProbabilities() {
+			return workingTransitionProbabilities;
+		}
+		
+		public void resetWorkingTransitions() {
+			for (int i = 0; i < transitionProbabilities.length; ++i) {
+				workingTransitionProbabilities[i] = transitionProbabilities[i];
+			}
 		}
 		
 		public double[] getTransitionProbabilities() {

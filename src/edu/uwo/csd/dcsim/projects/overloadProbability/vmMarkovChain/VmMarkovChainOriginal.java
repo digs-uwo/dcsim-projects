@@ -5,6 +5,8 @@ import edu.uwo.csd.dcsim.management.VmStatus;
 
 public class VmMarkovChainOriginal extends VmMarkovChain {
 
+	public static long INIT_TRANSITIONS = 10;
+	
 	public VmMarkovChainOriginal(VmStatus vmStatus, Simulation simulation) {
 		super(vmStatus, simulation);
 	}
@@ -21,7 +23,7 @@ public class VmMarkovChainOriginal extends VmMarkovChain {
 		}
 		
 		//immediately update
-		currentState.updateTransitionProbabilities();
+		if (globalTransitionCount > INIT_TRANSITIONS) currentState.updateTransitionProbabilities();
 		
 		//update timestamp
 		currentState.lastProbabilityUpdate = simulation.getSimulationTime();
