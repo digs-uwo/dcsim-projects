@@ -110,15 +110,17 @@ public class AppPlacementPolicyLevel3 extends Policy {
 		if (active.size() == 0) {
 			targetCluster = this.getInactiveCluster(candidates);
 		}
-		// If there is only one active Cluster (and its status is valid), check if the Cluster can host 
-		// the VM; otherwise, activate a new Cluster.
+		// If there is only one active Cluster (and its status is valid), check if the Cluster
+		// has enough spare resources to host the application; otherwise, activate a new Cluster.
 		else if (active.size() == 1) {
 			ClusterData cluster = active.get(0);
-			if (cluster.isStatusValid()
-					&& cluster.getCurrentStatus().getStatusVector() != null
-					&& ClusterData.canHost(request, cluster.getCurrentStatus().getStatusVector(), cluster.getClusterDescription())) {
-				
-				targetCluster = cluster;
+			if (cluster.isStatusValid()) {
+				if (cluster.getCurrentStatus().getActiveRacks() < cluster.getClusterDescription().getRackCount()
+						|| (cluster.getCurrentStatus().getStatusVector() != null
+							&& ClusterData.canHost(request, cluster.getCurrentStatus().getStatusVector(), cluster.getClusterDescription()))) {
+					
+					targetCluster = cluster;
+				}
 			}
 			else {
 				targetCluster = this.getInactiveCluster(candidates);
