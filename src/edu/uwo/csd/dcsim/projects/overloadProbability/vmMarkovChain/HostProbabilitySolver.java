@@ -58,7 +58,7 @@ public class HostProbabilitySolver {
 		int[] vmUtil = new int[completeVMlist.size()];
 		long nStates = 0;
 		
-		double pLimit;
+		double pLimit = 0;
 		
 		//move arraylist into normal array
 		{
@@ -83,8 +83,10 @@ public class HostProbabilitySolver {
 		
 		//filter VMs
 		vmFilter = filterVms(host, vms, vmUtil, threshold, filterSize);
-		pLimit = calculateProbabilityLimit(vms);
+//		pLimit = calculateProbabilityLimit(vms);
+//		reduceStates(vms);
 		
+//		System.out.println("1");
 		/*
 		 * Main iteration loop. Continue until the VM stack is empty.
 		 */
@@ -97,8 +99,9 @@ public class HostProbabilitySolver {
 			if (vmFilter[vmPosition] == 1) {
 				//VM included in calculation, cycle through possible states
 				for (int i = states[vmPosition] + 1; i < currentVm.states.length; ++i) {
-					if ((sP = currentVm.currentState.workingTransitionProbabilities[i]) >= pLimit ||
-							(currentVm.getCurrentStateIndex() == i)) {
+					if (currentVm.currentState.workingTransitionProbabilities[i] > 0 && 
+							((sP = currentVm.currentState.workingTransitionProbabilities[i]) >= pLimit ||
+							(currentVm.getCurrentStateIndex() == i))) {
 						state = i;
 						stateP[vmPosition] = sP; 
 						break;
@@ -113,7 +116,7 @@ public class HostProbabilitySolver {
 					state = -1;
 				}
 			}
-			
+
 			//if no state exists, pop and continue
 			if (state == -1) {
 				--vmPosition;
@@ -149,9 +152,8 @@ public class HostProbabilitySolver {
 					states[vmPosition] = -1;
 				}
 			}
-			
 		}
-		
+
 		endTime = System.currentTimeMillis();
 		
 		simulation.getSimulationMetrics().getCustomMetricCollection(StressProbabilityMetrics.class).addStateCombinations(nStates);
@@ -362,7 +364,11 @@ public class HostProbabilitySolver {
 	}
 	
 	private void reduceStates(VmMarkovChain[] vmList) {
-		ArrayList<Tuple<Integer, Integer>> stateTransitions = new ArrayList<Tuple<Integer, Integer>>();
+		double p = 1;
+		double max;
+		int maxVm;
+		int maxState;
+		HashSet<UtilizationState> statesIncluded = new HashSet<UtilizationState>();
 		int[] vmStates = new int[vmList.length];
 		long combinations = 1;
 		
@@ -370,14 +376,78 @@ public class HostProbabilitySolver {
 		
 		while (combinations <= MAX_STATES) {
 			
+			max = 0;
+			maxVm = -1;
+			maxState = -1;
+			boolean found = false;
 			for (int i = 0; i < vmList.length; ++i) {
-				
+				UtilizationState[] states = vmList[i].getStates();
+				for (int s = 0; s < states.length; ++s) {
+					if (states[s] != vmList[i].getCurrentState()) {
+						if (vmList[i].getCurrentState().transitionProbabilities[s] > max && 
+								vmList[i].getCurrentState().transitionProbabilities[s] <= p) {
+							
+							//check if not already included
+							if (!statesIncluded.contains(states[s])) {
+								//update max
+								max = vmList[i].getCurrentState().transitionProbabilities[s];
+								maxVm = i;
+								maxState = s;
+								found = true;
+							}
+						}
+					}
+				}
 			}
+			
+			//no more states to include
+			if (!found) break;
+
+			//include new state
+			statesIncluded.add(vmList[maxVm].getStates()[maxState]);
+			++vmStates[maxVm];
+			
+			//update p
+			p = max;
 			
 			//update combinations
 			combinations = 1;
 			for (int i = 0; i < vmStates.length; ++i) combinations *= vmStates[i];
 		}
+		
+		//Now, iterate though each VM and modify the transitions
+		VmMarkovChain vm = null;
+		long totalTransitions;
+		for (int i = 0; i < vmList.length; ++i) {
+			vm = vmList[i];
+			vm.resetWorkingTransitions();
+			
+			//first, set all transitions to remove as '0'
+			for (int s = 0; s < vm.getStates().length; ++s) {
+				if(!statesIncluded.contains(vm.getStates()[s]) && vm.getStates()[s] != vm.currentState) {
+					vm.currentState.workingTransitionProbabilities[s] = 0;
+				}
+			}
+			
+			//next, recalculate remaining transitions
+			totalTransitions = 0;
+			for (int t = 0; t < vm.currentState.workingTransitionProbabilities.length; ++t) {
+				if (vm.currentState.workingTransitionProbabilities[t] != 0) {
+					totalTransitions += vm.currentState.transitionCounts[t];
+				}
+			}
+			
+			if (totalTransitions != 0) {
+				for (int t = 0; t < vm.currentState.workingTransitionProbabilities.length; ++t) {
+					if (vm.currentState.workingTransitionProbabilities[t] != 0) {
+						vm.currentState.workingTransitionProbabilities[t] = vm.currentState.transitionCounts[t] / (double)totalTransitions;
+					}
+				}
+			}
+			
+		}
+		
+//		System.out.println("nCombinations=" + combinations);
 		
 	}
 	

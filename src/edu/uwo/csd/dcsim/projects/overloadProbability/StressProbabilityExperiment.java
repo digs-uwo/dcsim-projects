@@ -47,7 +47,7 @@ public class StressProbabilityExperiment extends SimulationTask {
 	private static final int N_APPS_MIN = 250; //250
 	private static final double CHANGES_PER_DAY = 0.25; //0.25
 	private static final boolean DYNAMIC_ARRIVALS = true; //true
-	private static final boolean HALF_SIZE = false;
+	private static final boolean HALF_SIZE = true;
 	
 	private static final boolean CSV_OUTPUT = false;
 	
@@ -84,7 +84,7 @@ public class StressProbabilityExperiment extends SimulationTask {
 //		runSimulationSet(printStream, 0.8, 0.75, 0.4, 0.3, 10, true, false); 
 		
 		//dynamic, threshold
-//		runSimulationSet(printStream, 0.8, 0.75, 0.4, 0.3, 10, false, false); 
+		runSimulationSet(printStream, 0.8, 0.75, 0.4, 0.3, 10, false, false); 
 //		runSimulationSet(printStream, 0.9, 0.85, 0.4, 0.3, 10, false, false);
 //		runSimulationSet(printStream, 0.95, 0.9, 0.4, 0.3, 10, false, false);
 		
@@ -93,13 +93,13 @@ public class StressProbabilityExperiment extends SimulationTask {
 		//runSimulationSet(printStream, 0.95, 0.9, 0.5, 0.3, 10, false, false);
 		
 		//dynamic, probability
-//		runSimulationSet(printStream, 0.8, 0.75, 0.4, 0.6, -1, false, true);
+//		runSimulationSet(printStream, 0.8, 0.75, 0.4, 0.8, -1, false, true);
 //		runSimulationSet(printStream, 0.9, 0.85, 0.4, 0.3, 10, false, true);	
 //		runSimulationSet(printStream, 0.8, 0.75, 0.5, 0.3, 10, false, true);
 		
 //		runSimulationSet(printStream, 0.8, 0.75, 0.4, 0.5, -1, false, true);
 //		runSimulationSet(printStream, 0.8, 0.75, 0.4, 0.4, -1, false, true);
-		runSimulationSet(printStream, 0.8, 0.75, 0.4, 0.3, -1, false, true);
+//		runSimulationSet(printStream, 0.8, 0.75, 0.4, 0.3, -1, false, true);
 //		runSimulationSet(printStream, 0.8, 0.75, 0.4, 0.2, -1, false, true);
 //		runSimulationSet(printStream, 0.8, 0.75, 0.4, 0.1, -1, false, true);
 		

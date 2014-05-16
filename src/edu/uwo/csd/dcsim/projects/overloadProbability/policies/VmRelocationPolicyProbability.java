@@ -15,6 +15,7 @@ import edu.uwo.csd.dcsim.management.VmStatusComparator;
 import edu.uwo.csd.dcsim.management.action.MigrationAction;
 import edu.uwo.csd.dcsim.management.capabilities.HostPoolManager;
 import edu.uwo.csd.dcsim.projects.overloadProbability.capabilities.VmMarkovChainManager;
+import edu.uwo.csd.dcsim.projects.overloadProbability.vmMarkovChain.VmMarkovChain;
 
 /**
  * Implements a greedy algorithm for VM Relocation. VMs are migrated out of 
@@ -54,6 +55,19 @@ public class VmRelocationPolicyProbability extends Policy {
 	 */
 	protected ArrayList<VmStatus> orderSourceVms(ArrayList<VmStatus> sourceVms, HostData source) {
 		ArrayList<VmStatus> sorted = new ArrayList<VmStatus>();
+		
+//		VmMarkovChainManager mcMan = manager.getCapability(VmMarkovChainManager.class);
+//		
+//		ArrayList<VmMarkovChain> vmList = mcMan.getVmSourceList(sourceVms, simulation);
+//		
+//		for (VmMarkovChain mc : vmList) {
+//			for (VmStatus vm : sourceVms) {
+//				if (vm.getId() == mc.getId()) {
+//					sorted.add(vm);
+//					break;
+//				}
+//			}
+//		}
 		
 		// Remove VMs with less CPU load than the CPU load by which the source 
 		// host is stressed.

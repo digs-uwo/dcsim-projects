@@ -3,7 +3,7 @@ package edu.uwo.csd.dcsim.projects.overloadProbability.vmMarkovChain;
 import edu.uwo.csd.dcsim.core.Simulation;
 import edu.uwo.csd.dcsim.management.VmStatus;
 
-public abstract class VmMarkovChain {
+public abstract class VmMarkovChain implements Comparable<VmMarkovChain> {
 
 //	public static final double[] STATE_RANGES = {0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0};
 	public static final double[] STATE_RANGES = {0, 0.2, 0.4, 0.6, 0.8, 1.0};
@@ -116,6 +116,21 @@ public abstract class VmMarkovChain {
 		for (UtilizationState state : states) {
 			state.resetWorkingTransitions();
 		}
+	}
+	
+	public int getPotentialIncrease() {
+		int val = 0;
+		
+		for (int i = getCurrentStateIndex() + 1; i < states.length; ++i) {
+			val += currentState.transitionProbabilities[i] * states[i].getValue() * cpu;
+		}
+		
+		return val;
+	}
+	
+	@Override
+	public int compareTo(VmMarkovChain o) {
+		return getPotentialIncrease() - o.getPotentialIncrease();
 	}
 	
 	protected abstract void updateTransitionP(UtilizationState currentState, UtilizationState toState);

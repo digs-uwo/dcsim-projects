@@ -53,10 +53,10 @@ public abstract class StressProbabilityEnvironment {
 	public static final int VM_BW = 0;
 	public static final int VM_STORE = 0;
 	
-	public static final int[] VM_SIZES = {1500, 2500, 2500};
-	public static final int[] VM_CORES = {1, 1, 2};
-	public static final int[] VM_RAM = {512, 1024, 1024};
-	public static final int N_VM_SIZES = 3;
+	public static final int[] VM_SIZES = {2500, 2500, 2500};
+	public static final int[] VM_CORES = {2, 1, 2};
+	public static final int[] VM_RAM = {1024, 1024, 1024};
+	public static final int N_VM_SIZES = 1;
 	
 	int hostsPerRack;
 	int nRacks;
@@ -116,7 +116,7 @@ public abstract class StressProbabilityEnvironment {
 				.hostBuilder(proLiantDL160G5E5420)
 				.switchFactory(switch10g48p);
 		
-//		//uses proLiantDL380G5QuadCore
+		//uses proLiantDL380G5QuadCore
 		Rack.Builder seriesB = new Rack.Builder(simulation).nSlots(40).nHosts(hostsPerRack)
 				.hostBuilder(proLiantDL380G5QuadCore)
 				.switchFactory(switch10g48p);

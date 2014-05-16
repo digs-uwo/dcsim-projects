@@ -1,6 +1,8 @@
 package edu.uwo.csd.dcsim.projects.overloadProbability.capabilities;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -24,6 +26,25 @@ public class VmMarkovChainManager extends ManagerCapability {
 		this.filterSize = filterSize;
 	}
 	
+	public ArrayList<VmMarkovChain> getVmSourceList(ArrayList<VmStatus> sourceList, Simulation simulation) {
+		ArrayList<VmMarkovChain> vmList = new ArrayList<VmMarkovChain>();
+		
+		//collect VMs for this host
+		VmMarkovChain mc;
+		for (VmStatus vm : sourceList) {
+			mc = vmMCs.get(vm.getId());
+			if (mc == null) {
+				mc = new VmMarkovChainOriginal(vm, simulation);
+			}
+			vmList.add(mc);
+		}
+		
+		//sort VMs in descending order
+		Collections.sort(vmList);
+//		Collections.reverse(vmList);
+		
+		return vmList;
+	}
 
 	public void updateHost(HostData host, Simulation simulation) {
 		
