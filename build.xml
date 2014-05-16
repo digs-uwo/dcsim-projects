@@ -65,23 +65,13 @@
         <property name="build.compiler" value="org.eclipse.jdt.core.JDTCompilerAdapter"/>
         <antcall target="build"/>
     </target>
-    <target name="BasicAutoscalingExperiment">
-        <java classname="edu.uwo.csd.dcsim.projects.applicationManagement.BasicAutoscalingExperiment" failonerror="true" fork="yes">
+    <target name="ApplicationManagementExperiment">
+        <java classname="edu.uwo.csd.dcsim.projects.applicationManagement.ApplicationManagementExperiment" failonerror="true" fork="yes">
             <classpath refid="digs-projects.classpath"/>
         </java>
     </target>
-    <target name="AutoscaleReallocationIntegratedExperiment">
-        <java classname="edu.uwo.csd.dcsim.projects.applicationManagement.AutoscaleReallocationIntegratedExperiment" failonerror="true" fork="yes">
-            <classpath refid="digs-projects.classpath"/>
-        </java>
-    </target>
-    <target name="HierarchicalExperiment">
-        <java classname="edu.uwo.csd.dcsim.projects.hierarchical.manfi2014.HierarchicalExperiment" failonerror="true" fork="yes">
-            <classpath refid="digs-projects.classpath"/>
-        </java>
-    </target>
-    <target name="CentralizedExperiment">
-        <java classname="edu.uwo.csd.dcsim.projects.hierarchical.manfi2014.CentralizedExperiment" failonerror="true" fork="yes">
+    <target name="StressProbabilityExperiment">
+        <java classname="edu.uwo.csd.dcsim.projects.overloadProbability.StressProbabilityExperiment" failonerror="true" fork="yes">
             <classpath refid="digs-projects.classpath"/>
         </java>
     </target>
