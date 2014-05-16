@@ -47,6 +47,7 @@ public class CentralizedExperiment extends SimulationTask {
 		-7148920787255940546l,
 		8311271444423629559l};
 	private static final long N_SEEDS = 10;
+	private static boolean printDefault = false;
 	
 	private double lower;				// Lower utilization threshold.
 	private double target;				// Target utilization threshold.
@@ -72,16 +73,16 @@ public class CentralizedExperiment extends SimulationTask {
 //		runSimulationSet(printStream, SimTime.days(10), SimTime.days(2), 0.60, 0.85, 0.90, ServiceType.STATIC, true);
 		
 		// Exp 1B
-//		runSimulationSet(printStream, SimTime.days(12), SimTime.days(4), 0.60, 0.85, 0.90, ServiceType.STATIC, true);
+//		runSimulationSet(printStream, SimTime.days(12), SimTime.days(4), 0.60, 0.85, 0.90, ServiceType.STATIC, false);
 		
 		// Exp 1C
-//		runSimulationSet(printStream, SimTime.days(14), SimTime.days(6), 0.60, 0.85, 0.90, ServiceType.STATIC, true);
+//		runSimulationSet(printStream, SimTime.days(14), SimTime.days(6), 0.60, 0.85, 0.90, ServiceType.STATIC, false);
 		
 		// Exp 1D
 //		runSimulationSet(printStream, SimTime.days(15), SimTime.days(7), 0.60, 0.85, 0.90, ServiceType.STATIC, true);
 		
 		// Exp 2A
-		runSimulationSet(printStream, SimTime.days(12), SimTime.days(4), 0.60, 0.85, 0.90, ServiceType.DYNAMIC, true);
+		runSimulationSet(printStream, SimTime.days(12), SimTime.days(4), 0.60, 0.85, 0.90, ServiceType.DYNAMIC, false);
 		
 		// Exp 3A
 //		runSimulationSet(printStream, SimTime.days(12), SimTime.days(4), 0.60, 0.85, 0.90, ServiceType.RANDOM, true);
@@ -126,8 +127,10 @@ public class CentralizedExperiment extends SimulationTask {
 			}
 			
 			// Conventional print.
-//			logger.info(task.getName());
-//			task.getMetrics().printDefault(logger);
+			if (printDefault) {
+				logger.info(task.getName());
+				task.getMetrics().printDefault(logger);
+			}
 		}
 		out.println("");
 		out.println("");
@@ -191,7 +194,8 @@ public class CentralizedExperiment extends SimulationTask {
 		
 		// Install management policies in the autonomic manager.
 		dcManager.installPolicy(new ReactiveHostStatusPolicy(5));
-		dcManager.installPolicy(new VmPlacementPolicyFFMHybrid(lower, upper, target));
+//		dcManager.installPolicy(new VmPlacementPolicyFFMHybrid(lower, upper, target));
+		dcManager.installPolicy(new SingleVmAppPlacementPolicyFFMHybrid(lower, upper, target));
 		dcManager.installPolicy(new VmRelocationPolicyHybridReactive(lower, upper, target));
 		dcManager.installPolicy(new VmConsolidationPolicyFFDDIHybrid(lower, upper, target), SimTime.hours(1), SimTime.hours(1));
 		

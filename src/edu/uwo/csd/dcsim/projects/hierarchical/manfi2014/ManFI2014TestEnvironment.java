@@ -140,14 +140,14 @@ public class ManFI2014TestEnvironment {
 		ArrayList<Tuple<Long, Double>> serviceRates = new ArrayList<Tuple<Long, Double>>();
 		
 		// EXP 1A
-		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), 10d));
-		serviceRates.add(new Tuple<Long, Double>(SimTime.hours(40), 0d));
-		serviceRates.add(new Tuple<Long, Double>(SimTime.days(10), 0d));
+//		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), 10d));
+//		serviceRates.add(new Tuple<Long, Double>(SimTime.hours(40), 0d));
+//		serviceRates.add(new Tuple<Long, Double>(SimTime.days(10), 0d));
 		
 		// EXP 1B
-//		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), 10d));
-//		serviceRates.add(new Tuple<Long, Double>(SimTime.hours(80), 0d));
-//		serviceRates.add(new Tuple<Long, Double>(SimTime.days(12), 0d));
+		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), 10d));
+		serviceRates.add(new Tuple<Long, Double>(SimTime.hours(80), 0d));
+		serviceRates.add(new Tuple<Long, Double>(SimTime.days(12), 0d));
 		
 		// EXP 1C
 //		serviceRates.add(new Tuple<Long, Double>(SimTime.seconds(1), 10d));
