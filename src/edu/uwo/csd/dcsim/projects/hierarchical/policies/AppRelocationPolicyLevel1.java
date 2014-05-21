@@ -73,6 +73,7 @@ public class AppRelocationPolicyLevel1 extends Policy {
 		addRequiredCapability(HostPoolManager.class);
 		addRequiredCapability(MigRequestRecord.class);
 		addRequiredCapability(MigrationTrackingManager.class);
+		addRequiredCapability(VmHostMapManager.class);
 		
 		this.target = target;
 		
