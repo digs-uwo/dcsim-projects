@@ -9,6 +9,7 @@ import edu.uwo.csd.dcsim.management.HostData;
 import edu.uwo.csd.dcsim.management.VmStatus;
 import edu.uwo.csd.dcsim.management.capabilities.ManagerCapability;
 
+@Deprecated
 public class VmHostMapManager extends ManagerCapability {
 	
 	// Map: { vmId : < hostId , timestamp > }

@@ -9,6 +9,7 @@ import edu.uwo.csd.dcsim.management.events.HostStatusEvent;
 import edu.uwo.csd.dcsim.management.events.MigrationCompleteEvent;
 import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.VmHostMapManager;
 
+@Deprecated
 public class VmHostMapPolicy extends Policy {
 
 	public VmHostMapPolicy() {
