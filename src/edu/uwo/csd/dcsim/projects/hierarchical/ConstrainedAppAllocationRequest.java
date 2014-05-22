@@ -16,14 +16,14 @@ import edu.uwo.csd.dcsim.vm.VmDescription;
 public class ConstrainedAppAllocationRequest {
 
 	private int id = -1;
-	//private InteractiveApplication application;
+	private InteractiveApplication application;
 	private ArrayList<VmAllocationRequest> independentVms;
 	private ArrayList<ArrayList<VmAllocationRequest>> antiAffinityVms;
 	private ArrayList<ArrayList<VmAllocationRequest>> affinityVms;
 	
 	public ConstrainedAppAllocationRequest(InteractiveApplication application) {
 		id = application.getId();
-//		this.application = application;
+		this.application = application;
 		
 		// Generate constrain sets.
 		independentVms = new ArrayList<VmAllocationRequest>();
@@ -50,9 +50,9 @@ public class ConstrainedAppAllocationRequest {
 		return id;
 	}
 	
-//	public InteractiveApplication getApplication() {
-//		return application;
-//	}
+	public InteractiveApplication getApplication() {
+		return application;
+	}
 	
 	public ArrayList<VmAllocationRequest> getIndependentVms() {
 		return independentVms;

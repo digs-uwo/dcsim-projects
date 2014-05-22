@@ -17,6 +17,7 @@ import edu.uwo.csd.dcsim.management.action.InstantiateVmAction;
 import edu.uwo.csd.dcsim.management.capabilities.HostPoolManager;
 import edu.uwo.csd.dcsim.management.events.ShutdownVmEvent;
 import edu.uwo.csd.dcsim.projects.hierarchical.ConstrainedAppAllocationRequest;
+import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.AppPoolManager;
 import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.RackManager;
 import edu.uwo.csd.dcsim.projects.hierarchical.events.PlacementRejectEvent;
 import edu.uwo.csd.dcsim.projects.hierarchical.events.PlacementRequestEvent;
@@ -46,6 +47,7 @@ public class AppPlacementPolicyLevel1 extends Policy {
 	 * Creates an instance of AppPlacementPolicyLevel1.
 	 */
 	public AppPlacementPolicyLevel1(AutonomicManager target, double lowerThreshold, double upperThreshold, double targetUtilization) {
+		addRequiredCapability(AppPoolManager.class);
 		addRequiredCapability(HostPoolManager.class);
 		
 		this.target = target;
@@ -61,6 +63,10 @@ public class AppPlacementPolicyLevel1 extends Policy {
 	public void execute(PlacementRequestEvent event) {
 		ArrayList<InstantiateVmAction> placements = this.processRequest(event);
 		if (null != placements) {
+			
+			// Add application to the pool.
+			manager.getCapability(AppPoolManager.class).addApplication(event.getRequest().getApplication());
+			
 			for (InstantiateVmAction action : placements) {
 				// Invalidate target Host's status, as we know it to be incorrect until the next status update arrives.
 				action.getTarget().invalidateStatus(simulation.getSimulationTime());
