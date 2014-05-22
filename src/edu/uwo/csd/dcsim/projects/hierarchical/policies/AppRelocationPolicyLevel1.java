@@ -28,10 +28,13 @@ import edu.uwo.csd.dcsim.management.capabilities.HostPoolManager;
 import edu.uwo.csd.dcsim.projects.centralized.events.StressCheckEvent;
 import edu.uwo.csd.dcsim.projects.hierarchical.AppStatus;
 import edu.uwo.csd.dcsim.projects.hierarchical.MigRequestEntry;
+import edu.uwo.csd.dcsim.projects.hierarchical.TaskData;
+import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.AppPoolManager;
 import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.MigRequestRecord;
 import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.RackManager;
 import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.MigrationTrackingManager;
-import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.VmHostMapManager;
+//import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.VmHostMapManager;
+import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.VmPoolManager;
 import edu.uwo.csd.dcsim.projects.hierarchical.events.AppMigAcceptEvent;
 import edu.uwo.csd.dcsim.projects.hierarchical.events.AppMigRequestEvent;
 import edu.uwo.csd.dcsim.projects.hierarchical.events.AppMigRejectEvent;
@@ -70,10 +73,12 @@ public class AppRelocationPolicyLevel1 extends Policy {
 	 * Creates an instance of AppRelocationPolicyLevel1.
 	 */
 	public AppRelocationPolicyLevel1(AutonomicManager target, double lowerThreshold, double upperThreshold, double targetUtilization) {
+		addRequiredCapability(AppPoolManager.class);
 		addRequiredCapability(HostPoolManager.class);
 		addRequiredCapability(MigRequestRecord.class);
 		addRequiredCapability(MigrationTrackingManager.class);
-		addRequiredCapability(VmHostMapManager.class);
+//		addRequiredCapability(VmHostMapManager.class);
+		addRequiredCapability(VmPoolManager.class);
 		
 		this.target = target;
 		
@@ -98,12 +103,14 @@ public class AppRelocationPolicyLevel1 extends Policy {
 		// Get target Hosts from event.
 		Map<Integer, Host> targetHostMap = event.getTargetHosts();
 		
-		VmHostMapManager vmHostMap = manager.getCapability(VmHostMapManager.class);
+//		VmHostMapManager vmHostMap = manager.getCapability(VmHostMapManager.class);
+		VmPoolManager vmPool = manager.getCapability(VmPoolManager.class);
 		// TODO: Migrations are issued concurrently. Should they be issued sequentially instead?
 		ConcurrentManagementActionExecutor migrations = new ConcurrentManagementActionExecutor();
 		for (VmStatus vm : entry.getApplication().getAllVms()) {
 			
-			HostData source = vmHostMap.getMapping(vm.getId());
+//			HostData source = vmHostMap.getMapping(vm.getId());
+			HostData source = vmPool.getVm(vm.getId()).getHost();
 			
 			// Invalidate source Host' status, as we know it to be incorrect until the next status update arrives.
 			source.invalidateStatus(simulation.getSimulationTime());
@@ -114,6 +121,9 @@ public class AppRelocationPolicyLevel1 extends Policy {
 					+ " AppRelocationPolicyLevel1 - Migrating VM #" + vm.getId() + " from Host #" + source.getId() + " to Host #" + targetHostMap.get(vm.getId()).getId());
 			
 		}
+		
+		// TODO Send VmData ( AppData ? ) information to target Host.
+		// ...
 		
 		// Trigger migrations.
 		migrations.execute(simulation, this);
@@ -676,12 +686,13 @@ public class AppRelocationPolicyLevel1 extends Policy {
 	 * of their hosted Task instance.
 	 */
 	protected void classifyVms(ArrayList<VmStatus> vms, ArrayList<VmStatus> independent, ArrayList<VmStatus> antiAffinity, ArrayList<VmStatus> affinity) {
+		VmPoolManager vmPool = manager.getCapability(VmPoolManager.class);
 		
 		for (VmStatus vm : vms) {
 			
-			// TODO: Accessing remote object (VM). Redesign mgmt. system to avoid this trick.
+//			// todo: Accessing remote object (VM). Redesign mgmt. system to avoid this trick.
 			
-			switch (vm.getVm().getTaskInstance().getTask().getConstraintType()) {
+			switch (vmPool.getVm(vm.getId()).getTask().getConstraintType()) {
 			case INDEPENDENT:
 				independent.add(vm);
 				break;
@@ -696,12 +707,15 @@ public class AppRelocationPolicyLevel1 extends Policy {
 	}
 	
 	private VmStatus findHostingVm(InteractiveTask task, ArrayList<VmStatus> vms) {
+		VmPoolManager vmPool = manager.getCapability(VmPoolManager.class);
 		
 		for (VmStatus vm : vms) {
 			
-			// TODO: Accessing remote object (VM). Redesign mgmt. system to avoid this trick.
+//			// todo: Accessing remote object (VM). Redesign mgmt. system to avoid this trick.
+//			
+//			InteractiveTask vmTask = (InteractiveTask) vm.getVm().getTaskInstance().getTask();
 			
-			InteractiveTask vmTask = (InteractiveTask) vm.getVm().getTaskInstance().getTask();
+			TaskData vmTask = vmPool.getVm(vm.getId()).getTask();
 			if (vmTask.getId() == task.getId() && vmTask.getApplication().getId() == task.getApplication().getId())
 				return vm;
 		}
@@ -717,11 +731,13 @@ public class AppRelocationPolicyLevel1 extends Policy {
 			VmStatus vm = copy.get(0);
 			
 			// Get Affinity-set for the Task instance hosted in this VM.
+			TaskData vmTask = manager.getCapability(VmPoolManager.class).getVm(vm.getId()).getTask();
+			ArrayList<InteractiveTask> affinitySet = manager.getCapability(AppPoolManager.class).getApplication(vmTask.getApplication().getId()).getAffinitySet(vmTask);
 			
-			// TODO: Accessing remote object (VM). Redesign mgmt. system to avoid this trick.
-			
-			InteractiveTask vmTask = (InteractiveTask) vm.getVm().getTaskInstance().getTask();
-			ArrayList<InteractiveTask> affinitySet = ((InteractiveApplication) vmTask.getApplication()).getAffinitySet(vmTask);
+//			// todo: Accessing remote object (VM). Redesign mgmt. system to avoid this trick.
+//			
+//			InteractiveTask vmTask = (InteractiveTask) vm.getVm().getTaskInstance().getTask();
+//			ArrayList<InteractiveTask> affinitySet = ((InteractiveApplication) vmTask.getApplication()).getAffinitySet(vmTask);
 			
 			// Build the set of VMs hosting the Tasks in the previously found Affinity-set.
 			ArrayList<VmStatus> affinitySetVms = new ArrayList<VmStatus>();
@@ -744,12 +760,15 @@ public class AppRelocationPolicyLevel1 extends Policy {
 	 * Determines whether the given Host is hosting an instance of the given Task.
 	 */
 	private boolean isHostingTask(Task task, HostData host) {
+		VmPoolManager vmPool = manager.getCapability(VmPoolManager.class);
 		
 		for (VmStatus vm : host.getSandboxStatus().getVms()) {
 			
-			// TODO: Accessing remote object (VM). Redesign mgmt. system to avoid this trick.
+//			// todo: Accessing remote object (VM). Redesign mgmt. system to avoid this trick.
+//			
+//			InteractiveTask vmTask = (InteractiveTask) vm.getVm().getTaskInstance().getTask();
 			
-			InteractiveTask vmTask = (InteractiveTask) vm.getVm().getTaskInstance().getTask();
+			TaskData vmTask = vmPool.getVm(vm.getId()).getTask();
 			if (vmTask.getId() == task.getId() && vmTask.getApplication().getId() == task.getApplication().getId())
 				return true;
 		}
