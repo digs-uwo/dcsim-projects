@@ -7,7 +7,6 @@ import edu.uwo.csd.dcsim.management.capabilities.HostPoolManager;
 import edu.uwo.csd.dcsim.management.events.HostStatusEvent;
 import edu.uwo.csd.dcsim.management.events.MigrationCompleteEvent;
 import edu.uwo.csd.dcsim.management.events.VmInstantiationCompleteEvent;
-import edu.uwo.csd.dcsim.projects.hierarchical.TaskData;
 import edu.uwo.csd.dcsim.projects.hierarchical.VmData;
 import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.AppPoolManager;
 import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.VmPoolManager;
@@ -39,9 +38,9 @@ public class VmPoolPolicy extends Policy {
 	}
 	
 	public void execute(VmInstantiationCompleteEvent event) {
-		TaskData task = manager.getCapability(AppPoolManager.class).getApplication(event.getApplicationId()).getTask(event.getTaskId());
-		task.setHostingVm(event.getVmId());
-		manager.getCapability(VmPoolManager.class).addVm(new VmData(event.getVmId(), task, manager.getCapability(HostPoolManager.class).getHost(event.getHostId())));
+		manager.getCapability(VmPoolManager.class).addVm(new VmData(event.getVmId(),
+				manager.getCapability(AppPoolManager.class).getApplication(event.getApplicationId()).getTask(event.getTaskId()),
+				manager.getCapability(HostPoolManager.class).getHost(event.getHostId())));
 	}
 	
 	@Override
