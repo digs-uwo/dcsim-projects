@@ -1,6 +1,7 @@
 package edu.uwo.csd.dcsim.projects.hierarchical;
 
 import java.util.ArrayList;
+import java.util.Map;
 
 import edu.uwo.csd.dcsim.application.InteractiveApplication;
 import edu.uwo.csd.dcsim.application.InteractiveTask;
@@ -23,6 +24,7 @@ public class AppStatus {
 	private ArrayList<ArrayList<VmStatus>> antiAffinityVms;
 	private ArrayList<ArrayList<VmStatus>> affinityVms;
 	
+	@Deprecated
 	public AppStatus(InteractiveApplication application) {
 		id = application.getId();
 //		this.application = application;
@@ -49,6 +51,34 @@ public class AppStatus {
 				vms.add(new VmStatus(task.getInstances().get(0).getVM(), 0));
 			}
 			affinityVms.add(vms);
+		}
+	}
+	
+	public AppStatus(AppData application, Map<Integer, VmStatus> vms) {
+		id = application.getId();
+		
+		// Generate constrain sets.
+		independentVms = new ArrayList<VmStatus>();
+		for (InteractiveTask task : application.getIndependentTasks()) {
+			independentVms.add(vms.get(application.getTask(task.getId()).getHostingVm()));
+		}
+		
+		antiAffinityVms = new ArrayList<ArrayList<VmStatus>>();
+		for (InteractiveTask task : application.getAntiAffinityTasks()) {
+			ArrayList<VmStatus> instances = new ArrayList<VmStatus>();
+			for (int vmId : application.getTask(task.getId()).getHostingVms()) {
+				instances.add(vms.get(vmId));
+			}
+			antiAffinityVms.add(instances);
+		}
+		
+		affinityVms = new ArrayList<ArrayList<VmStatus>>();
+		for (ArrayList<InteractiveTask> set : application.getAffinityTasks()) {
+			ArrayList<VmStatus> vmSet = new ArrayList<VmStatus>();
+			for (InteractiveTask task : set) {
+				vmSet.add(vms.get(application.getTask(task.getId()).getHostingVm()));
+			}
+			affinityVms.add(vmSet);
 		}
 	}
 	

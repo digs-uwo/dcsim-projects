@@ -7,6 +7,7 @@ import java.util.HashMap;
 import edu.uwo.csd.dcsim.application.InteractiveApplication;
 import edu.uwo.csd.dcsim.application.InteractiveTask;
 import edu.uwo.csd.dcsim.application.Task;
+import edu.uwo.csd.dcsim.application.Task.TaskConstraintType;
 import edu.uwo.csd.dcsim.common.HashCodeUtil;
 
 /**
@@ -113,6 +114,19 @@ public class AppData {
 	
 	public ArrayList<InteractiveTask> getIndependentTasks() {
 		return new ArrayList<InteractiveTask>(independentTasks);
+	}
+	
+	public ArrayList<Integer> getHostingVmsIds() {
+		ArrayList<Integer> vms = new ArrayList<Integer>();
+		for (TaskData task : tasks.values()) {
+			if (task.getConstraintType() == TaskConstraintType.ANTI_AFFINITY) {
+				vms.addAll(task.getHostingVms());
+			}
+			else
+				vms.add(task.getHostingVm());
+		}
+		
+		return vms;
 	}
 	
 	@Override

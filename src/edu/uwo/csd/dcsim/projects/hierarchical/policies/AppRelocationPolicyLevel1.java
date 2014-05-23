@@ -26,6 +26,7 @@ import edu.uwo.csd.dcsim.management.action.ConcurrentManagementActionExecutor;
 import edu.uwo.csd.dcsim.management.action.MigrationAction;
 import edu.uwo.csd.dcsim.management.capabilities.HostPoolManager;
 import edu.uwo.csd.dcsim.projects.centralized.events.StressCheckEvent;
+import edu.uwo.csd.dcsim.projects.hierarchical.AppData;
 import edu.uwo.csd.dcsim.projects.hierarchical.AppStatus;
 import edu.uwo.csd.dcsim.projects.hierarchical.MigRequestEntry;
 import edu.uwo.csd.dcsim.projects.hierarchical.TaskData;
@@ -585,6 +586,13 @@ public class AppRelocationPolicyLevel1 extends Policy {
 			// TODO: Accessing remote object (VM). Redesign mgmt. system to avoid this trick.
 			
 			AppStatus app = new AppStatus((InteractiveApplication) vm.getVm().getTaskInstance().getTask().getApplication());
+			
+			
+			TaskData vmTask = manager.getCapability(VmPoolManager.class).getVm(vm.getId()).getTask();
+			AppData application = manager.getCapability(AppPoolManager.class).getApplication(vmTask.getApplication().getId());
+			AppStatus app = new AppStatus(application, vmPool.getVms(application.getHostingVmsIds()));
+			
+			
 			if (this.canMigrate(app))
 				vmAppList.add(new Tuple<VmStatus, AppStatus>(vm, app));
 		}

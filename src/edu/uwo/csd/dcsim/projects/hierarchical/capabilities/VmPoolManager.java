@@ -1,9 +1,11 @@
 package edu.uwo.csd.dcsim.projects.hierarchical.capabilities;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
+import edu.uwo.csd.dcsim.management.VmStatus;
 import edu.uwo.csd.dcsim.management.capabilities.ManagerCapability;
 import edu.uwo.csd.dcsim.projects.hierarchical.VmData;
 
@@ -25,6 +27,20 @@ public class VmPoolManager extends ManagerCapability {
 	
 	public Collection<VmData> getVms() {
 		return vmMap.values();
+	}
+	
+	public Map<Integer, VmStatus> getVms(ArrayList<Integer> vmIds) {
+		
+		// TODO
+		
+		return null;
+	}
+	
+	public Map<Integer, VmData> getVms(ArrayList<Integer> vmIds) {
+		
+		// TODO
+		
+		return null;
 	}
 	
 	public void removeVm(int id) {
