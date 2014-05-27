@@ -39,6 +39,7 @@ import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.VmPoolManager;
 import edu.uwo.csd.dcsim.projects.hierarchical.events.AppMigAcceptEvent;
 import edu.uwo.csd.dcsim.projects.hierarchical.events.AppMigRequestEvent;
 import edu.uwo.csd.dcsim.projects.hierarchical.events.AppMigRejectEvent;
+import edu.uwo.csd.dcsim.projects.hierarchical.events.IncomingMigrationEvent;
 
 /**
  * This policy implements the VM Relocation process in two steps. First, the 
@@ -123,8 +124,9 @@ public class AppRelocationPolicyLevel1 extends Policy {
 			
 		}
 		
-		// TODO Send VmData ( AppData ? ) information to target Host.
-		// ...
+		// Send AppData and VmData information to target Rack.
+		AppData application = manager.getCapability(AppPoolManager.class).getApplication(event.getApplication().getId());
+		simulation.sendEvent(new IncomingMigrationEvent(event.getOrigin(), application, vmPool.getVms(application.getHostingVmsIds()), targetHostMap));
 		
 		// Trigger migrations.
 		migrations.execute(simulation, this);
@@ -179,7 +181,7 @@ public class AppRelocationPolicyLevel1 extends Policy {
 			simulation.getLogger().debug("[Rack #" + manager.getCapability(RackManager.class).getRack().getId() + "]"
 					+ " AppRelocationPolicyLevel1 - ACCEPTED.");
 			
-			simulation.sendEvent(new AppMigAcceptEvent(event.getOrigin(), event.getApplication(), targets));
+			simulation.sendEvent(new AppMigAcceptEvent(event.getOrigin(), event.getApplication(), targets, target));
 		}
 		else {	// Otherwise, send message to ClusterManager rejecting the migration request.
 			

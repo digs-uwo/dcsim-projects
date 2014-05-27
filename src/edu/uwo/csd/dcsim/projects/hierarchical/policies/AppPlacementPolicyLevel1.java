@@ -16,6 +16,7 @@ import edu.uwo.csd.dcsim.management.VmStatus;
 import edu.uwo.csd.dcsim.management.action.InstantiateVmAction;
 import edu.uwo.csd.dcsim.management.capabilities.HostPoolManager;
 import edu.uwo.csd.dcsim.management.events.ShutdownVmEvent;
+import edu.uwo.csd.dcsim.projects.hierarchical.AppData;
 import edu.uwo.csd.dcsim.projects.hierarchical.ConstrainedAppAllocationRequest;
 import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.AppPoolManager;
 import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.RackManager;
@@ -65,7 +66,7 @@ public class AppPlacementPolicyLevel1 extends Policy {
 		if (null != placements) {
 			
 			// Add application to the pool.
-			manager.getCapability(AppPoolManager.class).addApplication(event.getRequest().getApplication());
+			manager.getCapability(AppPoolManager.class).addApplication(new AppData(event.getRequest().getApplication()));
 			
 			for (InstantiateVmAction action : placements) {
 				// Invalidate target Host's status, as we know it to be incorrect until the next status update arrives.

@@ -4,7 +4,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
-import edu.uwo.csd.dcsim.application.InteractiveApplication;
 import edu.uwo.csd.dcsim.management.capabilities.ManagerCapability;
 import edu.uwo.csd.dcsim.projects.hierarchical.AppData;
 
@@ -16,8 +15,8 @@ public class AppPoolManager extends ManagerCapability {
 	
 	private Map<Integer, AppData> applicationMap = new HashMap<Integer, AppData>();
 	
-	public void addApplication(InteractiveApplication application) {
-		applicationMap.put(application.getId(), new AppData(application));
+	public void addApplication(AppData application) {
+		applicationMap.put(application.getId(), application);
 	}
 	
 	public Collection<AppData> getApplications() {

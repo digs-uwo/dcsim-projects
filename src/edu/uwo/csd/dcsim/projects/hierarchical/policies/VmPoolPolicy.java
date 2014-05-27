@@ -1,5 +1,8 @@
 package edu.uwo.csd.dcsim.projects.hierarchical.policies;
 
+import java.util.Map;
+
+import edu.uwo.csd.dcsim.host.Host;
 import edu.uwo.csd.dcsim.management.HostData;
 import edu.uwo.csd.dcsim.management.Policy;
 import edu.uwo.csd.dcsim.management.VmStatus;
@@ -10,6 +13,7 @@ import edu.uwo.csd.dcsim.management.events.VmInstantiationCompleteEvent;
 import edu.uwo.csd.dcsim.projects.hierarchical.VmData;
 import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.AppPoolManager;
 import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.VmPoolManager;
+import edu.uwo.csd.dcsim.projects.hierarchical.events.IncomingMigrationEvent;
 
 public class VmPoolPolicy extends Policy {
 
@@ -23,6 +27,16 @@ public class VmPoolPolicy extends Policy {
 		VmPoolManager vmPool = manager.getCapability(VmPoolManager.class);
 		for (VmStatus status : event.getHostStatus().getVms()) {
 			vmPool.getVm(status.getId()).setCurrentStatus(status);
+		}
+	}
+	
+	public void execute(IncomingMigrationEvent event) {
+		VmPoolManager vmPool = manager.getCapability(VmPoolManager.class);
+		HostPoolManager hostPool = manager.getCapability(HostPoolManager.class);
+		Map<Integer, Host> targetHostMap = event.getTargetHosts();
+		for (VmData vm : event.getVms()) {
+			vm.updateHost(hostPool.getHost(targetHostMap.get(vm.getId()).getId()));
+			vmPool.addVm(vm);
 		}
 	}
 	
