@@ -8,7 +8,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import edu.uwo.csd.dcsim.application.InteractiveApplication;
 import edu.uwo.csd.dcsim.application.InteractiveTask;
 import edu.uwo.csd.dcsim.application.Task;
 import edu.uwo.csd.dcsim.common.Tuple;
@@ -30,6 +29,7 @@ import edu.uwo.csd.dcsim.projects.hierarchical.AppData;
 import edu.uwo.csd.dcsim.projects.hierarchical.AppStatus;
 import edu.uwo.csd.dcsim.projects.hierarchical.MigRequestEntry;
 import edu.uwo.csd.dcsim.projects.hierarchical.TaskData;
+import edu.uwo.csd.dcsim.projects.hierarchical.VmData;
 import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.AppPoolManager;
 import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.MigRequestRecord;
 import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.RackManager;
@@ -548,10 +548,7 @@ public class AppRelocationPolicyLevel1 extends Policy {
 		// Weed out applications with VMs migrating out or scheduled to do so.
 		ArrayList<Tuple<VmStatus, AppStatus>> vmAppList = new ArrayList<Tuple<VmStatus, AppStatus>>();
 		for (VmStatus vm : bigVmList) {
-			
-			// TODO: Accessing remote object (VM). Redesign mgmt. system to avoid this trick.
-			
-			AppStatus app = new AppStatus((InteractiveApplication) vm.getVm().getTaskInstance().getTask().getApplication());
+			AppStatus app = this.generateAppStatus(vm);
 			if (this.canMigrate(app))
 				vmAppList.add(new Tuple<VmStatus, AppStatus>(vm, app));
 		}
@@ -582,17 +579,7 @@ public class AppRelocationPolicyLevel1 extends Policy {
 		// Weed out applications with VMs migrating out or scheduled to do so.
 		vmAppList = new ArrayList<Tuple<VmStatus, AppStatus>>();
 		for (VmStatus vm : smallVmList) {
-			
-			// TODO: Accessing remote object (VM). Redesign mgmt. system to avoid this trick.
-			
-			AppStatus app = new AppStatus((InteractiveApplication) vm.getVm().getTaskInstance().getTask().getApplication());
-			
-			
-			TaskData vmTask = manager.getCapability(VmPoolManager.class).getVm(vm.getId()).getTask();
-			AppData application = manager.getCapability(AppPoolManager.class).getApplication(vmTask.getApplication().getId());
-			AppStatus app = new AppStatus(application, vmPool.getVms(application.getHostingVmsIds()));
-			
-			
+			AppStatus app = this.generateAppStatus(vm);
 			if (this.canMigrate(app))
 				vmAppList.add(new Tuple<VmStatus, AppStatus>(vm, app));
 		}
@@ -729,6 +716,18 @@ public class AppRelocationPolicyLevel1 extends Policy {
 		}
 		
 		return null;
+	}
+	
+	private AppStatus generateAppStatus(VmStatus vm) {
+		VmPoolManager vmPool = manager.getCapability(VmPoolManager.class);
+		AppData application = manager.getCapability(AppPoolManager.class).getApplication(vmPool.getVm(vm.getId()).getTask().getApplication().getId());
+		
+		Map<Integer, VmStatus> vmStatusMap = new HashMap<Integer, VmStatus>();
+		for (VmData vmData : vmPool.getVms(application.getHostingVmsIds())) {
+			vmStatusMap.put(vmData.getId(), vmData.getCurrentStatus());
+		}
+		
+		return new AppStatus(application, vmStatusMap);
 	}
 	
 	private ArrayList<ArrayList<VmStatus>> groupVmsByAffinity(ArrayList<VmStatus> vms) {

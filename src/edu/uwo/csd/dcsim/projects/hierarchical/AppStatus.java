@@ -3,9 +3,7 @@ package edu.uwo.csd.dcsim.projects.hierarchical;
 import java.util.ArrayList;
 import java.util.Map;
 
-import edu.uwo.csd.dcsim.application.InteractiveApplication;
 import edu.uwo.csd.dcsim.application.InteractiveTask;
-import edu.uwo.csd.dcsim.application.TaskInstance;
 import edu.uwo.csd.dcsim.management.VmStatus;
 
 /**
@@ -19,40 +17,9 @@ import edu.uwo.csd.dcsim.management.VmStatus;
 public class AppStatus {
 
 	private int id = -1;
-	//private InteractiveApplication application;
 	private ArrayList<VmStatus> independentVms;
 	private ArrayList<ArrayList<VmStatus>> antiAffinityVms;
 	private ArrayList<ArrayList<VmStatus>> affinityVms;
-	
-	@Deprecated
-	public AppStatus(InteractiveApplication application) {
-		id = application.getId();
-//		this.application = application;
-		
-		// Generate constrain sets.
-		independentVms = new ArrayList<VmStatus>();
-		for (InteractiveTask task : application.getIndependentTasks()) {
-			independentVms.add(new VmStatus(task.getInstances().get(0).getVM(), 0));
-		}
-		
-		antiAffinityVms = new ArrayList<ArrayList<VmStatus>>();
-		for (InteractiveTask task : application.getAntiAffinityTasks()) {
-			ArrayList<VmStatus> instances = new ArrayList<VmStatus>();
-			for (TaskInstance instance : task.getInstances()) {
-				instances.add(new VmStatus(instance.getVM(), 0));
-			}
-			antiAffinityVms.add(instances);
-		}
-		
-		affinityVms = new ArrayList<ArrayList<VmStatus>>();
-		for (ArrayList<InteractiveTask> set : application.getAffinityTasks()) {
-			ArrayList<VmStatus> vms = new ArrayList<VmStatus>();
-			for (InteractiveTask task : set) {
-				vms.add(new VmStatus(task.getInstances().get(0).getVM(), 0));
-			}
-			affinityVms.add(vms);
-		}
-	}
 	
 	public AppStatus(AppData application, Map<Integer, VmStatus> vms) {
 		id = application.getId();
@@ -85,10 +52,6 @@ public class AppStatus {
 	public int getId() {
 		return id;
 	}
-	
-//	public InteractiveApplication getApplication() {
-//		return application;
-//	}
 	
 	public ArrayList<VmStatus> getIndependentVms() {
 		return independentVms;
