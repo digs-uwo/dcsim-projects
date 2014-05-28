@@ -9,6 +9,7 @@ import edu.uwo.csd.dcsim.management.VmStatus;
 import edu.uwo.csd.dcsim.management.capabilities.HostPoolManager;
 import edu.uwo.csd.dcsim.management.events.HostStatusEvent;
 import edu.uwo.csd.dcsim.management.events.MigrationCompleteEvent;
+import edu.uwo.csd.dcsim.management.events.ShutdownVmCompleteEvent;
 import edu.uwo.csd.dcsim.management.events.VmInstantiationCompleteEvent;
 import edu.uwo.csd.dcsim.projects.hierarchical.VmData;
 import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.AppPoolManager;
@@ -49,6 +50,10 @@ public class VmPoolPolicy extends Policy {
 		else {		// Target Host is remote. Remove VM from pool.
 			vmPool.removeVm(event.getVmId());
 		}
+	}
+	
+	public void execute(ShutdownVmCompleteEvent event) {
+		manager.getCapability(VmPoolManager.class).removeVm(event.getVmId());
 	}
 	
 	public void execute(VmInstantiationCompleteEvent event) {
