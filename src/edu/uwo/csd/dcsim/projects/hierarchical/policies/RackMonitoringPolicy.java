@@ -41,14 +41,12 @@ public class RackMonitoringPolicy extends Policy {
 
 	@Override
 	public void onInstall() {
-		// TODO Auto-generated method stub
-		
+		// Auto-generated method stub
 	}
 
 	@Override
 	public void onManagerStart() {
-		// TODO Auto-generated method stub
-		
+		// Auto-generated method stub
 	}
 
 }

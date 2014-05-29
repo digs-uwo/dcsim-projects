@@ -34,7 +34,6 @@ import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.AppPoolManager;
 import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.MigRequestRecord;
 import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.RackManager;
 import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.MigrationTrackingManager;
-//import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.VmHostMapManager;
 import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.VmPoolManager;
 import edu.uwo.csd.dcsim.projects.hierarchical.events.AppMigAcceptEvent;
 import edu.uwo.csd.dcsim.projects.hierarchical.events.AppMigRequestEvent;
@@ -80,7 +79,6 @@ public class AppRelocationPolicyLevel1 extends Policy {
 		addRequiredCapability(VmPoolManager.class);
 		addRequiredCapability(MigRequestRecord.class);
 		addRequiredCapability(MigrationTrackingManager.class);
-//		addRequiredCapability(VmHostMapManager.class);
 		
 		this.target = target;
 		
@@ -94,24 +92,23 @@ public class AppRelocationPolicyLevel1 extends Policy {
 	 */
 	public void execute(AppMigAcceptEvent event) {
 		
-		simulation.getLogger().debug("[Rack #" + manager.getCapability(RackManager.class).getRack().getId() + "]"
-				+ " AppRelocationPolicyLevel1 - MigRequest accepted - App #" + event.getApplication().getId());
+		simulation.getLogger().debug(String.format("[Rack #%d] AppRelocationPolicyLevel1 - MigRequest accepted - App #%d." ,
+				manager.getCapability(RackManager.class).getRack().getId(),
+				event.getApplication().getId()));
 		
 		// Get entry from migration requests record.
 		MigRequestEntry entry = manager.getCapability(MigRequestRecord.class).getEntry(event.getApplication(), manager);
 		if (null == entry)
-			throw new RuntimeException("Received a migration request acceptance for App #" + event.getApplication().getId() + ", but there is no record of such a request being made.");
+			throw new RuntimeException(String.format("Received a migration request acceptance for App #%d, but there is no record of such a request being made.", event.getApplication().getId()));
 		
 		// Get target Hosts from event.
 		Map<Integer, Host> targetHostMap = event.getTargetHosts();
 		
-//		VmHostMapManager vmHostMap = manager.getCapability(VmHostMapManager.class);
 		VmPoolManager vmPool = manager.getCapability(VmPoolManager.class);
 		// TODO: Migrations are issued concurrently. Should they be issued sequentially instead?
 		ConcurrentManagementActionExecutor migrations = new ConcurrentManagementActionExecutor();
 		for (VmStatus vm : entry.getApplication().getAllVms()) {
 			
-//			HostData source = vmHostMap.getMapping(vm.getId());
 			HostData source = vmPool.getVm(vm.getId()).getHost();
 			
 			// Invalidate source Host' status, as we know it to be incorrect until the next status update arrives.
@@ -119,8 +116,11 @@ public class AppRelocationPolicyLevel1 extends Policy {
 			
 			migrations.addAction(new MigrationAction(source.getHostManager(), source.getHost(), targetHostMap.get(vm.getId()), vm.getId()));
 			
-			simulation.getLogger().debug("[Rack #" + manager.getCapability(RackManager.class).getRack().getId() + "]"
-					+ " AppRelocationPolicyLevel1 - Migrating VM #" + vm.getId() + " from Host #" + source.getId() + " to Host #" + targetHostMap.get(vm.getId()).getId());
+			simulation.getLogger().debug(String.format("[Rack #%d] AppRelocationPolicyLevel1 - Migrating VM #%d from Host #%d to Host #%d.",
+					manager.getCapability(RackManager.class).getRack().getId(),
+					vm.getId(),
+					source.getId(),
+					targetHostMap.get(vm.getId()).getId()));
 			
 		}
 		
@@ -140,8 +140,9 @@ public class AppRelocationPolicyLevel1 extends Policy {
 	 */
 	public void execute(AppMigRejectEvent event) {
 		
-		simulation.getLogger().debug("[Rack #" + manager.getCapability(RackManager.class).getRack().getId() + "]"
-				+ " AppRelocationPolicyLevel1 - MigRequest rejected - App #" + event.getApplication().getId());
+		simulation.getLogger().debug(String.format("[Rack #%d] AppRelocationPolicyLevel1 - MigRequest rejected - App #%d.",
+				manager.getCapability(RackManager.class).getRack().getId(),
+				event.getApplication().getId()));
 		
 		// Delete entry from migration requests record.
 		MigRequestRecord record = manager.getCapability(MigRequestRecord.class);
@@ -160,8 +161,9 @@ public class AppRelocationPolicyLevel1 extends Policy {
 	 */
 	public void execute(AppMigRequestEvent event) {
 		
-		simulation.getLogger().debug("[Rack #" + manager.getCapability(RackManager.class).getRack().getId() + "]"
-				+ " AppRelocationPolicyLevel1 - New MigRequest - App #" + event.getApplication().getId());
+		simulation.getLogger().debug(String.format("[Rack #%d] AppRelocationPolicyLevel1 - New MigRequest - App #%d.",
+				manager.getCapability(RackManager.class).getRack().getId(),
+				event.getApplication().getId()));
 		
 		// Find target Hosts in this Rack for the VMs that compose the migrating application.
 		Map<Integer, HostData> targetsMap = this.findMigrationTargets(event.getApplication());
@@ -178,15 +180,15 @@ public class AppRelocationPolicyLevel1 extends Policy {
 				entry.getValue().invalidateStatus(simulation.getSimulationTime());
 			}
 			
-			simulation.getLogger().debug("[Rack #" + manager.getCapability(RackManager.class).getRack().getId() + "]"
-					+ " AppRelocationPolicyLevel1 - ACCEPTED.");
+			simulation.getLogger().debug(String.format("[Rack #%d] AppRelocationPolicyLevel1 - ACCEPTED.",
+					manager.getCapability(RackManager.class).getRack().getId()));
 			
 			simulation.sendEvent(new AppMigAcceptEvent(event.getOrigin(), event.getApplication(), targets, manager));
 		}
 		else {	// Otherwise, send message to ClusterManager rejecting the migration request.
 			
-			simulation.getLogger().debug("[Rack #" + manager.getCapability(RackManager.class).getRack().getId() + "]"
-					+ " AppRelocationPolicyLevel1 - REJECTED.");
+			simulation.getLogger().debug(String.format("[Rack #%d] AppRelocationPolicyLevel1 - REJECTED.",
+					manager.getCapability(RackManager.class).getRack().getId()));
 			
 			simulation.sendEvent(new AppMigRejectEvent(target, event.getApplication(), event.getOrigin(), manager.getCapability(RackManager.class).getRack().getId()));
 		}
@@ -206,12 +208,12 @@ public class AppRelocationPolicyLevel1 extends Policy {
 			// If it fails, request assistance from ClusterManager.
 			if (!this.performInternalVmRelocation(event.getHostId())) {
 				
-				simulation.getLogger().debug("[Rack #" + manager.getCapability(RackManager.class).getRack().getId() + "]"
-						+ " AppRelocationPolicyLevel1 - Internal Relocation process FAILED.");
+				simulation.getLogger().debug(String.format("[Rack #%d] AppRelocationPolicyLevel1 - Internal Relocation process FAILED.",
+						manager.getCapability(RackManager.class).getRack().getId()));
 				
 				if (!this.performExternalVmRelocation(event.getHostId()))
-					simulation.getLogger().debug("[Rack #" + manager.getCapability(RackManager.class).getRack().getId() + "]"
-							+ " AppRelocationPolicyLevel1 - External Relocation process FAILED.");
+					simulation.getLogger().debug(String.format("[Rack #%d] AppRelocationPolicyLevel1 - External Relocation process FAILED.",
+							manager.getCapability(RackManager.class).getRack().getId()));
 			}
 		}
 	}
@@ -222,8 +224,9 @@ public class AppRelocationPolicyLevel1 extends Policy {
 	 */
 	protected boolean performInternalVmRelocation(int hostId) {
 		
-		simulation.getLogger().debug("[Rack #" + manager.getCapability(RackManager.class).getRack().getId() + "]"
-				+ " AppRelocationPolicyLevel1 - Internal Relocation process for Host #" + hostId);
+		simulation.getLogger().debug(String.format("[Rack #%d] AppRelocationPolicyLevel1 - Internal Relocation process for Host #%d.",
+				manager.getCapability(RackManager.class).getRack().getId(),
+				hostId));
 		
 		MigrationTrackingManager ongoingMigs = manager.getCapability(MigrationTrackingManager.class);
 		HostPoolManager hostPool = manager.getCapability(HostPoolManager.class);
@@ -287,8 +290,11 @@ public class AppRelocationPolicyLevel1 extends Policy {
 					
 					mig = new MigrationAction(source.getHostManager(), source.getHost(), target.getHost(), vm.getId());
 					
-					simulation.getLogger().debug("[Rack #" + manager.getCapability(RackManager.class).getRack().getId() + "]"
-							+ " AppRelocationPolicyLevel1 - Migrating (Independent) VM #" + vm.getId() + " from Host #" + source.getId() + " to Host #" + target.getId());
+					simulation.getLogger().debug(String.format("[Rack #%d] AppRelocationPolicyLevel1 - Migrating (Independent) VM #%d from Host #%d to Host #%d.",
+							manager.getCapability(RackManager.class).getRack().getId(),
+							vm.getId(),
+							source.getId(),
+							target.getId()));
 					
 					break;			// Found VM migration. Exit loop.
 				}
@@ -337,8 +343,11 @@ public class AppRelocationPolicyLevel1 extends Policy {
 					
 					mig = new MigrationAction(source.getHostManager(), source.getHost(), target.getHost(), vm.getId());
 					
-					simulation.getLogger().debug("[Rack #" + manager.getCapability(RackManager.class).getRack().getId() + "]"
-							+ " AppRelocationPolicyLevel1 - Migrating (Anti-affinity) VM #" + vm.getId() + " from Host #" + source.getId() + " to Host #" + target.getId());
+					simulation.getLogger().debug(String.format("[Rack #%d] AppRelocationPolicyLevel1 - Migrating (Anti-affinity) VM #%d from Host #%d to Host #%d.",
+							manager.getCapability(RackManager.class).getRack().getId(),
+							vm.getId(),
+							source.getId(),
+							target.getId()));
 					
 					break;			// Found VM migration. Exit loop.
 				}
@@ -415,8 +424,11 @@ public class AppRelocationPolicyLevel1 extends Policy {
 						
 						migs.addAction(new MigrationAction(source.getHostManager(), source.getHost(), target.getHost(), vm.getId()));
 						
-						simulation.getLogger().debug("[Rack #" + manager.getCapability(RackManager.class).getRack().getId() + "]"
-								+ " AppRelocationPolicyLevel1 - Migrating (Affinity) VM #" + vm.getId() + " from Host #" + source.getId() + " to Host #" + target.getId());
+						simulation.getLogger().debug(String.format("[Rack #%d] AppRelocationPolicyLevel1 - Migrating (Affinity) VM #%d from Host #%d to Host #%d.",
+								manager.getCapability(RackManager.class).getRack().getId(),
+								vm.getId(),
+								source.getId(),
+								target.getId()));
 						
 					}
 					
@@ -448,16 +460,19 @@ public class AppRelocationPolicyLevel1 extends Policy {
 	 */
 	protected boolean performExternalVmRelocation(int hostId) {
 		
-		simulation.getLogger().debug("[Rack #" + manager.getCapability(RackManager.class).getRack().getId() + "]"
-				+ " AppRelocationPolicyLevel1 - External Relocation process for Host #" + hostId);
+		simulation.getLogger().debug(String.format("[Rack #%d] AppRelocationPolicyLevel1 - External Relocation process for Host #%d.",
+				manager.getCapability(RackManager.class).getRack().getId(),
+				hostId));
 		
 		// Find Application to migrate away.
 		AppStatus application = this.findCandidateApp(manager.getCapability(HostPoolManager.class).getHost(hostId));
 		if (null == application)
 			return false;
 		
-		simulation.getLogger().debug("[Rack #" + manager.getCapability(RackManager.class).getRack().getId() + "]"
-				+ " AppRelocationPolicyLevel1 - Trying to migrate away App #" + application.getId() + " (#vms = " + application.getAllVms().size() + ")");
+		simulation.getLogger().debug(String.format("[Rack #%d] AppRelocationPolicyLevel1 - Trying to migrate away App #%d (#vms = %d).",
+				manager.getCapability(RackManager.class).getRack().getId(),
+				application.getId(),
+				application.getAllVms().size()));
 		
 		// Mark VMs as scheduled for migration.
 		MigrationTrackingManager ongoingMigs = manager.getCapability(MigrationTrackingManager.class);
@@ -688,8 +703,6 @@ public class AppRelocationPolicyLevel1 extends Policy {
 		
 		for (VmStatus vm : vms) {
 			
-//			// todo: Accessing remote object (VM). Redesign mgmt. system to avoid this trick.
-			
 			switch (vmPool.getVm(vm.getId()).getTask().getConstraintType()) {
 			case INDEPENDENT:
 				independent.add(vm);
@@ -708,11 +721,6 @@ public class AppRelocationPolicyLevel1 extends Policy {
 		VmPoolManager vmPool = manager.getCapability(VmPoolManager.class);
 		
 		for (VmStatus vm : vms) {
-			
-//			// todo: Accessing remote object (VM). Redesign mgmt. system to avoid this trick.
-//			
-//			InteractiveTask vmTask = (InteractiveTask) vm.getVm().getTaskInstance().getTask();
-			
 			TaskData vmTask = vmPool.getVm(vm.getId()).getTask();
 			if (vmTask.getId() == task.getId() && vmTask.getApplication().getId() == task.getApplication().getId())
 				return vm;
@@ -744,11 +752,6 @@ public class AppRelocationPolicyLevel1 extends Policy {
 			TaskData vmTask = manager.getCapability(VmPoolManager.class).getVm(vm.getId()).getTask();
 			ArrayList<InteractiveTask> affinitySet = manager.getCapability(AppPoolManager.class).getApplication(vmTask.getApplication().getId()).getAffinitySet(vmTask);
 			
-//			// todo: Accessing remote object (VM). Redesign mgmt. system to avoid this trick.
-//			
-//			InteractiveTask vmTask = (InteractiveTask) vm.getVm().getTaskInstance().getTask();
-//			ArrayList<InteractiveTask> affinitySet = ((InteractiveApplication) vmTask.getApplication()).getAffinitySet(vmTask);
-			
 			// Build the set of VMs hosting the Tasks in the previously found Affinity-set.
 			ArrayList<VmStatus> affinitySetVms = new ArrayList<VmStatus>();
 			for (InteractiveTask task : affinitySet) {
@@ -773,11 +776,6 @@ public class AppRelocationPolicyLevel1 extends Policy {
 		VmPoolManager vmPool = manager.getCapability(VmPoolManager.class);
 		
 		for (VmStatus vm : host.getSandboxStatus().getVms()) {
-			
-//			// todo: Accessing remote object (VM). Redesign mgmt. system to avoid this trick.
-//			
-//			InteractiveTask vmTask = (InteractiveTask) vm.getVm().getTaskInstance().getTask();
-			
 			TaskData vmTask = vmPool.getVm(vm.getId()).getTask();
 			if (vmTask.getId() == task.getId() && vmTask.getApplication().getId() == task.getApplication().getId())
 				return true;

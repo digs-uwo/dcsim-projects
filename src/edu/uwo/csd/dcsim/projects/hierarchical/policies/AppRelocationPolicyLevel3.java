@@ -39,7 +39,7 @@ public class AppRelocationPolicyLevel3 extends Policy {
 	 */
 	public void execute(AppMigRequestEvent event) {
 		
-		simulation.getLogger().debug("[DC Manager] AppRelocationPolicyLevel3 - New MigRequest - App #" + event.getApplication().getId());
+		simulation.getLogger().debug(String.format("[DC Manager] AppRelocationPolicyLevel3 - New MigRequest - App #%d.", event.getApplication().getId()));
 		
 		MigRequestEntry entry = new MigRequestEntry(event.getApplication(), event.getOrigin(), event.getSender());
 		
@@ -54,7 +54,7 @@ public class AppRelocationPolicyLevel3 extends Policy {
 	 */
 	public void execute(AppMigRejectEvent event) {
 		
-		simulation.getLogger().debug("[DC Manager] AppPlacementPolicyLevel3 - New Migration reject - App #" + event.getApplication().getId());
+		simulation.getLogger().debug(String.format("[DC Manager] AppPlacementPolicyLevel3 - New Migration reject - App #%d.", event.getApplication().getId()));
 		
 		// Mark sender's status as invalid (to avoid choosing sender again in the next step).
 		Collection<ClusterData> clusters = manager.getCapability(ClusterPoolManager.class).getClusters();
@@ -189,7 +189,7 @@ public class AppRelocationPolicyLevel3 extends Policy {
 		
 		if (null != targetCluster) {
 			
-			simulation.getLogger().debug("[DC Manager] Found relocation target: Cluster #" + targetCluster.getId());
+			simulation.getLogger().debug(String.format("[DC Manager] Found relocation target: Cluster #%d.", targetCluster.getId()));
 			
 			// Found target. Send migration request.
 			simulation.sendEvent(new AppMigRequestEvent(targetCluster.getClusterManager(), entry.getApplication(), entry.getOrigin(), 0));

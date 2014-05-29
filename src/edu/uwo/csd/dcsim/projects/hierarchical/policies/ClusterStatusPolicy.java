@@ -4,6 +4,7 @@ import java.util.ArrayList;
 
 import edu.uwo.csd.dcsim.core.Event;
 import edu.uwo.csd.dcsim.management.Policy;
+import edu.uwo.csd.dcsim.projects.hierarchical.ClusterStatus;
 import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.ClusterPoolManager;
 import edu.uwo.csd.dcsim.projects.hierarchical.events.ClusterStatusEvent;
 
@@ -22,25 +23,26 @@ public class ClusterStatusPolicy extends Policy {
 	public void execute(ClusterStatusEvent event) {		
 		ClusterPoolManager capability = manager.getCapability(ClusterPoolManager.class);
 		
-		capability.getCluster(event.getClusterStatus().getId()).addClusterStatus(event.getClusterStatus(), windowSize);
+		ClusterStatus status = event.getClusterStatus();
+		
+		simulation.getLogger().debug(String.format("Status update for Cluster #%d.", status.getId()));
+		
+		capability.getCluster(status.getId()).addClusterStatus(status, windowSize);
 	}
 
 	@Override
 	public void onInstall() {
-		// TODO Auto-generated method stub
-		
+		// Auto-generated method stub
 	}
 
 	@Override
 	public void onManagerStart() {
-		// TODO Auto-generated method stub
-		
+		// Auto-generated method stub
 	}
 
 	@Override
 	public void onManagerStop() {
-		// TODO Auto-generated method stub
-		
+		// Auto-generated method stub
 	}
 
 }

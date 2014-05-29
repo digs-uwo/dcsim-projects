@@ -26,7 +26,7 @@ public class VmPoolPolicy extends Policy {
 	
 	public void execute(HostStatusEvent event) {
 		
-		simulation.getLogger().debug(String.format("[VmPool] Processing HostStatusEvent from Host #%d", event.getHostStatus().getId()));
+		simulation.getLogger().debug(String.format("[VmPool] Processing HostStatusEvent from Host #%d.", event.getHostStatus().getId()));
 		
 		VmPoolManager vmPool = manager.getCapability(VmPoolManager.class);
 		for (VmStatus status : event.getHostStatus().getVms()) {
@@ -36,7 +36,7 @@ public class VmPoolPolicy extends Policy {
 	
 	public void execute(IncomingMigrationEvent event) {
 		
-		simulation.getLogger().debug(String.format("[VmPool] Processing IncomingMigrationEvent for App #%d", event.getApplication().getId()));
+		simulation.getLogger().debug(String.format("[VmPool] Processing IncomingMigrationEvent for App #%d.", event.getApplication().getId()));
 		
 		VmPoolManager vmPool = manager.getCapability(VmPoolManager.class);
 		HostPoolManager hostPool = manager.getCapability(HostPoolManager.class);
@@ -51,7 +51,7 @@ public class VmPoolPolicy extends Policy {
 	
 	public void execute(MigrationCompleteEvent event) {
 		
-		simulation.getLogger().debug(String.format("[VmPool] Processing MigrationCompleteEvent for VM #%d in Host #%d", event.getVmId(), event.getSourceHostId()));
+		simulation.getLogger().debug(String.format("[VmPool] Processing MigrationCompleteEvent for VM #%d in Host #%d.", event.getVmId(), event.getSourceHostId()));
 		
 		VmPoolManager vmPool = manager.getCapability(VmPoolManager.class);
 		HostData targetHost = manager.getCapability(HostPoolManager.class).getHost(event.getTargetHostId());
@@ -67,14 +67,14 @@ public class VmPoolPolicy extends Policy {
 	
 	public void execute(ShutdownVmCompleteEvent event) {
 		
-		simulation.getLogger().debug(String.format("[VmPool] Processing ShutdownVmCompleteEvent for VM #%d in Host #%d", event.getVmId(), event.getHostId()));
+		simulation.getLogger().debug(String.format("[VmPool] Processing ShutdownVmCompleteEvent for VM #%d in Host #%d.", event.getVmId(), event.getHostId()));
 		
 		manager.getCapability(VmPoolManager.class).removeVm(event.getVmId());
 	}
 	
 	public void execute(VmInstantiationCompleteEvent event) {
 		
-		simulation.getLogger().debug(String.format("[VmPool] Processing VmInstantiationCompleteEvent for VM #%d in Host #%d", event.getVmId(), event.getHostId()));
+		simulation.getLogger().debug(String.format("[VmPool] Processing VmInstantiationCompleteEvent for VM #%d in Host #%d.", event.getVmId(), event.getHostId()));
 		
 		manager.getCapability(VmPoolManager.class).addVm(new VmData(event.getVmId(),
 				manager.getCapability(AppPoolManager.class).getApplication(event.getApplicationId()).getTask(event.getTaskId()),

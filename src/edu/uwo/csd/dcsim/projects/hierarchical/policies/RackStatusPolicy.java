@@ -26,29 +26,26 @@ public class RackStatusPolicy extends Policy {
 		RackStatus status = event.getRackStatus();
 		
 		if (status.getStatusVector() == null)
-			simulation.getLogger().debug("Status update for Rack #" + status.getId() + " - No status vector.");
+			simulation.getLogger().debug(String.format("Status update for Rack #%d - No status vector.", status.getId()));
 		else
-			simulation.getLogger().debug("Status update for Rack #" + status.getId() + " - " + status.getStatusVector().toString());
+			simulation.getLogger().debug(String.format("Status update for Rack #%d - %s.", status.getId(), status.getStatusVector().toString()));
 		
 		capability.getRack(status.getId()).addRackStatus(status, windowSize);
 	}
 
 	@Override
 	public void onInstall() {
-		// TODO Auto-generated method stub
-		
+		// Auto-generated method stub
 	}
 
 	@Override
 	public void onManagerStart() {
-		// TODO Auto-generated method stub
-		
+		// Auto-generated method stub
 	}
 
 	@Override
 	public void onManagerStop() {
-		// TODO Auto-generated method stub
-		
+		// Auto-generated method stub
 	}
 
 }

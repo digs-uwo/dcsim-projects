@@ -76,8 +76,8 @@ public class AppConsolidationPolicyLevel1 extends Policy {
 	 */
 	public void execute() {
 		
-		simulation.getLogger().debug("[Rack #" + manager.getCapability(RackManager.class).getRack().getId() + "]"
-				+ " AppConsolidationPolicyLevel1 - Running...");
+		simulation.getLogger().debug(String.format("[Rack #%d] AppConsolidationPolicyLevel1 - Running...",
+				manager.getCapability(RackManager.class).getRack().getId()));
 		
 		SequentialManagementActionExecutor actionExecutor = new SequentialManagementActionExecutor();
 		
@@ -195,8 +195,11 @@ public class AppConsolidationPolicyLevel1 extends Policy {
 					
 					migrations.addAction(new MigrationAction(source.getHostManager(), source.getHost(),	target.getHost(), entry.getKey()));
 					
-					simulation.getLogger().debug("[Rack #" + manager.getCapability(RackManager.class).getRack().getId() + "]"
-							+ " AppConsolidationPolicyLevel1 - Migrating VM #" + entry.getKey() + " from Host #" + source.getId() + " to Host #" + target.getHost().getId());
+					simulation.getLogger().debug(String.format("[Rack #%d] AppConsolidationPolicyLevel1 - Migrating VM #%d from Host #%d to Host #%d.",
+							manager.getCapability(RackManager.class).getRack().getId(),
+							entry.getKey(),
+							source.getId(),
+							target.getHost().getId()));
 					
 				}
 				
@@ -205,8 +208,9 @@ public class AppConsolidationPolicyLevel1 extends Policy {
 			}
 			else {
 				
-				simulation.getLogger().debug("[Rack #" + manager.getCapability(RackManager.class).getRack().getId() + "]"
-						+ " AppConsolidationPolicyLevel1 - Failed to completely migrate load away from Host #" + source.getId());
+				simulation.getLogger().debug(String.format("[Rack #%d] AppConsolidationPolicyLevel1 - Failed to completely migrate load away from Host #%d.",
+						manager.getCapability(RackManager.class).getRack().getId(),
+						source.getId()));
 				
 				if (!vmHostMap.isEmpty()) {
 					// Undo resource reservation on successfully selected target Hosts.

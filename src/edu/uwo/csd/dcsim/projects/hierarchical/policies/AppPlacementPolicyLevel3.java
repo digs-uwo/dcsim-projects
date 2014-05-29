@@ -46,7 +46,7 @@ public class AppPlacementPolicyLevel3 extends Policy {
 			if (!this.processRequest(new ConstrainedAppAllocationRequest((InteractiveApplication) application))) {
 				event.setFailed(true);
 				
-				simulation.getLogger().debug("[DC Manager] AppPlacementPolicyLevel3 - PLACEMENT FAILED - App #" + application.getId());
+				simulation.getLogger().debug(String.format("[DC Manager] AppPlacementPolicyLevel3 - PLACEMENT FAILED - App #%d.", application.getId()));
 				System.out.println("AppPlacementPolicyLevel3 - PLACEMENT FAILED - App #" + application.getId());
 				
 				// Record failure to complete placement request.
@@ -62,7 +62,7 @@ public class AppPlacementPolicyLevel3 extends Policy {
 	 */
 	public void execute(PlacementRejectEvent event) {
 		
-		simulation.getLogger().debug("[DC Manager] AppPlacementPolicyLevel3 - New Placement reject - App #" + event.getRequest().getId());
+		simulation.getLogger().debug(String.format("[DC Manager] AppPlacementPolicyLevel3 - New Placement reject - App #%d.", event.getRequest().getId()));
 		
 		// Mark sender's status as invalid (to avoid choosing sender again in the next step).
 		Collection<ClusterData> clusters = manager.getCapability(ClusterPoolManager.class).getClusters();
@@ -76,7 +76,7 @@ public class AppPlacementPolicyLevel3 extends Policy {
 		// Search again for a placement target.
 		if (!this.processRequest(event.getRequest())) {
 			
-			simulation.getLogger().debug("[DC Manager] AppPlacementPolicyLevel3 - PLACEMENT FAILED AFTER REJECT - App #" + event.getRequest().getId());
+			simulation.getLogger().debug(String.format("[DC Manager] AppPlacementPolicyLevel3 - PLACEMENT FAILED AFTER REJECT - App #%d.", event.getRequest().getId()));
 			System.out.println("AppPlacementPolicyLevel3 - PLACEMENT FAILED AFTER REJECT - App #" + event.getRequest().getId());
 			
 			// Record failure to complete placement request.
@@ -89,7 +89,7 @@ public class AppPlacementPolicyLevel3 extends Policy {
 	protected boolean processRequest(ConstrainedAppAllocationRequest request) {
 		ClusterData targetCluster = null;
 		
-		simulation.getLogger().debug("[DC Manager] AppPlacementPolicyLevel3.processRequest() - App #" + request.getId());
+		simulation.getLogger().debug(String.format("[DC Manager] AppPlacementPolicyLevel3.processRequest() - App #%d.", request.getId()));
 		
 		ArrayList<ClusterData> clusters = new ArrayList<ClusterData>(manager.getCapability(ClusterPoolManager.class).getClusters());
 		
@@ -216,7 +216,7 @@ public class AppPlacementPolicyLevel3 extends Policy {
 		
 		if (null != targetCluster) {
 			
-			simulation.getLogger().debug("[DC Manager] AppPlacementPolicyLevel3.processRequest() - App #" + request.getId() + " - Found placement target: Cluster #" + targetCluster.getId());
+			simulation.getLogger().debug(String.format("[DC Manager] AppPlacementPolicyLevel3.processRequest() - App #%d - Found placement target: Cluster #%d.", request.getId(), targetCluster.getId()));
 			
 			// Found target. Send placement request.
 			simulation.sendEvent(new PlacementRequestEvent(targetCluster.getClusterManager(), request));
@@ -231,7 +231,7 @@ public class AppPlacementPolicyLevel3 extends Policy {
 		}
 		
 		// Could not find suitable target Cluster in the Data Centre.
-		simulation.getLogger().debug("[DC Manager] AppPlacementPolicyLevel3.processRequest() - App #" + request.getId() + " - Failed to find placement target.");
+		simulation.getLogger().debug(String.format("[DC Manager] AppPlacementPolicyLevel3.processRequest() - App #%d - Failed to find placement target.", request.getId()));
 		
 		return false;
 	}

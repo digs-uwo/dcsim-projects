@@ -76,8 +76,9 @@ public class AppPlacementPolicyLevel1 extends Policy {
 		}
 		else {	// Contact ClusterManager - reject placement request.
 			
-			simulation.getLogger().debug("[Rack #" + manager.getCapability(RackManager.class).getRack().getId() + "]"
-					+ " AppPlacementPolicyLevel1 - New Placement request - App #" + event.getRequest().getId() + " - Failed to find target Hosts for placement.");
+			simulation.getLogger().debug(String.format("[Rack #%d] AppPlacementPolicyLevel1 - New Placement request - App #%d - Failed to find target Hosts for placement.",
+					manager.getCapability(RackManager.class).getRack().getId(),
+					event.getRequest().getId()));
 			
 			int rackId = manager.getCapability(RackManager.class).getRack().getId();
 			simulation.sendEvent(new PlacementRejectEvent(target, event.getRequest(), rackId));
@@ -89,8 +90,9 @@ public class AppPlacementPolicyLevel1 extends Policy {
 		
 		ConstrainedAppAllocationRequest request = event.getRequest();
 		
-		simulation.getLogger().debug("[Rack #" + manager.getCapability(RackManager.class).getRack().getId() + "]"
-				+ " AppPlacementPolicyLevel1.processRequest() - App #" + request.getId());
+		simulation.getLogger().debug(String.format("[Rack #%d] AppPlacementPolicyLevel1.processRequest() - App #%d.",
+				manager.getCapability(RackManager.class).getRack().getId(),
+				request.getId()));
 		
 		Collection<HostData> hosts = manager.getCapability(HostPoolManager.class).getHosts();
 		
@@ -135,8 +137,9 @@ public class AppPlacementPolicyLevel1 extends Policy {
 		// If we don't have a Placement action for each allocation request, then there's an implementation error somewhere.
 		assert request.getAllVmAllocationRequests().size() == actions.size();
 		
-		simulation.getLogger().debug("[Rack #" + manager.getCapability(RackManager.class).getRack().getId() + "]"
-				+ " AppPlacementPolicyLevel1.processRequest() - App #" + request.getId() + " - Found target Hosts for placement.");
+		simulation.getLogger().debug(String.format("[Rack #%d] AppPlacementPolicyLevel1.processRequest() - App #%d - Found target Hosts for placement.",
+				manager.getCapability(RackManager.class).getRack().getId(),
+				request.getId()));
 		
 		return actions;
 	}

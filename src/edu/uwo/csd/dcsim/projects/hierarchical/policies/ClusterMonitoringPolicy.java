@@ -3,7 +3,8 @@ package edu.uwo.csd.dcsim.projects.hierarchical.policies;
 import edu.uwo.csd.dcsim.core.SimulationEventListener;
 import edu.uwo.csd.dcsim.management.Policy;
 import edu.uwo.csd.dcsim.projects.hierarchical.ClusterStatus;
-import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.*;
+import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.ClusterManager;
+import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.RackPoolManager;
 import edu.uwo.csd.dcsim.projects.hierarchical.events.ClusterStatusEvent;
 
 public class ClusterMonitoringPolicy extends Policy {
@@ -40,14 +41,12 @@ public class ClusterMonitoringPolicy extends Policy {
 
 	@Override
 	public void onInstall() {
-		// TODO Auto-generated method stub
-		
+		// Auto-generated method stub
 	}
 
 	@Override
 	public void onManagerStart() {
-		// TODO Auto-generated method stub
-		
+		// Auto-generated method stub
 	}
 
 }

@@ -12,10 +12,16 @@ public class AppPoolPolicy extends Policy {
 	}
 	
 	public void execute(IncomingMigrationEvent event) {
+		
+		simulation.getLogger().debug(String.format("[AppPool] Processing IncomingMigrationEvent for App #%d.", event.getApplication().getId()));
+		
 		manager.getCapability(AppPoolManager.class).addApplication(event.getApplication());
 	}
 	
 	public void execute(VmInstantiationCompleteEvent event) {
+		
+		simulation.getLogger().debug(String.format("[AppPool] Processing VmInstantiationCompleteEvent for VM #%d in Host #%d.", event.getVmId(), event.getHostId()));
+		
 		manager.getCapability(AppPoolManager.class).getApplication(event.getApplicationId()).getTask(event.getTaskId()).setHostingVm(event.getVmId());
 	}
 	

@@ -306,13 +306,14 @@ public class TestyExp extends SimulationTask {
 				
 				// Create Rack's autonomic manager.
 				HostPoolManager hostPool = new HostPoolManager();
-				AutonomicManager rackManager = new AutonomicManager(simulation, new RackManager(rack), hostPool, new MigRequestRecord(), new MigrationTrackingManager(), new VmHostMapManager());
+				AutonomicManager rackManager = new AutonomicManager(simulation, new RackManager(rack), new AppPoolManager(), hostPool, new VmPoolManager(), new MigRequestRecord(), new MigrationTrackingManager());
 				
 				// Install management policies in the autonomic manager.
 				rackManager.installPolicy(new RackMonitoringPolicy(clusterManager), SimTime.minutes(5), SimTime.minutes(simulation.getRandom().nextInt(5)));
 				rackManager.installPolicy(new ReactiveHostStatusPolicy(5));
+				rackManager.installPolicy(new AppPoolPolicy());
+				rackManager.installPolicy(new VmPoolPolicy());
 				rackManager.installPolicy(new MigrationTrackingPolicy());
-				rackManager.installPolicy(new VmHostMapPolicy());
 				rackManager.installPolicy(new AppPlacementPolicyLevel1(clusterManager, lower, upper, target));
 				rackManager.installPolicy(new AppRelocationPolicyLevel1(clusterManager, lower, upper, target));
 				rackManager.installPolicy(new AppConsolidationPolicyLevel1(clusterManager, lower, upper, target), SimTime.hours(1), SimTime.hours(1));
