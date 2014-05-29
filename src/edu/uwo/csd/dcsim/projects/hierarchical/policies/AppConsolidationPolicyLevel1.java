@@ -99,7 +99,11 @@ public class AppConsolidationPolicyLevel1 extends Policy {
 		// and leaving their host empty and powered on.)
 		ConcurrentManagementActionExecutor shutdownActions = new ConcurrentManagementActionExecutor();
 		for (HostData host : empty) {
-			// Ensure that the host is not involved in any migrations and is not powering on.
+			
+			if (host.getCurrentStatus().getState() == HostState.OFF)
+				continue;
+			
+			// Ensure that the Host is not involved in any migrations and is not powering on.
 			if (host.getCurrentStatus().getIncomingMigrationCount() == 0 && 
 				host.getCurrentStatus().getOutgoingMigrationCount() == 0 && 
 				host.getCurrentStatus().getState() != HostState.POWERING_ON)
