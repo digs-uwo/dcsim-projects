@@ -77,10 +77,10 @@ public class AppRelocationPolicyLevel1 extends Policy {
 	public AppRelocationPolicyLevel1(AutonomicManager target, double lowerThreshold, double upperThreshold, double targetUtilization) {
 		addRequiredCapability(AppPoolManager.class);
 		addRequiredCapability(HostPoolManager.class);
+		addRequiredCapability(VmPoolManager.class);
 		addRequiredCapability(MigRequestRecord.class);
 		addRequiredCapability(MigrationTrackingManager.class);
 //		addRequiredCapability(VmHostMapManager.class);
-		addRequiredCapability(VmPoolManager.class);
 		
 		this.target = target;
 		
@@ -181,7 +181,7 @@ public class AppRelocationPolicyLevel1 extends Policy {
 			simulation.getLogger().debug("[Rack #" + manager.getCapability(RackManager.class).getRack().getId() + "]"
 					+ " AppRelocationPolicyLevel1 - ACCEPTED.");
 			
-			simulation.sendEvent(new AppMigAcceptEvent(event.getOrigin(), event.getApplication(), targets, target));
+			simulation.sendEvent(new AppMigAcceptEvent(event.getOrigin(), event.getApplication(), targets, manager));
 		}
 		else {	// Otherwise, send message to ClusterManager rejecting the migration request.
 			
@@ -484,7 +484,8 @@ public class AppRelocationPolicyLevel1 extends Policy {
 			host.resetSandboxStatusToCurrent();
 		}
 		
-		// Categorize hosts.
+		// Classify Hosts as Partially-Utilized, Under-Utilized or Empty; ignore Stressed Hosts
+		// and Hosts with currently invalid status.
 		ArrayList<HostData> partiallyUtilized = new ArrayList<HostData>();
 		ArrayList<HostData> underUtilized = new ArrayList<HostData>();
 		ArrayList<HostData> empty = new ArrayList<HostData>();
