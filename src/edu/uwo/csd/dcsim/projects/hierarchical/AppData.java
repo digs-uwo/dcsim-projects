@@ -129,6 +129,23 @@ public class AppData {
 		return vms;
 	}
 	
+	/**
+	 * Returns the current number of task instances in execution.
+	 */
+	public int size() {
+		int count = 0;
+		
+		for (TaskData task : tasks.values()) {
+			if (task.getConstraintType() == TaskConstraintType.ANTI_AFFINITY) {
+				count += task.getHostingVms().size();
+			}
+			else
+				count++;
+		}
+		
+		return count;
+	}
+	
 	@Override
 	public int hashCode() {
 		return hashCode;
