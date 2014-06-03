@@ -95,26 +95,44 @@ public class RelocationPolicyLevel1 extends Policy {
 	 */
 	public void execute(MigAcceptEvent event) {
 		
-		
-		// TODO: Re-factor this method to adapt it to the new version of the management system.
-		
+		simulation.getLogger().debug(String.format("[Rack #%d] AppRelocationPolicyLevel1 - MigRequest accepted - VM #%d." ,
+				manager.getCapability(RackManager.class).getRack().getId(),
+				event.getVm().getId()));
 		
 		// Get entry from migration requests record.
 		MigRequestEntry entry = manager.getCapability(MigRequestRecord.class).getEntry(event.getVm(), manager);
-		HostData source = entry.getHost();
+		if (null == entry)
+			throw new RuntimeException(String.format("Received a migration request acceptance for VM #%d, but there is no record of such a request being made.", event.getVm().getId()));
+		
+		VmData vmData = manager.getCapability(VmPoolManager.class).getVm(event.getVm().getId());
+		HostData source = vmData.getHost();
 		
 		// Invalidate source Host' status, as we know it to be incorrect until the next status update arrives.
 		source.invalidateStatus(simulation.getSimulationTime());
 		
+		// Send AppData (surrogate) and VmData information to target Rack.
+		AppData surrogate = vmData.getTask().getApplication().createSurrogate(event.getOrigin());
+		Collection<VmData> vms = new ArrayList<VmData>();
+		vms.add(vmData);
+		Map<Integer, Host> targetHostMap = new HashMap<Integer, Host>();
+		targetHostMap.put(vmData.getId(), event.getTargetHost());
+		simulation.sendEvent(new IncomingMigrationEvent(event.getOrigin(), surrogate, vms, targetHostMap));
+		
+		simulation.getLogger().debug(String.format("[Rack #%d] AppRelocationPolicyLevel1 - Migrating VM #%d from Host #%d to Host #%d.",
+				manager.getCapability(RackManager.class).getRack().getId(),
+				vmData.getId(),
+				source.getId(),
+				event.getTargetHost().getId()));
+		
 		// Trigger migration.
-		new MigrationAction(source.getHostManager(), source.getHost(), event.getTargetHost(), event.getVm().getId()).execute(simulation, this);
+		new MigrationAction(source.getHostManager(), source.getHost(), event.getTargetHost(), vmData.getId()).execute(simulation, this);
 		
 		// Delete entry from migration requests record.
 		manager.getCapability(MigRequestRecord.class).removeEntry(entry);
 	}
 	
 	/**
-	 * This event can only come from another Rack Manager with information about the selected target Host.
+	 * This event can only come from another Rack Manager with information about the selected target Hosts.
 	 */
 	public void execute(AppMigAcceptEvent event) {
 		
@@ -219,11 +237,7 @@ public class RelocationPolicyLevel1 extends Policy {
 			simulation.getLogger().debug(String.format("[Rack #%d] AppRelocationPolicyLevel1 - ACCEPTED.",
 					manager.getCapability(RackManager.class).getRack().getId()));
 			
-			
-			// TODO: Check why AppMigAcceptEvent includes a pointer to the RackManager.
-			
-			
-			simulation.sendEvent(new MigAcceptEvent(event.getOrigin(), event.getVm(), targetHost.getHost()));
+			simulation.sendEvent(new MigAcceptEvent(event.getOrigin(), event.getVm(), targetHost.getHost(), manager));
 		}
 		else {	// Otherwise, send message to ClusterManager rejecting the migration request.
 			
