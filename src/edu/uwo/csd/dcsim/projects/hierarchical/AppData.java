@@ -9,6 +9,7 @@ import edu.uwo.csd.dcsim.application.InteractiveTask;
 import edu.uwo.csd.dcsim.application.Task;
 import edu.uwo.csd.dcsim.application.Task.TaskConstraintType;
 import edu.uwo.csd.dcsim.common.HashCodeUtil;
+import edu.uwo.csd.dcsim.management.AutonomicManager;
 
 /**
  * @author Gaston Keller
@@ -18,9 +19,9 @@ public class AppData {
 
 	private int id = -1;
 	
-	private boolean isPrimary = true;
-	private AppData primary = null;
-	private ArrayList<AppData> secondaries = null;
+	private boolean isMaster = true;
+	private AutonomicManager master = null;
+	private ArrayList<AutonomicManager> surrogates = null;
 	
 	private HashMap<Integer, TaskData> tasks;
 	
@@ -31,8 +32,9 @@ public class AppData {
 	
 	private final int hashCode;
 	
-	public AppData(InteractiveApplication application) {
+	public AppData(InteractiveApplication application, AutonomicManager localManager) {
 		id = application.getId();
+		master = localManager;
 		
 		tasks = new HashMap<Integer, TaskData>();
 		for (Task task : application.getTasks()) {
@@ -49,6 +51,10 @@ public class AppData {
 	
 	private AppData(AppData original) {
 		id = original.id;
+		isMaster = original.isMaster;
+		master = original.master;
+		if (null != surrogates)
+			surrogates = new ArrayList<AutonomicManager>(original.surrogates);
 		tasks = new HashMap<Integer, TaskData>(original.tasks);
 		independentTasks = new ArrayList<InteractiveTask>(original.independentTasks);
 		antiAffinityTasks = new ArrayList<InteractiveTask>(original.antiAffinityTasks);
@@ -56,14 +62,14 @@ public class AppData {
 		hashCode = original.hashCode;
 	}
 	
-	public AppData createSecondary() {
+	public AppData createSurrogate(AutonomicManager targetManager) {
 		AppData app = new AppData(this);
 		
-		app.isPrimary = false;
-		app.primary = this;
-		if (null == secondaries)
-			secondaries = new ArrayList<AppData>();
-		secondaries.add(app);
+		app.isMaster = false;
+		app.surrogates = null;
+		if (null == surrogates)
+			surrogates = new ArrayList<AutonomicManager>();
+		surrogates.add(targetManager);
 		
 		return app;
 	}
@@ -72,16 +78,16 @@ public class AppData {
 		return id;
 	}
 	
-	public boolean isPrimary() {
-		return isPrimary;
+	public boolean isMaster() {
+		return isMaster;
 	}
 	
-	public AppData getPrimary() {
-		return primary;
+	public AutonomicManager getMaster() {
+		return master;
 	}
 	
-	public ArrayList<AppData> getSecondaries() {
-		return secondaries;
+	public ArrayList<AutonomicManager> getSurrogates() {
+		return surrogates;
 	}
 	
 	public TaskData getTask(int taskId) {

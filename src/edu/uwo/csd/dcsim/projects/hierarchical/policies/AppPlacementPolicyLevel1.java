@@ -66,7 +66,7 @@ public class AppPlacementPolicyLevel1 extends Policy {
 		if (null != placements) {
 			
 			// Add application to the pool.
-			manager.getCapability(AppPoolManager.class).addApplication(new AppData(event.getRequest().getApplication()));
+			manager.getCapability(AppPoolManager.class).addApplication(new AppData(event.getRequest().getApplication(), manager));
 			
 			for (InstantiateVmAction action : placements) {
 				// Invalidate target Host's status, as we know it to be incorrect until the next status update arrives.
