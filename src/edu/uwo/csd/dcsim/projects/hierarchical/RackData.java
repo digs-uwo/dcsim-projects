@@ -62,6 +62,17 @@ public class RackData {
 		}
 	}
 	
+	/**
+	 * Verifies whether the given Rack can meet the resource requirements of the VM, 
+	 * considering the Rack's max spare capacity and number of suspended and powered off Hosts.
+	 */
+	protected boolean canHost(VmStatus vm, RackStatusVector currentStatus, RackDescription rackDescription) {
+		if (RackData.calculateMinHostActivations(vm, currentStatus, rackDescription.getHostDescription()) >= 0)
+			return true;
+		
+		return false;
+	}
+	
 	public static boolean canHost(ConstrainedAppAllocationRequest request, RackStatusVector currentStatus, RackDescription rackDescription) {
 		if (RackData.calculateMinHostActivations(request, currentStatus, rackDescription.getHostDescription()) >= 0)
 			return true;
@@ -380,6 +391,45 @@ public class RackData {
 		
 		return statusVector.vector[statusVector.iActive] - currentStatus.vector[currentStatus.iActive];
 	}
+	
+	public static int calculateMinHostActivations(VmStatus vm, RackStatusVector currentStatus, HostDescription hostDescription) {
+		int failed = -1;
+		
+		// TODO: THIS METHOD DOES NOT CHECK THE HW CAPABILITIES OF THE RACK; THAT SHOULD BE DONE AT A HIGHER LEVEL.
+		// AT THIS STAGE, WE ASSUME THAT ANY REQUEST THAT COMES THIS WAY WOULD HAVE ITS HW NEEDS MET (I.E., CPU CORES & CORE CAPACITY).
+		
+		// TODO: REFACTOR THIS METHOD.
+		
+		// Get Rack status vector.
+		RackStatusVector statusVector = currentStatus.copy();
+		
+		// Check whether an active Host has enough spare resources to fit the VM.
+		for (int i = 0; i < statusVector.vmVector.length; i++) {
+			
+			// TODO: Shouldn't we be checking in the IF STATEMENT whether (statusVector.vector[statusVector.iVmVector + i] > 0) ??
+			// (i.e., whether there is actually a Host with that capacity available) 
+			
+			if (RackData.theresEnoughCapacity(vm.getResourcesInUse(), statusVector.vmVector[i])) {
+				return 0;
+			}
+		}
+		
+		// If no active Host could fit the VM, activate a new Host.
+		if (statusVector.vector[statusVector.iSuspended] > 0 || statusVector.vector[statusVector.iPoweredOff] > 0) {
+			Resources hostCapacity = hostDescription.getResourceCapacity();
+			if (RackData.theresEnoughCapacity(vm.getResourcesInUse(), hostCapacity)) {
+				return 1;
+			}
+			else
+				return failed;
+		}
+		else
+			return failed;
+	}
+	
+	
+	// TODO: Shouldn't this method belong in RackStatusVector class ??
+	
 	
 	private static void updateSpareCapacityVector(RackStatusVector statusVector, Resources reminder, int count) {
 		
