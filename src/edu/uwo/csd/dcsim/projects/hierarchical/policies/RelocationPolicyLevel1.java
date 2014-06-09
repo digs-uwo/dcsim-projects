@@ -562,9 +562,9 @@ public class RelocationPolicyLevel1 extends Policy {
 		ArrayList<VmStatus> vms = this.orderSourceVms(host.getCurrentStatus().getVms(), host);
 		
 		// Search for a single-VM application.
-		// Also, find the first VM hosting an Independent task.
+		// Also, find the first VM hosting an Independent or Anti-affinity task.
 		VmStatus candidateVm = null;
-		VmStatus independentVm = null;
+		VmStatus secondCandidateVm = null;
 		VmPoolManager vmPool = manager.getCapability(VmPoolManager.class);
 		AppPoolManager appPool = manager.getCapability(AppPoolManager.class);
 		for (VmStatus vm : vms) {
@@ -575,12 +575,11 @@ public class RelocationPolicyLevel1 extends Policy {
 				break;
 			}
 			
-			if (null == independentVm && task.getConstraintType() == TaskConstraintType.INDEPENDENT)
-				independentVm = vm;
-			
+			if (null == secondCandidateVm && task.getConstraintType() != TaskConstraintType.AFFINITY)
+				secondCandidateVm = vm;
 		}
 		
-		if (null != candidateVm) {			// Found single-VM application.
+		if (null != candidateVm) {				// Found single-VM application.
 			
 			AppStatus application = this.generateAppStatus(candidateVm);
 			
@@ -604,10 +603,10 @@ public class RelocationPolicyLevel1 extends Policy {
 			return true;
 		}
 		
-		if (null != independentVm) {		// Found VM hosting an Independent task.
-			candidateVm = independentVm;
+		if (null != secondCandidateVm) {		// Found VM hosting an Independent or Anti-affinity task.
+			candidateVm = secondCandidateVm;
 		}
-		else								// Default: migrate the first VM in the list.
+		else									// Default: migrate the first VM in the list.
 			candidateVm = vms.get(0);
 		
 		simulation.getLogger().debug(String.format("[Rack #%d] AppRelocationPolicyLevel1 - Trying to migrate away VM #%d.",
@@ -700,90 +699,6 @@ public class RelocationPolicyLevel1 extends Policy {
 		return vmHostMap;
 	}
 	
-//	/**
-//	 * Returns an Application that can be migrated away from the Rack containing the given Host.
-//	 * 
-//	 * The method returns null if all the VMs in the given Host are migrating out or are scheduled to do so,
-//	 * or the Applications associated to the hosted VMs are not available for migration.
-//	 */
-//	protected AppStatus findCandidateApp(HostData source) {
-//		
-//		// Determine the amount of CPU load to get rid of to bring the Host back to its target utilization.
-//		//double cpuExcess = source.getCurrentStatus().getResourcesInUse().getCpu() - source.getHostDescription().getResourceCapacity().getCpu() * this.targetUtilization;
-//		double cpuExcess = (this.calculateHostAvgCpuUtilization(source) - this.targetUtilization) * source.getHostDescription().getResourceCapacity().getCpu();
-//		
-//		// Classify VMs according to their CPU load.
-//		ArrayList<VmStatus> bigVmList = new ArrayList<VmStatus>();
-//		ArrayList<VmStatus> smallVmList = new ArrayList<VmStatus>();
-//		for (VmStatus vm : source.getCurrentStatus().getVms()) {
-//			if (vm.getResourcesInUse().getCpu() >= cpuExcess)
-//				bigVmList.add(vm);
-//			else
-//				smallVmList.add(vm);
-//		}
-//		
-//		// Process VMs with higher load.
-//		
-//		// Weed out applications with VMs migrating out or scheduled to do so.
-//		ArrayList<Tuple<VmStatus, AppStatus>> vmAppList = new ArrayList<Tuple<VmStatus, AppStatus>>();
-//		for (VmStatus vm : bigVmList) {
-//			AppStatus app = this.generateAppStatus(vm);
-//			if (this.canMigrate(app))
-//				vmAppList.add(new Tuple<VmStatus, AppStatus>(vm, app));
-//		}
-//		
-//		// Find candidate application: has the smallest size and its associated VM has the smallest load.
-//		Tuple<VmStatus, AppStatus> candidate = null;
-//		int minAppSize = Integer.MAX_VALUE;
-//		int minLoad = Integer.MAX_VALUE;
-//		for (Tuple<VmStatus, AppStatus> tuple : vmAppList) {
-//			int appSize = tuple.b.getAllVms().size();
-//			int vmLoad = tuple.a.getResourcesInUse().getCpu();
-//			if (appSize < minAppSize) {
-//				minAppSize = appSize;
-//				minLoad = vmLoad;
-//				candidate = tuple;
-//			}
-//			else if (appSize == minAppSize && vmLoad < minLoad) {
-//				minLoad = vmLoad;
-//				candidate = tuple;
-//			}
-//		}
-//		
-//		if (null != candidate)
-//			return candidate.b;
-//		
-//		// Process VMs with lower load.
-//		
-//		// Weed out applications with VMs migrating out or scheduled to do so.
-//		vmAppList = new ArrayList<Tuple<VmStatus, AppStatus>>();
-//		for (VmStatus vm : smallVmList) {
-//			AppStatus app = this.generateAppStatus(vm);
-//			if (this.canMigrate(app))
-//				vmAppList.add(new Tuple<VmStatus, AppStatus>(vm, app));
-//		}
-//		
-//		// Find candidate application: has the smallest size and its associated VM has the largest load.
-//		candidate = null;
-//		minAppSize = Integer.MAX_VALUE;
-//		int maxLoad = Integer.MAX_VALUE;
-//		for (Tuple<VmStatus, AppStatus> tuple : vmAppList) {
-//			int appSize = tuple.b.getAllVms().size();
-//			int vmLoad = tuple.a.getResourcesInUse().getCpu();
-//			if (appSize < minAppSize) {
-//				minAppSize = appSize;
-//				maxLoad = vmLoad;
-//				candidate = tuple;
-//			}
-//			else if (appSize == minAppSize && vmLoad > maxLoad) {
-//				maxLoad = vmLoad;
-//				candidate = tuple;
-//			}
-//		}
-//		
-//		return (null != candidate)? candidate.b : null;
-//	}
-	
 	/**
 	 * Calculates Host's average CPU utilization over the last window of time.
 	 * 
@@ -807,23 +722,6 @@ public class RelocationPolicyLevel1 extends Policy {
 		
 		return Utility.roundDouble(avgCpuInUse / host.getHostDescription().getResourceCapacity().getCpu());
 	}
-	
-//	/**
-//	 * Determines whether an Application is available for migration or not.
-//	 * 
-//	 * It returns true if all the VMs that compose the application are not migrating out
-//	 * or scheduled to do so. Otherwise, it returns false.
-//	 */
-//	private boolean canMigrate(AppStatus application) {
-//		MigrationTrackingManager ongoingMigs = manager.getCapability(MigrationTrackingManager.class);
-//		
-//		for (VmStatus vm : application.getAllVms()) {
-//			if (ongoingMigs.isMigrating(vm.getId()))
-//				return false;
-//		}
-//		
-//		return true;
-//	}
 	
 	/**
 	 * Classifies hosts as Partially-Utilized, Under-Utilized or Empty based 
@@ -919,11 +817,6 @@ public class RelocationPolicyLevel1 extends Policy {
 				VmStatus hostingVm = this.findHostingVm(task, copy);
 				if (null != hostingVm)
 					affinitySetVms.add(hostingVm);
-				else
-					
-					// TODO: Now that we allow for dependencies/constraints to be violated, this shouldn't trigger an exception.
-					
-					throw new RuntimeException("Failed to find VM hosting instance of Task #" + task.getId() + " from App #" + task.getApplication().getId());
 			}
 			
 			affinitySets.add(affinitySetVms);
