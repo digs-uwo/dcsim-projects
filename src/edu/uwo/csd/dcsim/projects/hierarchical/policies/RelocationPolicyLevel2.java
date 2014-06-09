@@ -7,7 +7,6 @@ import edu.uwo.csd.dcsim.management.AutonomicManager;
 import edu.uwo.csd.dcsim.management.Policy;
 import edu.uwo.csd.dcsim.projects.hierarchical.MigRequestEntry;
 import edu.uwo.csd.dcsim.projects.hierarchical.RackData;
-import edu.uwo.csd.dcsim.projects.hierarchical.RackStatus;
 import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.ClusterManager;
 import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.MigRequestRecord;
 import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.RackPoolManager;
@@ -254,8 +253,7 @@ public class RelocationPolicyLevel2 extends Policy {
 		// then check if the Rack can host the VM; otherwise, activate a new Rack.
 		else if (active.size() == 1) {
 			RackData rack = active.get(0);
-			// if (rack.getId() != entry.getSender() && rack.isStatusValid() && RackData.canHost(entry.getApplication(), rack.getCurrentStatus().getStatusVector(), rack.getRackDescription())) {
-			if (rack.getId() != entry.getSender() && rack.isStatusValid() && this.canHost(entry.getVm(), rack)) {
+			if (rack.getId() != entry.getSender() && rack.isStatusValid() && RackData.canHost(entry.getVm(), rack.getCurrentStatus().getStatusVector(), rack.getRackDescription())) {
 				targetRack = rack;
 			}
 			else {
@@ -273,6 +271,10 @@ public class RelocationPolicyLevel2 extends Policy {
 				// Skip as well the Rack that sent the request -- if it belongs in this Cluster.
 				if (!rack.isStatusValid() || rack.getId() == entry.getSender())
 					continue;
+				
+				
+				// TODO: Should we be choosing a target Rack in the same way we do for an app. ??
+				
 				
 				// Find the Rack that would result in the least number of Host activations.
 				// If several Racks require a minimum number of Host activations,
