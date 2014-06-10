@@ -62,17 +62,24 @@ public class ClusterData {
 	}
 	
 	/**
-	 * Verifies whether the given Cluster can meet the resource requirements of the application request.
+	 * Verifies whether the given Cluster can meet the resource requirements of the given application.
 	 */
 	public static boolean canHost(AppStatus application, RackStatusVector currentStatus, ClusterDescription clusterDescription) {
 		return RackData.canHost(application, currentStatus, clusterDescription.getRackDescription());
 	}
 	
 	/**
-	 * Verifies whether the given Cluster can meet the resource requirements of the application request.
+	 * Verifies whether the given Cluster can meet the resource requirements of the given application request.
 	 */
 	public static boolean canHost(ConstrainedAppAllocationRequest request, RackStatusVector currentStatus, ClusterDescription clusterDescription) {
 		return RackData.canHost(request, currentStatus, clusterDescription.getRackDescription());
+	}
+	
+	/**
+	 * Verifies whether the given Cluster can meet the resource requirements of the given VM.
+	 */
+	public static boolean canHost(VmStatus vm, RackStatusVector currentStatus, ClusterDescription clusterDescription) {
+		return RackData.canHost(vm, currentStatus, clusterDescription.getRackDescription());
 	}
 	
 	public boolean isStatusValid() {
