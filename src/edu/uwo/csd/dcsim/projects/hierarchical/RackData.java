@@ -66,7 +66,7 @@ public class RackData {
 	 * Verifies whether the given Rack can meet the resource requirements of the VM, 
 	 * considering the Rack's max spare capacity and number of suspended and powered off Hosts.
 	 */
-	protected boolean canHost(VmStatus vm, RackStatusVector currentStatus, RackDescription rackDescription) {
+	public static boolean canHost(VmStatus vm, RackStatusVector currentStatus, RackDescription rackDescription) {
 		if (RackData.calculateMinHostActivations(vm, currentStatus, rackDescription.getHostDescription()) >= 0)
 			return true;
 		
