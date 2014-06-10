@@ -3,13 +3,13 @@ package edu.uwo.csd.dcsim.projects.hierarchical.events;
 import edu.uwo.csd.dcsim.management.*;
 import edu.uwo.csd.dcsim.management.events.MessageEvent;
 
-public class MigRequestEvent extends MessageEvent {
+public class VmMigRejectEvent extends MessageEvent {
 
 	private VmStatus vm;					// VM to migrate.
 	private AutonomicManager origin;		// Manager of the Rack requesting the migration.
-	private int sender;					// ID of the Rack or Cluster sending the request.
+	private int sender;					// ID of the Rack or Cluster sending the message.
 	
-	public MigRequestEvent(AutonomicManager target, VmStatus vm, AutonomicManager origin, int sender) {
+	public VmMigRejectEvent(AutonomicManager target, VmStatus vm, AutonomicManager origin, int sender) {
 		super(target);
 		
 		this.vm = vm;

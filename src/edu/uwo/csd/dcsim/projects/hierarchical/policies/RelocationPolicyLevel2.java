@@ -12,8 +12,8 @@ import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.MigRequestRecord;
 import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.RackPoolManager;
 import edu.uwo.csd.dcsim.projects.hierarchical.events.AppMigRequestEvent;
 import edu.uwo.csd.dcsim.projects.hierarchical.events.AppMigRejectEvent;
-import edu.uwo.csd.dcsim.projects.hierarchical.events.MigRejectEvent;
-import edu.uwo.csd.dcsim.projects.hierarchical.events.MigRequestEvent;
+import edu.uwo.csd.dcsim.projects.hierarchical.events.VmMigRejectEvent;
+import edu.uwo.csd.dcsim.projects.hierarchical.events.VmMigRequestEvent;
 
 /**
  * 
@@ -38,7 +38,7 @@ public class RelocationPolicyLevel2 extends Policy {
 	/**
 	 * This event can come from a Rack in this Cluster or from the DC Manager.
 	 */
-	public void execute(MigRequestEvent event) {
+	public void execute(VmMigRequestEvent event) {
 		
 		simulation.getLogger().debug(String.format("[Cluster #" + manager.getCapability(ClusterManager.class).getCluster().getId() + "]"
 				+ " AppRelocationPolicyLevel2 - New MigRequest - VM #" + event.getVm().getId()));
@@ -70,7 +70,7 @@ public class RelocationPolicyLevel2 extends Policy {
 	/**
 	 * This event can only come from Racks in this Cluster in response to migration requests sent by the ClusterManager.
 	 */
-	public void execute(MigRejectEvent event) {
+	public void execute(VmMigRejectEvent event) {
 		
 		simulation.getLogger().debug(String.format("[Cluster #%d] AppRelocationPolicyLevel2 - New Migration reject - VM #%d.",
 				manager.getCapability(ClusterManager.class).getCluster().getId(),
@@ -307,7 +307,7 @@ public class RelocationPolicyLevel2 extends Policy {
 					targetRack.getId()));
 			
 			// Found target. Send migration request.
-			simulation.sendEvent(new MigRequestEvent(targetRack.getRackManager(), entry.getVm(), entry.getOrigin(), 0));
+			simulation.sendEvent(new VmMigRequestEvent(targetRack.getRackManager(), entry.getVm(), entry.getOrigin(), 0));
 			
 			// Invalidate target Rack's status, as we know it to be incorrect until the next status update arrives.
 			targetRack.invalidateStatus(simulation.getSimulationTime());
@@ -327,7 +327,7 @@ public class RelocationPolicyLevel2 extends Policy {
 						manager.getCapability(ClusterManager.class).getCluster().getId(),
 						entry.getVm().getId()));
 				
-				simulation.sendEvent(new MigRequestEvent(target, entry.getVm(), entry.getOrigin(), clusterId));
+				simulation.sendEvent(new VmMigRequestEvent(target, entry.getVm(), entry.getOrigin(), clusterId));
 			}
 			// Event's sender does not belong in this Cluster.
 			else {
@@ -337,7 +337,7 @@ public class RelocationPolicyLevel2 extends Policy {
 						manager.getCapability(ClusterManager.class).getCluster().getId(),
 						entry.getVm().getId()));
 				
-				simulation.sendEvent(new MigRejectEvent(target, entry.getVm(), entry.getOrigin(), clusterId));
+				simulation.sendEvent(new VmMigRejectEvent(target, entry.getVm(), entry.getOrigin(), clusterId));
 			}
 			
 			// In any case, delete entry from migration requests record.

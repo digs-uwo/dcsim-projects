@@ -5,21 +5,21 @@ import edu.uwo.csd.dcsim.management.AutonomicManager;
 import edu.uwo.csd.dcsim.management.VmStatus;
 import edu.uwo.csd.dcsim.management.events.MessageEvent;
 
-public class MigAcceptEvent extends MessageEvent {
+public class VmMigAcceptEvent extends MessageEvent {
 
 	private VmStatus vm;
 	private Host targetHost;
 	private AutonomicManager origin;			// Manager accepting the migration.
 	
 	@Deprecated
-	public MigAcceptEvent(AutonomicManager target, VmStatus vm, Host targetHost) {
+	public VmMigAcceptEvent(AutonomicManager target, VmStatus vm, Host targetHost) {
 		super(target);
 		
 		this.vm = vm;
 		this.targetHost = targetHost;
 	}
 	
-	public MigAcceptEvent(AutonomicManager target, VmStatus vm, Host targetHost, AutonomicManager origin) {
+	public VmMigAcceptEvent(AutonomicManager target, VmStatus vm, Host targetHost, AutonomicManager origin) {
 		super(target);
 		
 		this.vm = vm;

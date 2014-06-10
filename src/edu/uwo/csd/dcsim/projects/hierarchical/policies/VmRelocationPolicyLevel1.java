@@ -91,7 +91,7 @@ public abstract class VmRelocationPolicyLevel1 extends Policy {
 	/**
 	 * This event comes from the Cluster Manager, trying to migrate the VM to this Rack.
 	 */
-	public void execute(MigRequestEvent event) {
+	public void execute(VmMigRequestEvent event) {
 		// Search for potential target Host.
 		HostData targetHost = this.findTargetHost(event.getVm());
 		
@@ -100,20 +100,20 @@ public abstract class VmRelocationPolicyLevel1 extends Policy {
 			// Invalidate target Host' status, as we know it to be incorrect until the next status update arrives.
 			targetHost.invalidateStatus(simulation.getSimulationTime());
 			
-			simulation.sendEvent(new MigAcceptEvent(event.getOrigin(), event.getVm(), targetHost.getHost()));
+			simulation.sendEvent(new VmMigAcceptEvent(event.getOrigin(), event.getVm(), targetHost.getHost()));
 			
 		}
 		// Otherwise, send message to ClusterManager rejecting the migration request.
 		else {
 			int rackId = manager.getCapability(RackManager.class).getRack().getId();
-			simulation.sendEvent(new MigRejectEvent(target, event.getVm(), event.getOrigin(), rackId));
+			simulation.sendEvent(new VmMigRejectEvent(target, event.getVm(), event.getOrigin(), rackId));
 		}
 	}
 	
 	/**
 	 * This event can only come from another Rack Manager with information about the selected target Host.
 	 */
-	public void execute(MigAcceptEvent event) {
+	public void execute(VmMigAcceptEvent event) {
 		
 		// Get entry from migration requests record.
 		MigRequestEntry entry = manager.getCapability(MigRequestRecord.class).getEntry(event.getVm(), manager);
@@ -132,7 +132,7 @@ public abstract class VmRelocationPolicyLevel1 extends Policy {
 	/**
 	 * This event can only come from the DC Manager, signaling that nobody can accept the migration request.
 	 */
-	public void execute(MigRejectEvent event) {
+	public void execute(VmMigRejectEvent event) {
 		// Delete entry from migration requests record.
 		MigRequestRecord record = manager.getCapability(MigRequestRecord.class);
 		record.removeEntry(record.getEntry(event.getVm(), event.getOrigin()));
@@ -252,7 +252,7 @@ public abstract class VmRelocationPolicyLevel1 extends Policy {
 		VmStatus vm = this.orderSourceVms(host.getCurrentStatus().getVms(), host).get(0);
 		
 		// Request assistance from ClusterManager to find a target Host for migrating the selected VM.
-		simulation.sendEvent(new MigRequestEvent(target, vm, manager, rackId));
+		simulation.sendEvent(new VmMigRequestEvent(target, vm, manager, rackId));
 		
 		// Keep track of the migration request just sent.
 		manager.getCapability(MigRequestRecord.class).addEntry(new MigRequestEntry(vm, manager, host));

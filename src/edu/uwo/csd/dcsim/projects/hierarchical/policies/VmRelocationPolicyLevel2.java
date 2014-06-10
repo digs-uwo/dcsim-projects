@@ -32,7 +32,7 @@ public class VmRelocationPolicyLevel2 extends Policy {
 	/**
 	 * This event can come from a Rack in this Cluster or from the DC Manager.
 	 */
-	public void execute(MigRequestEvent event) {
+	public void execute(VmMigRequestEvent event) {
 		MigRequestEntry entry = new MigRequestEntry(event.getVm(), event.getOrigin(), event.getSender());
 		
 		// Store info about migration request just received.
@@ -44,7 +44,7 @@ public class VmRelocationPolicyLevel2 extends Policy {
 	/**
 	 * This event can only come from Racks in this Cluster in response to migration requests sent by the ClusterManager.
 	 */
-	public void execute(MigRejectEvent event) {
+	public void execute(VmMigRejectEvent event) {
 		// Mark sender's status as invalid (to avoid choosing sender again in the next step).
 		Collection<RackData> racks = manager.getCapability(RackPoolManager.class).getRacks();
 		for (RackData rack : racks) {
@@ -142,7 +142,7 @@ public class VmRelocationPolicyLevel2 extends Policy {
 		
 		if (null != targetRack) {
 			// Found target. Send migration request.
-			simulation.sendEvent(new MigRequestEvent(targetRack.getRackManager(), entry.getVm(), entry.getOrigin(), 0));
+			simulation.sendEvent(new VmMigRequestEvent(targetRack.getRackManager(), entry.getVm(), entry.getOrigin(), 0));
 			
 			// Invalidate target Rack's status, as we know it to be incorrect until the next status update arrives.
 			targetRack.invalidateStatus(simulation.getSimulationTime());
@@ -157,12 +157,12 @@ public class VmRelocationPolicyLevel2 extends Policy {
 			// If event's sender belongs in this Cluster, request assistance from DC Manager 
 			// to find a target Host for the VM migration in another Cluster.
 			if (null != rackPool.getRack(entry.getSender())) {
-				simulation.sendEvent(new MigRequestEvent(target, entry.getVm(), entry.getOrigin(), clusterId));
+				simulation.sendEvent(new VmMigRequestEvent(target, entry.getVm(), entry.getOrigin(), clusterId));
 			}
 			// Event's sender does not belong in this Cluster.
 			else {
 				// Migration request was sent by DC Manager. Reject migration request.
-				simulation.sendEvent(new MigRejectEvent(target, entry.getVm(), entry.getOrigin(), clusterId));
+				simulation.sendEvent(new VmMigRejectEvent(target, entry.getVm(), entry.getOrigin(), clusterId));
 			}
 			
 			// In any case, delete entry from migration requests record.

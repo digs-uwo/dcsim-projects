@@ -29,7 +29,7 @@ public class VmRelocationPolicyLevel3 extends Policy {
 	/**
 	 * This event can only come from a Cluster in the Data Centre.
 	 */
-	public void execute(MigRequestEvent event) {
+	public void execute(VmMigRequestEvent event) {
 		MigRequestEntry entry = new MigRequestEntry(event.getVm(), event.getOrigin(), event.getSender());
 		
 		// Store info about migration request just received.
@@ -41,7 +41,7 @@ public class VmRelocationPolicyLevel3 extends Policy {
 	/**
 	 * This event can only come from a Cluster in response to a migration request sent by the DC Manager.
 	 */
-	public void execute(MigRejectEvent event) {
+	public void execute(VmMigRejectEvent event) {
 		// Mark sender's status as invalid (to avoid choosing sender again in the next step).
 		Collection<ClusterData> clusters = manager.getCapability(ClusterPoolManager.class).getClusters();
 		for (ClusterData cluster : clusters) {
@@ -197,7 +197,7 @@ public class VmRelocationPolicyLevel3 extends Policy {
 			simulation.getLogger().debug(this.getClass() + " - Found relocation target: Cluster #" + targetCluster.getId());
 			
 			// Found target. Send migration request.
-			simulation.sendEvent(new MigRequestEvent(targetCluster.getClusterManager(), entry.getVm(), entry.getOrigin(), 0));
+			simulation.sendEvent(new VmMigRequestEvent(targetCluster.getClusterManager(), entry.getVm(), entry.getOrigin(), 0));
 			
 			// Invalidate target Cluster's status, as we know it to be incorrect until the next status update arrives.
 			targetCluster.invalidateStatus(simulation.getSimulationTime());
@@ -211,7 +211,7 @@ public class VmRelocationPolicyLevel3 extends Policy {
 			simulation.getLogger().debug(this.getClass() + " - Failed to find relocation target.");
 			
 			// Contact RackManager origin to reject migration request.
-			simulation.sendEvent(new MigRejectEvent(entry.getOrigin(), entry.getVm(), entry.getOrigin(), 0));
+			simulation.sendEvent(new VmMigRejectEvent(entry.getOrigin(), entry.getVm(), entry.getOrigin(), 0));
 			
 			// Delete entry from migration requests record.
 			manager.getCapability(MigRequestRecord.class).removeEntry(entry);

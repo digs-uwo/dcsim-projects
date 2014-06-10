@@ -39,9 +39,9 @@ import edu.uwo.csd.dcsim.projects.hierarchical.events.AppMigAcceptEvent;
 import edu.uwo.csd.dcsim.projects.hierarchical.events.AppMigRequestEvent;
 import edu.uwo.csd.dcsim.projects.hierarchical.events.AppMigRejectEvent;
 import edu.uwo.csd.dcsim.projects.hierarchical.events.IncomingMigrationEvent;
-import edu.uwo.csd.dcsim.projects.hierarchical.events.MigAcceptEvent;
-import edu.uwo.csd.dcsim.projects.hierarchical.events.MigRejectEvent;
-import edu.uwo.csd.dcsim.projects.hierarchical.events.MigRequestEvent;
+import edu.uwo.csd.dcsim.projects.hierarchical.events.VmMigAcceptEvent;
+import edu.uwo.csd.dcsim.projects.hierarchical.events.VmMigRejectEvent;
+import edu.uwo.csd.dcsim.projects.hierarchical.events.VmMigRequestEvent;
 
 /**
  * This policy implements the VM Relocation process in two steps. First, the 
@@ -93,7 +93,7 @@ public class RelocationPolicyLevel1 extends Policy {
 	/**
 	 * This event can only come from another Rack Manager with information about the selected target Host.
 	 */
-	public void execute(MigAcceptEvent event) {
+	public void execute(VmMigAcceptEvent event) {
 		
 		simulation.getLogger().debug(String.format("[Rack #%d] AppRelocationPolicyLevel1 - MigRequest accepted - VM #%d." ,
 				manager.getCapability(RackManager.class).getRack().getId(),
@@ -182,7 +182,7 @@ public class RelocationPolicyLevel1 extends Policy {
 	/**
 	 * This event can only come from the DC Manager, signaling that nobody can accept the migration request.
 	 */
-	public void execute(MigRejectEvent event) {
+	public void execute(VmMigRejectEvent event) {
 		
 		simulation.getLogger().debug(String.format("[Rack #%d] RelocationPolicyLevel1 - MigRequest rejected - VM #%d.",
 				manager.getCapability(RackManager.class).getRack().getId(),
@@ -220,7 +220,7 @@ public class RelocationPolicyLevel1 extends Policy {
 	/**
 	 * This event comes from the Cluster Manager, trying to migrate a VM to this Rack.
 	 */
-	public void execute(MigRequestEvent event) {
+	public void execute(VmMigRequestEvent event) {
 		
 		simulation.getLogger().debug(String.format("[Rack #%d] AppRelocationPolicyLevel1 - New MigRequest - VM #%d.",
 				manager.getCapability(RackManager.class).getRack().getId(),
@@ -237,14 +237,14 @@ public class RelocationPolicyLevel1 extends Policy {
 			simulation.getLogger().debug(String.format("[Rack #%d] AppRelocationPolicyLevel1 - ACCEPTED.",
 					manager.getCapability(RackManager.class).getRack().getId()));
 			
-			simulation.sendEvent(new MigAcceptEvent(event.getOrigin(), event.getVm(), targetHost.getHost(), manager));
+			simulation.sendEvent(new VmMigAcceptEvent(event.getOrigin(), event.getVm(), targetHost.getHost(), manager));
 		}
 		else {	// Otherwise, send message to ClusterManager rejecting the migration request.
 			
 			simulation.getLogger().debug(String.format("[Rack #%d] AppRelocationPolicyLevel1 - REJECTED.",
 					manager.getCapability(RackManager.class).getRack().getId()));
 			
-			simulation.sendEvent(new MigRejectEvent(target, event.getVm(), event.getOrigin(), manager.getCapability(RackManager.class).getRack().getId()));
+			simulation.sendEvent(new VmMigRejectEvent(target, event.getVm(), event.getOrigin(), manager.getCapability(RackManager.class).getRack().getId()));
 		}
 	}
 	
@@ -617,7 +617,7 @@ public class RelocationPolicyLevel1 extends Policy {
 		manager.getCapability(MigrationTrackingManager.class).addMigratingVm(candidateVm.getId());
 		
 		// Request assistance from ClusterManager to find a target Rack to which to migrate the selected VM.
-		simulation.sendEvent(new MigRequestEvent(target, candidateVm, manager, manager.getCapability(RackManager.class).getRack().getId()));
+		simulation.sendEvent(new VmMigRequestEvent(target, candidateVm, manager, manager.getCapability(RackManager.class).getRack().getId()));
 		
 		// Keep track of the migration request just sent.
 		manager.getCapability(MigRequestRecord.class).addEntry(new MigRequestEntry(candidateVm, manager));

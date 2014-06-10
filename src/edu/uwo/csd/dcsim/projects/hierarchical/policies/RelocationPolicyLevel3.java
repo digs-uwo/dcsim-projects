@@ -17,8 +17,8 @@ import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.ClusterPoolManager;
 import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.MigRequestRecord;
 import edu.uwo.csd.dcsim.projects.hierarchical.events.AppMigRequestEvent;
 import edu.uwo.csd.dcsim.projects.hierarchical.events.AppMigRejectEvent;
-import edu.uwo.csd.dcsim.projects.hierarchical.events.MigRejectEvent;
-import edu.uwo.csd.dcsim.projects.hierarchical.events.MigRequestEvent;
+import edu.uwo.csd.dcsim.projects.hierarchical.events.VmMigRejectEvent;
+import edu.uwo.csd.dcsim.projects.hierarchical.events.VmMigRequestEvent;
 
 /**
  * 
@@ -39,7 +39,7 @@ public class RelocationPolicyLevel3 extends Policy {
 	/**
 	 * This event can only come from a Cluster in the Data Centre.
 	 */
-	public void execute(MigRequestEvent event) {
+	public void execute(VmMigRequestEvent event) {
 		
 		simulation.getLogger().debug(String.format("[DC Manager] RelocationPolicyLevel3 - New MigRequest - VM #%d.", event.getVm().getId()));
 		
@@ -69,7 +69,7 @@ public class RelocationPolicyLevel3 extends Policy {
 	/**
 	 * This event can only come from a Cluster in response to a migration request sent by the DC Manager.
 	 */
-	public void execute(MigRejectEvent event) {
+	public void execute(VmMigRejectEvent event) {
 		
 		simulation.getLogger().debug(String.format("[DC Manager] RelocationPolicyLevel3 - New Migration reject - VM #%d.", event.getVm().getId()));
 		
@@ -374,7 +374,7 @@ public class RelocationPolicyLevel3 extends Policy {
 			simulation.getLogger().debug(this.getClass() + " - Found relocation target: Cluster #" + targetCluster.getId());
 			
 			// Found target. Send migration request.
-			simulation.sendEvent(new MigRequestEvent(targetCluster.getClusterManager(), entry.getVm(), entry.getOrigin(), 0));
+			simulation.sendEvent(new VmMigRequestEvent(targetCluster.getClusterManager(), entry.getVm(), entry.getOrigin(), 0));
 			
 			// Invalidate target Cluster's status, as we know it to be incorrect until the next status update arrives.
 			targetCluster.invalidateStatus(simulation.getSimulationTime());
@@ -388,7 +388,7 @@ public class RelocationPolicyLevel3 extends Policy {
 			simulation.getLogger().debug(this.getClass() + " - Failed to find relocation target.");
 			
 			// Contact RackManager origin to reject migration request.
-			simulation.sendEvent(new MigRejectEvent(entry.getOrigin(), entry.getVm(), entry.getOrigin(), 0));
+			simulation.sendEvent(new VmMigRejectEvent(entry.getOrigin(), entry.getVm(), entry.getOrigin(), 0));
 			
 			// Delete entry from migration requests record.
 			manager.getCapability(MigRequestRecord.class).removeEntry(entry);
