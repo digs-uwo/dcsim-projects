@@ -62,11 +62,16 @@ public class AppData {
 		hashCode = original.hashCode;
 	}
 	
-	public AppData createSurrogate(AutonomicManager targetManager) {
+	public AppData createSurrogate(TaskData task, AutonomicManager targetManager) {
 		AppData app = new AppData(this);
 		
 		app.isMaster = false;
 		app.surrogates = null;
+		
+		app.tasks = new HashMap<Integer, TaskData>();
+		app.tasks.put(task.getId(), task);
+		
+		// Add target manager to the list of surrogate holders.
 		if (null == surrogates)
 			surrogates = new ArrayList<AutonomicManager>();
 		surrogates.add(targetManager);
