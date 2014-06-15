@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.Map;
 
 import edu.uwo.csd.dcsim.application.InteractiveTask;
-import edu.uwo.csd.dcsim.application.Task;
 import edu.uwo.csd.dcsim.common.Utility;
 import edu.uwo.csd.dcsim.host.Host;
 import edu.uwo.csd.dcsim.host.Resources;
@@ -382,6 +381,8 @@ public class AppConsolidationPolicyLevel1 extends Policy {
 	private Map<Integer, HostData> consolidateAntiAffinityVms(HostData source, ArrayList<VmStatus> antiAffinity, ArrayList<HostData> targets) {
 		Map<Integer, HostData> mapping = new HashMap<Integer, HostData>();
 		
+		VmPoolManager vmPool = manager.getCapability(VmPoolManager.class);
+		
 		for (VmStatus vm : antiAffinity) {
 			boolean success = false;
 			
@@ -396,7 +397,7 @@ public class AppConsolidationPolicyLevel1 extends Policy {
 					this.calculateHostAvgCpuUtilization(source) < this.calculateHostAvgCpuUtilization(target) &&
 					HostData.canHost(vm, target.getSandboxStatus(), target.getHostDescription()) && 
 					(target.getSandboxStatus().getResourcesInUse().getCpu() + vm.getResourcesInUse().getCpu()) / target.getHostDescription().getResourceCapacity().getCpu() <= targetUtilization &&
-					!this.isHostingTask(vm.getVm().getTaskInstance().getTask(), target)) {
+					!this.isHostingTask(vmPool.getVm(vm.getId()).getTask(), target)) {
 					
 					// Modify host and VM states to record the future migration. Note that we 
 					// can do this because we are using the designated 'sandbox' host status.
@@ -518,7 +519,7 @@ public class AppConsolidationPolicyLevel1 extends Policy {
 	/**
 	 * Determines whether the given Host is hosting an instance of the given Task.
 	 */
-	private boolean isHostingTask(Task task, HostData host) {
+	private boolean isHostingTask(TaskData task, HostData host) {
 		VmPoolManager vmPool = manager.getCapability(VmPoolManager.class);
 		
 		for (VmStatus vm : host.getSandboxStatus().getVms()) {

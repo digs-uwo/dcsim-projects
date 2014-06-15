@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.Map;
 
 import edu.uwo.csd.dcsim.application.InteractiveTask;
-import edu.uwo.csd.dcsim.application.Task;
 import edu.uwo.csd.dcsim.common.Tuple;
 import edu.uwo.csd.dcsim.common.Utility;
 import edu.uwo.csd.dcsim.host.Host;
@@ -229,6 +228,7 @@ public class AppRelocationPolicyLevel1 extends Policy {
 				hostId));
 		
 		MigrationTrackingManager ongoingMigs = manager.getCapability(MigrationTrackingManager.class);
+		VmPoolManager vmPool = manager.getCapability(VmPoolManager.class);
 		HostPoolManager hostPool = manager.getCapability(HostPoolManager.class);
 		Collection<HostData> hosts = hostPool.getHosts();
 		
@@ -328,7 +328,7 @@ public class AppRelocationPolicyLevel1 extends Policy {
 				if (target.getSandboxStatus().getIncomingMigrationCount() == 0 && target.getSandboxStatus().getOutgoingMigrationCount() == 0 &&
 					HostData.canHost(vm, target.getSandboxStatus(), target.getHostDescription()) && 
 					(target.getSandboxStatus().getResourcesInUse().getCpu() + vm.getResourcesInUse().getCpu()) / target.getHostDescription().getResourceCapacity().getCpu() <= targetUtilization &&
-					!this.isHostingTask(vm.getVm().getTaskInstance().getTask(), target)) {
+					!this.isHostingTask(vmPool.getVm(vm.getId()).getTask(), target)) {
 					
 					// Modify host and VM states to record the future migration. Note that we 
 					// can do this because we are using the designated 'sandbox' host status.
@@ -772,7 +772,7 @@ public class AppRelocationPolicyLevel1 extends Policy {
 	/**
 	 * Determines whether the given Host is hosting an instance of the given Task.
 	 */
-	private boolean isHostingTask(Task task, HostData host) {
+	private boolean isHostingTask(TaskData task, HostData host) {
 		VmPoolManager vmPool = manager.getCapability(VmPoolManager.class);
 		
 		for (VmStatus vm : host.getSandboxStatus().getVms()) {
