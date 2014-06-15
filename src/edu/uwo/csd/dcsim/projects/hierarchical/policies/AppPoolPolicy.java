@@ -2,6 +2,7 @@ package edu.uwo.csd.dcsim.projects.hierarchical.policies;
 
 import edu.uwo.csd.dcsim.management.Policy;
 import edu.uwo.csd.dcsim.management.events.VmInstantiationCompleteEvent;
+import edu.uwo.csd.dcsim.projects.hierarchical.AppData;
 import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.AppPoolManager;
 import edu.uwo.csd.dcsim.projects.hierarchical.events.IncomingMigrationEvent;
 
@@ -15,7 +16,9 @@ public class AppPoolPolicy extends Policy {
 		
 		simulation.getLogger().debug(String.format("[AppPool] Processing IncomingMigrationEvent for App #%d.", event.getApplication().getId()));
 		
-		manager.getCapability(AppPoolManager.class).addApplication(event.getApplication());
+		AppData app = event.getApplication();
+		if (app.isMaster())		// This check prevents master applications from being replaced by their surrogates (when the latter migrate back).
+			manager.getCapability(AppPoolManager.class).addApplication(app);
 	}
 	
 	public void execute(VmInstantiationCompleteEvent event) {
