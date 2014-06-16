@@ -43,6 +43,7 @@ import edu.uwo.csd.dcsim.projects.hierarchical.events.IncomingMigrationEvent;
 import edu.uwo.csd.dcsim.projects.hierarchical.events.RepairBrokenAppEvent;
 import edu.uwo.csd.dcsim.projects.hierarchical.events.SurrogateAppDataEvent;
 import edu.uwo.csd.dcsim.projects.hierarchical.events.SurrogateAppMigrateEvent;
+import edu.uwo.csd.dcsim.projects.hierarchical.events.SurrogateAppRejectEvent;
 import edu.uwo.csd.dcsim.projects.hierarchical.events.SurrogateAppRequestEvent;
 import edu.uwo.csd.dcsim.projects.hierarchical.events.VmMigAcceptEvent;
 import edu.uwo.csd.dcsim.projects.hierarchical.events.VmMigRejectEvent;
@@ -390,8 +391,13 @@ public class RelocationPolicyLevel1 extends Policy {
 		// We expect there to be only one element in the list.
 		for (TaskData task : app.getTasks()) {
 			
+			VmData vm = manager.getCapability(VmPoolManager.class).getVm(task.getHostingVm());
+			
+			// Mark VM as scheduled for migration.
+			manager.getCapability(MigrationTrackingManager.class).addMigratingVm(vm.getId());
+			
 			// Send VM status data to the Rack manager that owns the application.
-			simulation.sendEvent(new SurrogateAppDataEvent(app.getMaster(), app.getId(), manager.getCapability(VmPoolManager.class).getVm(task.getHostingVm()).getCurrentStatus(), manager));
+			simulation.sendEvent(new SurrogateAppDataEvent(app.getMaster(), app.getId(), vm.getCurrentStatus(), manager));
 		}
 	}
 	
@@ -482,12 +488,17 @@ public class RelocationPolicyLevel1 extends Policy {
 					vm.getId(),
 					event.getAppId()));
 			
+			// Request the Rack manager holding the surrogate app. to issue the migration.
 			simulation.sendEvent(new SurrogateAppMigrateEvent(event.getOrigin(), event.getAppId(), vm.getId(), targetHost.getHost()));
 		}
-		else
+		else {
 			simulation.getLogger().debug(String.format("[Rack #%d] RelocationPolicyLevel1 - Could not find suitable target Host for surrogate App #%d.",
 					manager.getCapability(RackManager.class).getRack().getId(),
 					event.getAppId()));
+			
+			// Inform the Rack manager holding the surrogate app. that no target Host was found.
+			simulation.sendEvent(new SurrogateAppRejectEvent(event.getOrigin(), event.getAppId(), vm.getId()));
+		}
 	}
 	
 	public void execute(SurrogateAppMigrateEvent event) {
@@ -519,6 +530,23 @@ public class RelocationPolicyLevel1 extends Policy {
 		// Trigger migration.
 		new MigrationAction(source.getHostManager(), source.getHost(), event.getTargetHost(), event.getVmId()).execute(simulation, this);
 	}
+	
+	public void execute(SurrogateAppRejectEvent event) {
+		
+		simulation.getLogger().debug(String.format("[Rack #%d] RelocationPolicyLevel1 - Surrogate migration rejected for VM #%d, App #%d.",
+				manager.getCapability(RackManager.class).getRack().getId(),
+				event.getVmId(),
+				event.getAppId()));
+		
+		// The VM had been marked for migration. Clear it.
+		manager.getCapability(MigrationTrackingManager.class).removeMigratingVm(event.getVmId());
+	}
+	
+	/**
+	 * 
+	 * Methods to support event handling.
+	 * 
+	 */
 	
 	/**
 	 * Performs the Relocation process within the scope of the Rack. The process searches for
