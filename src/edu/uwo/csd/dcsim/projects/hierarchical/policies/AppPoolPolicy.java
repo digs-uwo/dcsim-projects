@@ -1,5 +1,6 @@
 package edu.uwo.csd.dcsim.projects.hierarchical.policies;
 
+import edu.uwo.csd.dcsim.management.AutonomicManager;
 import edu.uwo.csd.dcsim.management.Policy;
 import edu.uwo.csd.dcsim.management.events.VmInstantiationCompleteEvent;
 import edu.uwo.csd.dcsim.projects.hierarchical.AppData;
@@ -16,9 +17,25 @@ public class AppPoolPolicy extends Policy {
 		
 		simulation.getLogger().debug(String.format("[AppPool] Processing IncomingMigrationEvent for App #%d.", event.getApplication().getId()));
 		
-		AppData app = event.getApplication();
-		if (app.isMaster())		// This check prevents master applications from being replaced by their surrogates (when the latter migrate back).
-			manager.getCapability(AppPoolManager.class).addApplication(app);
+		AppPoolManager appPool = manager.getCapability(AppPoolManager.class);
+		AppData incomingApp = event.getApplication();
+		AppData localApp = appPool.getApplication(incomingApp.getId());
+		
+		if (null == localApp)
+			appPool.addApplication(incomingApp);
+		else {			// The application already exists locally, so we need to figure out who is who (i.e., who is master and who is a surrogate) to decide how to proceed.
+			if (incomingApp.isMaster()) {
+				
+				if (localApp.isMaster())
+					throw new RuntimeException(String.format("[AppPool] Found local application and both are masters!"));
+				
+				incomingApp.mergeSurrogate(localApp, (AutonomicManager) event.getTarget());
+				appPool.addApplication(incomingApp);
+			}
+			else {		// Incoming application is a surrogate.
+				localApp.mergeSurrogate(incomingApp, event.getOrigin());
+			}
+		}
 	}
 	
 	public void execute(VmInstantiationCompleteEvent event) {

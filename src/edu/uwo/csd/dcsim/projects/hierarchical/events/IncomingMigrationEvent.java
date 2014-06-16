@@ -14,13 +14,15 @@ public class IncomingMigrationEvent extends MessageEvent {
 	private AppData application;
 	private Collection<VmData> vms;
 	private Map<Integer, Host> vmHostMap;
+	private AutonomicManager origin;
 	
-	public IncomingMigrationEvent(AutonomicManager target, AppData application, Collection<VmData> vms, Map<Integer, Host> vmHostMap) {
+	public IncomingMigrationEvent(AutonomicManager target, AppData application, Collection<VmData> vms, Map<Integer, Host> vmHostMap, AutonomicManager origin) {
 		super(target);
 		
 		this.application = application;
 		this.vms = vms;
 		this.vmHostMap = vmHostMap;
+		this.origin = origin;
 	}
 	
 	public AppData getApplication() {
@@ -33,6 +35,10 @@ public class IncomingMigrationEvent extends MessageEvent {
 	
 	public Map<Integer, Host> getTargetHosts() {
 		return vmHostMap;
+	}
+	
+	public AutonomicManager getOrigin() {
+		return origin;
 	}
 
 }
