@@ -394,10 +394,18 @@ public class RelocationPolicyLevel1 extends Policy {
 			VmData vm = manager.getCapability(VmPoolManager.class).getVm(task.getHostingVm());
 			
 			// Mark VM as scheduled for migration.
-			manager.getCapability(MigrationTrackingManager.class).addMigratingVm(vm.getId());
-			
-			// Send VM status data to the Rack manager that owns the application.
-			simulation.sendEvent(new SurrogateAppDataEvent(app.getMaster(), app.getId(), vm.getCurrentStatus(), manager));
+			// TODO: As it is currently implemented, if the VM is migrating (or scheduled to do so), we stop the process -- notice that we are not sending any events.
+			// This is not the right way of doing it, but it's the easy way right now (given the time constraints).
+			// How it should actually work is: the VM shouldn't be marked as migrating at all here; if then the owner of the master application requests the VM
+			// (actually, the surrogate app.) to be migrated back and the VM is migrating, the migration back should be queued until the current migration is completed
+			// (or it is cancelled, if the migration hadn't actually started).
+			MigrationTrackingManager ongoingMigs = manager.getCapability(MigrationTrackingManager.class);
+			if (!ongoingMigs.isMigrating(vm.getId())) {
+				ongoingMigs.addMigratingVm(vm.getId());
+				
+				// Send VM status data to the Rack manager that owns the application.
+				simulation.sendEvent(new SurrogateAppDataEvent(app.getMaster(), app.getId(), vm.getCurrentStatus(), manager));
+			}
 		}
 	}
 	
