@@ -797,16 +797,24 @@ public class RelocationPolicyLevel1 extends Policy {
 				manager.getCapability(RackManager.class).getRack().getId(),
 				hostId));
 		
+		MigrationTrackingManager ongoingMigs = manager.getCapability(MigrationTrackingManager.class);
 		HostData host = manager.getCapability(HostPoolManager.class).getHost(hostId);
 		ArrayList<VmStatus> vms = this.orderSourceVms(host.getCurrentStatus().getVms(), host);
 		
 		// Search for a single-VM application.
-		// Also, find the first VM hosting an Independent or Anti-affinity task.
+		// Also, find the first VM hosting an Independent or Anti-affinity task -- non-affinity.
+		// And the first VM hosting an Affinity task.
 		VmStatus candidateVm = null;
-		VmStatus secondCandidateVm = null;
+		VmStatus nonAffinityVm = null;
+		VmStatus affinityVm = null;
 		VmPoolManager vmPool = manager.getCapability(VmPoolManager.class);
 		AppPoolManager appPool = manager.getCapability(AppPoolManager.class);
 		for (VmStatus vm : vms) {
+			
+			// Skip VMs migrating out or scheduled to do so.
+			if (ongoingMigs.isMigrating(vm.getId()))
+				continue;
+			
 			TaskData task = vmPool.getVm(vm.getId()).getTask();
 			
 			if (appPool.getApplication(task.getApplication().getId()).size() == 1) {
@@ -814,21 +822,23 @@ public class RelocationPolicyLevel1 extends Policy {
 				break;
 			}
 			
-			if (null == secondCandidateVm && task.getConstraintType() != TaskConstraintType.AFFINITY)
-				secondCandidateVm = vm;
+			if (null == nonAffinityVm && task.getConstraintType() != TaskConstraintType.AFFINITY)
+				nonAffinityVm = vm;
+			
+			if (null == affinityVm && task.getConstraintType() == TaskConstraintType.AFFINITY)
+				affinityVm = vm;
 		}
 		
 		if (null != candidateVm) {				// Found single-VM application.
 			
 			AppStatus application = this.generateAppStatus(candidateVm);
 			
-			simulation.getLogger().debug(String.format("[Rack #%d] AppRelocationPolicyLevel1 - Trying to migrate away App #%d (#vms = %d).",
+			simulation.getLogger().debug(String.format("[Rack #%d] RelocationPolicyLevel1 - Trying to migrate away App #%d (#vms = %d).",
 					manager.getCapability(RackManager.class).getRack().getId(),
 					application.getId(),
 					application.getAllVms().size()));
 			
 			// Mark VMs as scheduled for migration.
-			MigrationTrackingManager ongoingMigs = manager.getCapability(MigrationTrackingManager.class);
 			for (VmStatus vm : application.getAllVms()) {
 				ongoingMigs.addMigratingVm(vm.getId());
 			}
@@ -841,19 +851,19 @@ public class RelocationPolicyLevel1 extends Policy {
 			
 			return true;
 		}
+		else if (null != nonAffinityVm)		// Found VM hosting an Independent or Anti-affinity task.
+			candidateVm = nonAffinityVm;
+		else if (null != affinityVm)			// Found VM hosting an Affinity task.
+			candidateVm = affinityVm;
+		else
+			return false;						// Could not find a VM to migrate.
 		
-		if (null != secondCandidateVm) {		// Found VM hosting an Independent or Anti-affinity task.
-			candidateVm = secondCandidateVm;
-		}
-		else									// Default: migrate the first VM in the list.
-			candidateVm = vms.get(0);
-		
-		simulation.getLogger().debug(String.format("[Rack #%d] AppRelocationPolicyLevel1 - Trying to migrate away VM #%d.",
+		simulation.getLogger().debug(String.format("[Rack #%d] RelocationPolicyLevel1 - Trying to migrate away VM #%d.",
 				manager.getCapability(RackManager.class).getRack().getId(),
 				candidateVm.getId()));
 		
 		// Mark VM as scheduled for migration.
-		manager.getCapability(MigrationTrackingManager.class).addMigratingVm(candidateVm.getId());
+		ongoingMigs.addMigratingVm(candidateVm.getId());
 		
 		// Request assistance from ClusterManager to find a target Rack to which to migrate the selected VM.
 		simulation.sendEvent(new VmMigRequestEvent(target, candidateVm, manager, manager.getCapability(RackManager.class).getRack().getId()));
