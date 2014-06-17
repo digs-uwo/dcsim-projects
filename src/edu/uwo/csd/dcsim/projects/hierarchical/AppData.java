@@ -38,7 +38,7 @@ public class AppData {
 		
 		tasks = new HashMap<Integer, TaskData>();
 		for (Task task : application.getTasks()) {
-			tasks.put(task.getId(), new TaskData(task, this));
+			tasks.put(task.getId(), new TaskData(task, id));
 		}
 		
 		independentTasks = application.getIndependentTasks();
@@ -62,7 +62,7 @@ public class AppData {
 		hashCode = original.hashCode;
 	}
 	
-	public AppData createSurrogate(TaskData task, AutonomicManager targetManager) {
+	public AppData createSurrogate(TaskData task, AutonomicManager remoteManager) {
 		AppData app = new AppData(this);
 		
 		app.isMaster = false;
@@ -71,12 +71,33 @@ public class AppData {
 		app.tasks = new HashMap<Integer, TaskData>();
 		app.tasks.put(task.getId(), task);
 		
+		// TODO: the task should be removed from the master application
+		
 		// Add target manager to the list of surrogate holders.
 		if (null == surrogates)
 			surrogates = new ArrayList<AutonomicManager>();
-		surrogates.add(targetManager);
+		surrogates.add(remoteManager);
 		
 		return app;
+	}
+	
+	public void mergeSurrogate(AppData surrogate, AutonomicManager remoteManager) {
+		
+		if (id != surrogate.getId())
+			throw new RuntimeException(String.format("[AppData] Trying to merge two different applications: App #%d and #%d.", id, surrogate.getId()));
+		if (surrogate.isMaster())
+			throw new RuntimeException(String.format("[AppData] Surrogate application submitted for merging is actually a master!"));
+		
+		// Add back surrogate's tasks.
+		for (TaskData task : surrogate.getTasks())
+			tasks.put(task.getId(), task);
+		
+		// If this is the master application, remove the remote manager from the list of surrogate holders.
+		if (isMaster) {
+			surrogates.remove(remoteManager);	// Should this be removeAll() instead?
+			if (surrogates.isEmpty())
+				surrogates = null;
+		}
 	}
 	
 	public int getId() {

@@ -125,7 +125,7 @@ public class AppRelocationPolicyLevel1 extends Policy {
 		
 		// Send AppData and VmData information to target Rack.
 		AppData application = manager.getCapability(AppPoolManager.class).getApplication(event.getApplication().getId());
-		simulation.sendEvent(new IncomingMigrationEvent(event.getOrigin(), application, vmPool.getVms(application.getHostingVmsIds()), targetHostMap));
+		simulation.sendEvent(new IncomingMigrationEvent(event.getOrigin(), application, vmPool.getVms(application.getHostingVmsIds()), targetHostMap, manager));
 		
 		// Trigger migrations.
 		migrations.execute(simulation, this);
@@ -722,7 +722,7 @@ public class AppRelocationPolicyLevel1 extends Policy {
 		
 		for (VmStatus vm : vms) {
 			TaskData vmTask = vmPool.getVm(vm.getId()).getTask();
-			if (vmTask.getId() == task.getId() && vmTask.getApplication().getId() == task.getApplication().getId())
+			if (vmTask.getId() == task.getId() && vmTask.getAppId() == task.getApplication().getId())
 				return vm;
 		}
 		
@@ -731,7 +731,7 @@ public class AppRelocationPolicyLevel1 extends Policy {
 	
 	private AppStatus generateAppStatus(VmStatus vm) {
 		VmPoolManager vmPool = manager.getCapability(VmPoolManager.class);
-		AppData application = manager.getCapability(AppPoolManager.class).getApplication(vmPool.getVm(vm.getId()).getTask().getApplication().getId());
+		AppData application = manager.getCapability(AppPoolManager.class).getApplication(vmPool.getVm(vm.getId()).getTask().getAppId());
 		
 		Map<Integer, VmStatus> vmStatusMap = new HashMap<Integer, VmStatus>();
 		for (VmData vmData : vmPool.getVms(application.getHostingVmsIds())) {
@@ -750,7 +750,7 @@ public class AppRelocationPolicyLevel1 extends Policy {
 			
 			// Get Affinity-set for the Task instance hosted in this VM.
 			TaskData vmTask = manager.getCapability(VmPoolManager.class).getVm(vm.getId()).getTask();
-			ArrayList<InteractiveTask> affinitySet = manager.getCapability(AppPoolManager.class).getApplication(vmTask.getApplication().getId()).getAffinitySet(vmTask);
+			ArrayList<InteractiveTask> affinitySet = manager.getCapability(AppPoolManager.class).getApplication(vmTask.getAppId()).getAffinitySet(vmTask);
 			
 			// Build the set of VMs hosting the Tasks in the previously found Affinity-set.
 			ArrayList<VmStatus> affinitySetVms = new ArrayList<VmStatus>();
@@ -777,7 +777,7 @@ public class AppRelocationPolicyLevel1 extends Policy {
 		
 		for (VmStatus vm : host.getSandboxStatus().getVms()) {
 			TaskData vmTask = vmPool.getVm(vm.getId()).getTask();
-			if (vmTask.getId() == task.getId() && vmTask.getApplication().getId() == task.getApplication().getId())
+			if (vmTask.getId() == task.getId() && vmTask.getAppId() == task.getAppId())
 				return true;
 		}
 		

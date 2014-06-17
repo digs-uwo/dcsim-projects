@@ -481,7 +481,7 @@ public class ConsolidationPolicyLevel1 extends Policy {
 		
 		for (VmStatus vm : vms) {
 			TaskData vmTask = vmPool.getVm(vm.getId()).getTask();
-			if (vmTask.getId() == task.getId() && vmTask.getApplication().getId() == task.getApplication().getId())
+			if (vmTask.getId() == task.getId() && vmTask.getAppId() == task.getApplication().getId())
 				return vm;
 		}
 		
@@ -497,7 +497,7 @@ public class ConsolidationPolicyLevel1 extends Policy {
 			
 			// Get Affinity-set for the Task instance hosted in this VM.
 			TaskData vmTask = manager.getCapability(VmPoolManager.class).getVm(vm.getId()).getTask();
-			ArrayList<InteractiveTask> affinitySet = manager.getCapability(AppPoolManager.class).getApplication(vmTask.getApplication().getId()).getAffinitySet(vmTask);
+			ArrayList<InteractiveTask> affinitySet = manager.getCapability(AppPoolManager.class).getApplication(vmTask.getAppId()).getAffinitySet(vmTask);
 			
 			// Build the set of VMs hosting the Tasks in the previously found Affinity-set.
 			ArrayList<VmStatus> affinitySetVms = new ArrayList<VmStatus>();
@@ -522,7 +522,7 @@ public class ConsolidationPolicyLevel1 extends Policy {
 		
 		for (VmStatus vm : host.getSandboxStatus().getVms()) {
 			TaskData vmTask = vmPool.getVm(vm.getId()).getTask();
-			if (vmTask.getId() == task.getId() && vmTask.getApplication().getId() == task.getApplication().getId())
+			if (vmTask.getId() == task.getId() && vmTask.getAppId() == task.getAppId())
 				return true;
 		}
 		

@@ -13,16 +13,31 @@ import edu.uwo.csd.dcsim.common.HashCodeUtil;
 public class TaskData {
 
 	private int id = -1;
+	@Deprecated
 	private AppData application;
+	private int appId = -1;
 	private TaskConstraintType constraintType;
 	private int hostingVmId = -1;
 	private ArrayList<Integer> hostingVmsIds = null;
 	
 	private final int hashCode;
 	
+	@Deprecated
 	public TaskData(Task task, AppData application) {
 		id = task.getId();
 		this.application = application;
+		constraintType = task.getConstraintType();
+		if (constraintType == TaskConstraintType.ANTI_AFFINITY) {
+			hostingVmsIds = new ArrayList<Integer>();
+		}
+		
+		// init hashCode
+		hashCode = generateHashCode();
+	}
+	
+	public TaskData(Task task, int appId) {
+		id = task.getId();
+		this.appId = appId;
 		constraintType = task.getConstraintType();
 		if (constraintType == TaskConstraintType.ANTI_AFFINITY) {
 			hostingVmsIds = new ArrayList<Integer>();
@@ -36,6 +51,11 @@ public class TaskData {
 		return id;
 	}
 	
+	public int getAppId() {
+		return appId;
+	}
+	
+	@Deprecated
 	public AppData getApplication() {
 		return application;
 	}
