@@ -30,6 +30,7 @@ import edu.uwo.csd.dcsim.projects.hierarchical.AppData;
 import edu.uwo.csd.dcsim.projects.hierarchical.AppStatus;
 import edu.uwo.csd.dcsim.projects.hierarchical.MigRequestEntry;
 import edu.uwo.csd.dcsim.projects.hierarchical.TaskData;
+import edu.uwo.csd.dcsim.projects.hierarchical.TaskInstanceData;
 import edu.uwo.csd.dcsim.projects.hierarchical.VmData;
 import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.AppPoolManager;
 import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.MigRequestRecord;
@@ -390,21 +391,22 @@ public class RelocationPolicyLevel1 extends Policy {
 		
 		// We expect there to be only one element in the list.
 		for (TaskData task : app.getTasks()) {
-			
-			VmData vm = manager.getCapability(VmPoolManager.class).getVm(task.getHostingVm());
-			
-			// Mark VM as scheduled for migration.
-			// TODO: As it is currently implemented, if the VM is migrating (or scheduled to do so), we stop the process -- notice that we are not sending any events.
-			// This is not the right way of doing it, but it's the easy way right now (given the time constraints).
-			// How it should actually work is: the VM shouldn't be marked as migrating at all here; if then the owner of the master application requests the VM
-			// (actually, the surrogate app.) to be migrated back and the VM is migrating, the migration back should be queued until the current migration is completed
-			// (or it is cancelled, if the migration hadn't actually started).
-			MigrationTrackingManager ongoingMigs = manager.getCapability(MigrationTrackingManager.class);
-			if (!ongoingMigs.isMigrating(vm.getId())) {
-				ongoingMigs.addMigratingVm(vm.getId());
+			for (TaskInstanceData instance : task.getInstances()) {
+				VmData vm = manager.getCapability(VmPoolManager.class).getVm(instance.getHostingVmId());
 				
-				// Send VM status data to the Rack manager that owns the application.
-				simulation.sendEvent(new SurrogateAppDataEvent(app.getMaster(), app.getId(), vm.getCurrentStatus(), manager));
+				// Mark VM as scheduled for migration.
+				// TODO: As it is currently implemented, if the VM is migrating (or scheduled to do so), we stop the process -- notice that we are not sending any events.
+				// This is not the right way of doing it, but it's the easy way right now (given the time constraints).
+				// How it should actually work is: the VM shouldn't be marked as migrating at all here; if then the owner of the master application requests the VM
+				// (actually, the surrogate app.) to be migrated back and the VM is migrating, the migration back should be queued until the current migration is completed
+				// (or it is cancelled, if the migration hadn't actually started).
+				MigrationTrackingManager ongoingMigs = manager.getCapability(MigrationTrackingManager.class);
+				if (!ongoingMigs.isMigrating(vm.getId())) {
+					ongoingMigs.addMigratingVm(vm.getId());
+					
+					// Send VM status data to the Rack manager that owns the application.
+					simulation.sendEvent(new SurrogateAppDataEvent(app.getMaster(), app.getId(), vm.getCurrentStatus(), manager));
+				}
 			}
 		}
 	}
@@ -460,13 +462,8 @@ public class RelocationPolicyLevel1 extends Policy {
 			if (task.getConstraintType() == TaskConstraintType.ANTI_AFFINITY) {
 				
 				// For each task instance, remove the Host currently hosting the VM carrying said instance.
-				
-				VmData taskVm = null;
-				for (int vmId : task.getHostingVms()) {
-					taskVm = vmPool.getVm(vmId);
-					if (null != taskVm) {
-						hosts.remove(taskVm.getHost());
-					}
+				for (TaskInstanceData instance : task.getInstances()) {
+					hosts.remove(vmPool.getVm(instance.getHostingVmId()).getHost());
 				}
 			}
 			

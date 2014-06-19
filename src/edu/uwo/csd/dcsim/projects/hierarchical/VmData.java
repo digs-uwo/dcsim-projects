@@ -7,7 +7,8 @@ import edu.uwo.csd.dcsim.management.VmStatus;
 public class VmData {
 	
 	private int id = -1;
-	private TaskData task;
+//	private TaskData task;
+	private TaskInstanceData taskInstance;
 	private HostData host;
 	
 	private VmStatus status;

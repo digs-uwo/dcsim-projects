@@ -1,6 +1,7 @@
 package edu.uwo.csd.dcsim.projects.hierarchical;
 
-import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
 
 import edu.uwo.csd.dcsim.application.Task;
 import edu.uwo.csd.dcsim.application.Task.TaskConstraintType;
@@ -13,38 +14,45 @@ import edu.uwo.csd.dcsim.common.HashCodeUtil;
 public class TaskData {
 
 	private int id = -1;
-	@Deprecated
-	private AppData application;
 	private int appId = -1;
 	private TaskConstraintType constraintType;
-	private int hostingVmId = -1;
-	private ArrayList<Integer> hostingVmsIds = null;
+	private HashMap<Long, TaskInstanceData> instances = new HashMap<Long, TaskInstanceData>();
 	
 	private final int hashCode;
-	
-	@Deprecated
-	public TaskData(Task task, AppData application) {
-		id = task.getId();
-		this.application = application;
-		constraintType = task.getConstraintType();
-		if (constraintType == TaskConstraintType.ANTI_AFFINITY) {
-			hostingVmsIds = new ArrayList<Integer>();
-		}
-		
-		// init hashCode
-		hashCode = generateHashCode();
-	}
 	
 	public TaskData(Task task, int appId) {
 		id = task.getId();
 		this.appId = appId;
 		constraintType = task.getConstraintType();
-		if (constraintType == TaskConstraintType.ANTI_AFFINITY) {
-			hostingVmsIds = new ArrayList<Integer>();
-		}
 		
 		// init hashCode
 		hashCode = generateHashCode();
+	}
+	
+	private TaskData(TaskData original) {
+		id = original.id;
+		appId = original.appId;
+		constraintType = original.constraintType;
+		instances = new HashMap<Long, TaskInstanceData>(original.instances);
+		hashCode = original.hashCode;
+	}
+	
+	public TaskData copy() {
+		return new TaskData(this);
+	}
+	
+	public void addInstance(TaskInstanceData instance) {
+		instances.put(instance.getId(), instance);
+	}
+	
+	public TaskInstanceData removeInstance(long instanceId) {
+		return instances.remove(instanceId);
+	}
+	
+	public void setHostingVm(long taskInstanceId, int vmId) {
+		TaskInstanceData instance = new TaskInstanceData(taskInstanceId, id, appId);
+		instance.setHostingVm(vmId);
+		instances.put(taskInstanceId, instance);
 	}
 	
 	public int getId() {
@@ -55,30 +63,26 @@ public class TaskData {
 		return appId;
 	}
 	
-	@Deprecated
-	public AppData getApplication() {
-		return application;
-	}
-	
 	public TaskConstraintType getConstraintType() {
 		return constraintType;
 	}
 	
-	public int getHostingVm() {
-		return hostingVmId;
+	public TaskInstanceData getInstance(long instanceId) {
+		return instances.get(instanceId);
 	}
 	
-	public ArrayList<Integer> getHostingVms() {
-		return hostingVmsIds;
+	public Collection<TaskInstanceData> getInstances() {
+		return instances.values();
 	}
 	
-	public void setHostingVm(int vmId) {
-		if (constraintType == TaskConstraintType.ANTI_AFFINITY) {
-			hostingVmsIds.add(vmId);
-		}
-		else
-			hostingVmId = vmId;
-	}
+//	public int getHostingVm() {
+//		return hostingVmId;
+//	}
+//	
+//	@Deprecated
+//	public ArrayList<Integer> getHostingVms() {
+//		return hostingVmsIds;
+//	}
 	
 	@Override
 	public int hashCode() {

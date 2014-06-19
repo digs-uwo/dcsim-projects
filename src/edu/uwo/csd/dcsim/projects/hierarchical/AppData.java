@@ -3,11 +3,12 @@ package edu.uwo.csd.dcsim.projects.hierarchical;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
 
 import edu.uwo.csd.dcsim.application.InteractiveApplication;
 import edu.uwo.csd.dcsim.application.InteractiveTask;
 import edu.uwo.csd.dcsim.application.Task;
-import edu.uwo.csd.dcsim.application.Task.TaskConstraintType;
 import edu.uwo.csd.dcsim.common.HashCodeUtil;
 import edu.uwo.csd.dcsim.management.AutonomicManager;
 
@@ -21,7 +22,7 @@ public class AppData {
 	
 	private boolean isMaster = true;
 	private AutonomicManager master = null;
-	private ArrayList<AutonomicManager> surrogates = null;
+	private HashSet<AutonomicManager> surrogates = null;
 	
 	private HashMap<Integer, TaskData> tasks;
 	
@@ -54,7 +55,7 @@ public class AppData {
 		isMaster = original.isMaster;
 		master = original.master;
 		if (null != surrogates)
-			surrogates = new ArrayList<AutonomicManager>(original.surrogates);
+			surrogates = new HashSet<AutonomicManager>(original.surrogates);
 		tasks = new HashMap<Integer, TaskData>(original.tasks);
 		independentTasks = new ArrayList<InteractiveTask>(original.independentTasks);
 		antiAffinityTasks = new ArrayList<InteractiveTask>(original.antiAffinityTasks);
@@ -62,20 +63,29 @@ public class AppData {
 		hashCode = original.hashCode;
 	}
 	
-	public AppData createSurrogate(TaskData task, AutonomicManager remoteManager) {
+	public AppData createSurrogate(TaskInstanceData instance, AutonomicManager remoteManager) {
 		AppData app = new AppData(this);
 		
 		app.isMaster = false;
 		app.surrogates = null;
 		
-		app.tasks = new HashMap<Integer, TaskData>();
-		app.tasks.put(task.getId(), task);
-		
-		// TODO: the task should be removed from the master application
+		// Move given task to surrogate application, or create a copy of the task (if the task has multiple instances).
+		TaskData task = tasks.get(instance.getTaskId());
+		if (task.getInstances().size() == 1) {		// Task has only one instance; move whole task from master to surrogate application.
+			tasks.remove(task.getId());
+			app.tasks = new HashMap<Integer, TaskData>();
+			app.tasks.put(task.getId(), task);
+		}
+		else {		// Task has multiple instances; remove instance from task, and create a copy of the task containing only the given instance.
+			task.removeInstance(instance.getId());
+			TaskData remoteTask = task.copy();
+			remoteTask.getInstances().clear();
+			remoteTask.addInstance(instance);
+		}
 		
 		// Add target manager to the list of surrogate holders.
 		if (null == surrogates)
-			surrogates = new ArrayList<AutonomicManager>();
+			surrogates = new HashSet<AutonomicManager>();
 		surrogates.add(remoteManager);
 		
 		return app;
@@ -89,12 +99,18 @@ public class AppData {
 			throw new RuntimeException(String.format("[AppData] Surrogate application submitted for merging is actually a master!"));
 		
 		// Add back surrogate's tasks.
-		for (TaskData task : surrogate.getTasks())
-			tasks.put(task.getId(), task);
+		for (TaskData task : surrogate.getTasks()) {
+			TaskData localTask = tasks.get(task.getId());
+			if (null != localTask)
+				for (TaskInstanceData instance : task.getInstances())
+					localTask.addInstance(instance);
+			else
+				tasks.put(task.getId(), task);
+		}
 		
 		// If this is the master application, remove the remote manager from the list of surrogate holders.
 		if (isMaster) {
-			surrogates.remove(remoteManager);	// Should this be removeAll() instead?
+			surrogates.remove(remoteManager);
 			if (surrogates.isEmpty())
 				surrogates = null;
 		}
@@ -113,7 +129,13 @@ public class AppData {
 	}
 	
 	public ArrayList<AutonomicManager> getSurrogates() {
-		return surrogates;
+		ArrayList<AutonomicManager> out = new ArrayList<AutonomicManager>();
+		
+		Iterator<AutonomicManager> it = surrogates.iterator();
+		while (it.hasNext())
+			out.add(it.next());
+		
+		return out;
 	}
 	
 	public TaskData getTask(int taskId) {
@@ -151,11 +173,9 @@ public class AppData {
 	public ArrayList<Integer> getHostingVmsIds() {
 		ArrayList<Integer> vms = new ArrayList<Integer>();
 		for (TaskData task : tasks.values()) {
-			if (task.getConstraintType() == TaskConstraintType.ANTI_AFFINITY) {
-				vms.addAll(task.getHostingVms());
+			for (TaskInstanceData instance : task.getInstances()) {
+				vms.add(instance.getHostingVmId());
 			}
-			else
-				vms.add(task.getHostingVm());
 		}
 		
 		return vms;
@@ -166,15 +186,9 @@ public class AppData {
 	 */
 	public int size() {
 		int count = 0;
-		
 		for (TaskData task : tasks.values()) {
-			if (task.getConstraintType() == TaskConstraintType.ANTI_AFFINITY) {
-				count += task.getHostingVms().size();
-			}
-			else
-				count++;
+			count += task.getInstances().size();
 		}
-		
 		return count;
 	}
 	

@@ -1,6 +1,5 @@
 package edu.uwo.csd.dcsim.projects.hierarchical.policies;
 
-import edu.uwo.csd.dcsim.management.AutonomicManager;
 import edu.uwo.csd.dcsim.management.Policy;
 import edu.uwo.csd.dcsim.management.events.VmInstantiationCompleteEvent;
 import edu.uwo.csd.dcsim.projects.hierarchical.AppData;
@@ -29,7 +28,7 @@ public class AppPoolPolicy extends Policy {
 				if (localApp.isMaster())
 					throw new RuntimeException(String.format("[AppPool] Found local application and both are masters!"));
 				
-				incomingApp.mergeSurrogate(localApp, (AutonomicManager) event.getTarget());
+				incomingApp.mergeSurrogate(localApp, manager);
 				appPool.addApplication(incomingApp);
 			}
 			else {		// Incoming application is a surrogate.
@@ -42,7 +41,7 @@ public class AppPoolPolicy extends Policy {
 		
 		simulation.getLogger().debug(String.format("[AppPool] Processing VmInstantiationCompleteEvent for VM #%d in Host #%d.", event.getVmId(), event.getHostId()));
 		
-		manager.getCapability(AppPoolManager.class).getApplication(event.getApplicationId()).getTask(event.getTaskId()).setHostingVm(event.getVmId());
+		manager.getCapability(AppPoolManager.class).getApplication(event.getApplicationId()).getTask(event.getTaskId()).setHostingVm(event.getInstanceId(), event.getVmId());
 	}
 	
 	@Override
