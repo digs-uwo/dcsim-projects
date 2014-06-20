@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.Map;
 
 import edu.uwo.csd.dcsim.application.InteractiveTask;
-import edu.uwo.csd.dcsim.application.Task;
 import edu.uwo.csd.dcsim.application.Task.TaskConstraintType;
 import edu.uwo.csd.dcsim.common.SimTime;
 import edu.uwo.csd.dcsim.common.Utility;
@@ -417,39 +416,44 @@ public class RelocationPolicyLevel1 extends Policy {
 				manager.getCapability(RackManager.class).getRack().getId(),
 				event.getAppId()));
 		
+		AppPoolManager appPool = manager.getCapability(AppPoolManager.class);
 		VmPoolManager vmPool = manager.getCapability(VmPoolManager.class);
 		
 		VmStatus vm = event.getVm();
 		TaskInstanceData taskInstance = vmPool.getVm(vm.getId()).getTask();
-		TaskData task = manager.getCapability(AppPoolManager.class).getApplication(taskInstance.getAppId()).getTask(taskInstance.getTaskId());
+		TaskData task = appPool.getApplication(taskInstance.getAppId()).getTask(taskInstance.getTaskId());
 		
-		// Create list of potential targets.
-		ArrayList<HostData> targets = new ArrayList<HostData>();
+		// List of potential targets.
+		ArrayList<HostData> targets = null;
 		
 		// AFFINITY: find the Host hosting the other tasks in the Affinity set.
 		
 		if (task.getConstraintType() == TaskConstraintType.AFFINITY) {
 			
-			// Find the Host of the tasks in the same Affinity set.
-			// TODO: If we allow for more than 1 VM per app to be migrated away, this code won't work.
-			// Instead, we need to loop over all tasks until finding one that it's hosted locally.
-			// It could happen that all the tasks in an Affinity set were migrated away, in which case
-			// the current task can be treated as INDEPENDENT.
+			// Find the Host where the tasks in the same Affinity set are hosted.
+			// If there's at least one VM in the Affinity set still hosted in this Rack, use its Host as target;
+			// otherwise, treat the VM as if hosting an INDEPENDENT task.
 			HostData targetHost = null;
-			AppData app = manager.getCapability(AppPoolManager.class).getApplication(event.getAppId());
-			for (Task t : app.getAffinitySet(task.getId())) {
-				if (t.getId() != task.getId()) {
-					targetHost = vmPool.getVm(app.getTask(t.getId()).getInstance().getHostingVmId()).getHost();
-					break;
-				}
+			AppData app = appPool.getApplication(event.getAppId());
+			for (InteractiveTask t : app.getAffinitySet(task.getId())) {
+				TaskData localTask = app.getTask(t.getId());
+				if (null != localTask)		// Found a task in the Affinity set still hosted in this Rack.
+					targetHost = vmPool.getVm(localTask.getInstance().getHostingVmId()).getHost();
 			}
 			
-			if (!this.isStressed(targetHost)) {
-				targets.add(targetHost);
+			if (null != targetHost) {					// Found Host.
+				
+				targets = new ArrayList<HostData>();	// Creating the list signals that we found a candidate Host, so there's no need to consider other Hosts.
+				
+				if (!this.isStressed(targetHost))		
+					targets.add(targetHost);			// Host not stressed. Try to place VM here.
+				// ELSE:								// Host is stressed. Terminate method.
 			}
+			// ELSE:									// Host not found. Treat VM's task as INDEPENDENT.
 			
 		}
-		else {		// Task constraint type = INDEPENDENT or ANTI_AFFINITY
+		
+		if (null == targets) {		// Task constraint type = INDEPENDENT or ANTI_AFFINITY. Need list of potential target Hosts.
 			
 			ArrayList<HostData> hosts = new ArrayList<HostData>(manager.getCapability(HostPoolManager.class).getHosts());
 			
@@ -481,7 +485,9 @@ public class RelocationPolicyLevel1 extends Policy {
 			targets = this.orderTargetHosts(partiallyUtilized, underUtilized, empty);
 		}
 		
-		HostData targetHost =  this.placeVmWherever(vm, targets);
+		HostData targetHost = null;
+		if (!targets.isEmpty())
+			targetHost = this.placeVmWherever(vm, targets);
 		
 		if (null != targetHost) {
 			
@@ -825,7 +831,14 @@ public class RelocationPolicyLevel1 extends Policy {
 			AppData app = appPool.getApplication(taskInstance.getAppId());
 			TaskData task = app.getTask(taskInstance.getTaskId());
 			
-			if (app.size() == 1) {
+			// Check if VM belongs to a surrogate application. If so, skip it, given that we don't allow surrogate applications
+			// to be externally relocated.
+			if (!app.isMaster())
+				continue;
+			
+			// If the VM is the only VM in the application and the application has no surrogates -- an application with surrogates
+			// is not allowed to externally relocate --, try to relocate the application. 
+			if (app.size() == 1 && null == app.getSurrogates()) {
 				candidateVm = vm;
 				break;
 			}
