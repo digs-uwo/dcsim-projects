@@ -7,17 +7,16 @@ import edu.uwo.csd.dcsim.management.VmStatus;
 public class VmData {
 	
 	private int id = -1;
-//	private TaskData task;
-	private TaskInstanceData taskInstance;
+	private TaskInstanceData task;
 	private HostData host;
 	
 	private VmStatus status;
 	
 	private final int hashCode;
 	
-	public VmData(int vmId, TaskData task, HostData host) {
+	public VmData(int vmId, TaskInstanceData taskInstance, HostData host) {
 		this.id = vmId;
-		this.task = task;
+		this.task = taskInstance;
 		this.host = host;
 		
 		// init hashCode
@@ -28,7 +27,7 @@ public class VmData {
 		return id;
 	}
 	
-	public TaskData getTask() {
+	public TaskInstanceData getTask() {
 		return task;
 	}
 	

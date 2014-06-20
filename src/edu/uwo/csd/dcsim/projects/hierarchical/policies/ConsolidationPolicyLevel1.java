@@ -25,7 +25,7 @@ import edu.uwo.csd.dcsim.management.action.MigrationAction;
 import edu.uwo.csd.dcsim.management.action.SequentialManagementActionExecutor;
 import edu.uwo.csd.dcsim.management.action.ShutdownHostAction;
 import edu.uwo.csd.dcsim.management.capabilities.HostPoolManager;
-import edu.uwo.csd.dcsim.projects.hierarchical.TaskData;
+import edu.uwo.csd.dcsim.projects.hierarchical.TaskInstanceData;
 import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.AppPoolManager;
 import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.RackManager;
 import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.MigrationTrackingManager;
@@ -286,11 +286,13 @@ public class ConsolidationPolicyLevel1 extends Policy {
 	 * of their hosted Task instance.
 	 */
 	protected void classifyVms(ArrayList<VmStatus> vms, ArrayList<VmStatus> independent, ArrayList<VmStatus> antiAffinity, ArrayList<VmStatus> affinity) {
+		AppPoolManager appPool = manager.getCapability(AppPoolManager.class);
 		VmPoolManager vmPool = manager.getCapability(VmPoolManager.class);
 		
 		for (VmStatus vm : vms) {
+			TaskInstanceData vmTask = vmPool.getVm(vm.getId()).getTask();
 			
-			switch (vmPool.getVm(vm.getId()).getTask().getConstraintType()) {
+			switch (appPool.getApplication(vmTask.getAppId()).getTask(vmTask.getTaskId()).getConstraintType()) {
 			case INDEPENDENT:
 				independent.add(vm);
 				break;
@@ -480,7 +482,7 @@ public class ConsolidationPolicyLevel1 extends Policy {
 		VmPoolManager vmPool = manager.getCapability(VmPoolManager.class);
 		
 		for (VmStatus vm : vms) {
-			TaskData vmTask = vmPool.getVm(vm.getId()).getTask();
+			TaskInstanceData vmTask = vmPool.getVm(vm.getId()).getTask();
 			if (vmTask.getId() == task.getId() && vmTask.getAppId() == task.getApplication().getId())
 				return vm;
 		}
@@ -496,8 +498,8 @@ public class ConsolidationPolicyLevel1 extends Policy {
 			VmStatus vm = copy.get(0);
 			
 			// Get Affinity-set for the Task instance hosted in this VM.
-			TaskData vmTask = manager.getCapability(VmPoolManager.class).getVm(vm.getId()).getTask();
-			ArrayList<InteractiveTask> affinitySet = manager.getCapability(AppPoolManager.class).getApplication(vmTask.getAppId()).getAffinitySet(vmTask);
+			TaskInstanceData vmTask = manager.getCapability(VmPoolManager.class).getVm(vm.getId()).getTask();
+			ArrayList<InteractiveTask> affinitySet = manager.getCapability(AppPoolManager.class).getApplication(vmTask.getAppId()).getAffinitySet(vmTask.getTaskId());
 			
 			// Build the set of VMs hosting the Tasks in the previously found Affinity-set.
 			ArrayList<VmStatus> affinitySetVms = new ArrayList<VmStatus>();
@@ -517,11 +519,11 @@ public class ConsolidationPolicyLevel1 extends Policy {
 	/**
 	 * Determines whether the given Host is hosting an instance of the given Task.
 	 */
-	private boolean isHostingTask(TaskData task, HostData host) {
+	private boolean isHostingTask(TaskInstanceData task, HostData host) {
 		VmPoolManager vmPool = manager.getCapability(VmPoolManager.class);
 		
 		for (VmStatus vm : host.getSandboxStatus().getVms()) {
-			TaskData vmTask = vmPool.getVm(vm.getId()).getTask();
+			TaskInstanceData vmTask = vmPool.getVm(vm.getId()).getTask();
 			if (vmTask.getId() == task.getId() && vmTask.getAppId() == task.getAppId())
 				return true;
 		}

@@ -146,11 +146,11 @@ public class AppData {
 		return tasks.values();
 	}
 	
-	public ArrayList<InteractiveTask> getAffinitySet(TaskData task) {
+	public ArrayList<InteractiveTask> getAffinitySet(int taskId) {
 		
 		for (ArrayList<InteractiveTask> affinitySet : affinityTasks) {
 			for (InteractiveTask t : affinitySet) {
-				if (t.getId() == task.getId())
+				if (t.getId() == taskId)
 					return new ArrayList<InteractiveTask>(affinitySet);
 			}
 		}

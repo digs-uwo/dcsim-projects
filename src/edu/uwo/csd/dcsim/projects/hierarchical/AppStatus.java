@@ -27,9 +27,7 @@ public class AppStatus {
 		// Generate constrain sets.
 		independentVms = new ArrayList<VmStatus>();
 		for (InteractiveTask task : application.getIndependentTasks()) {
-			for (TaskInstanceData instance : application.getTask(task.getId()).getInstances()) {
-				independentVms.add(vms.get(instance.getHostingVmId()));
-			}
+			independentVms.add(vms.get(application.getTask(task.getId()).getInstance().getHostingVmId()));
 		}
 		
 		antiAffinityVms = new ArrayList<ArrayList<VmStatus>>();
@@ -45,9 +43,7 @@ public class AppStatus {
 		for (ArrayList<InteractiveTask> set : application.getAffinityTasks()) {
 			ArrayList<VmStatus> vmSet = new ArrayList<VmStatus>();
 			for (InteractiveTask task : set) {
-				for (TaskInstanceData instance : application.getTask(task.getId()).getInstances()) {
-					vmSet.add(vms.get(instance.getHostingVmId()));
-				}
+				vmSet.add(vms.get(application.getTask(task.getId()).getInstance().getHostingVmId()));
 			}
 			affinityVms.add(vmSet);
 		}

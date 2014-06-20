@@ -77,7 +77,7 @@ public class VmPoolPolicy extends Policy {
 		simulation.getLogger().debug(String.format("[VmPool] Processing VmInstantiationCompleteEvent for VM #%d in Host #%d.", event.getVmId(), event.getHostId()));
 		
 		manager.getCapability(VmPoolManager.class).addVm(new VmData(event.getVmId(),
-				manager.getCapability(AppPoolManager.class).getApplication(event.getApplicationId()).getTask(event.getTaskId()),
+				manager.getCapability(AppPoolManager.class).getApplication(event.getApplicationId()).getTask(event.getTaskId()).getInstance(event.getInstanceId()),
 				manager.getCapability(HostPoolManager.class).getHost(event.getHostId())));
 	}
 	

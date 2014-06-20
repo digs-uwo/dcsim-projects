@@ -67,6 +67,16 @@ public class TaskData {
 		return constraintType;
 	}
 	
+	/**
+	 * Returns the only instance of this task. If the task has more than one instance, the method throws a RuntimeException.
+	 */
+	public TaskInstanceData getInstance() {
+		if (instances.size() == 1)
+			return instances.values().iterator().next();
+		else
+			throw new RuntimeException(String.format("[TaskData] This method was called on Task #%d of App #%d, which has more than one instance.", id, appId));
+	}
+	
 	public TaskInstanceData getInstance(long instanceId) {
 		return instances.get(instanceId);
 	}
@@ -74,15 +84,6 @@ public class TaskData {
 	public Collection<TaskInstanceData> getInstances() {
 		return instances.values();
 	}
-	
-//	public int getHostingVm() {
-//		return hostingVmId;
-//	}
-//	
-//	@Deprecated
-//	public ArrayList<Integer> getHostingVms() {
-//		return hostingVmsIds;
-//	}
 	
 	@Override
 	public int hashCode() {
