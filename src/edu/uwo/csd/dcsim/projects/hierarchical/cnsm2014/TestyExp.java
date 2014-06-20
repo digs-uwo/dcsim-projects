@@ -89,8 +89,8 @@ public class TestyExp extends SimulationTask {
 		
 		// Static load experiments.
 //		runSimulationSet(printStream, 400, SimTime.hours(40), SimTime.days(10), SimTime.days(2));
-//		runSimulationSet(printStream, 800, SimTime.hours(80), SimTime.days(12), SimTime.days(4));
-		runSimulationSet(printStream, 1440, SimTime.hours(144), SimTime.days(14), SimTime.days(6));
+		runSimulationSet(printStream, 800, SimTime.hours(80), SimTime.days(12), SimTime.days(4));
+//		runSimulationSet(printStream, 1440, SimTime.hours(144), SimTime.days(14), SimTime.days(6));
 //		runSimulationSet(printStream, 1600, SimTime.hours(160), SimTime.days(15), SimTime.days(7));
 		
 		// Random load experiments.
@@ -315,8 +315,8 @@ public class TestyExp extends SimulationTask {
 				rackManager.installPolicy(new VmPoolPolicy());
 				rackManager.installPolicy(new MigrationTrackingPolicy());
 				rackManager.installPolicy(new AppPlacementPolicyLevel1(clusterManager, lower, upper, target));
-				rackManager.installPolicy(new AppRelocationPolicyLevel1(clusterManager, lower, upper, target));
-				rackManager.installPolicy(new AppConsolidationPolicyLevel1(clusterManager, lower, upper, target), SimTime.hours(1), SimTime.hours(1));
+				rackManager.installPolicy(new RelocationPolicyLevel1(clusterManager, lower, upper, target));
+				rackManager.installPolicy(new ConsolidationPolicyLevel1(clusterManager, lower, upper, target), SimTime.hours(1), SimTime.hours(1));
 				
 				// TODO: Autonomic manager is NOT installed anywhere.
 				

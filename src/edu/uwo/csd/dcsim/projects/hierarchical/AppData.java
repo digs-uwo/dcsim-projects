@@ -129,13 +129,17 @@ public class AppData {
 	}
 	
 	public ArrayList<AutonomicManager> getSurrogates() {
-		ArrayList<AutonomicManager> out = new ArrayList<AutonomicManager>();
-		
-		Iterator<AutonomicManager> it = surrogates.iterator();
-		while (it.hasNext())
-			out.add(it.next());
-		
-		return out;
+		if (null == surrogates)
+			return null;
+		else { 
+			ArrayList<AutonomicManager> out = new ArrayList<AutonomicManager>();
+			
+			Iterator<AutonomicManager> it = surrogates.iterator();
+			while (it.hasNext())
+				out.add(it.next());
+			
+			return out;
+		}
 	}
 	
 	public TaskData getTask(int taskId) {
