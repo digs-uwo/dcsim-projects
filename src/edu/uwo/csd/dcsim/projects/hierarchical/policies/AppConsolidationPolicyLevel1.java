@@ -123,6 +123,10 @@ public class AppConsolidationPolicyLevel1 extends Policy {
 		ArrayList<HostData> sources = this.orderSourceHosts(unsortedSources);
 		ArrayList<HostData> targets = this.orderTargetHosts(partiallyUtilized, underUtilized);
 		
+		simulation.getLogger().debug(String.format("[Rack #%d] There are %d underutilized Hosts to consolidate.",
+				manager.getCapability(RackManager.class).getRack().getId(),
+				sources.size()));
+		
 		// TODO: Consolidation actions should probably be triggered sequentially, so as not to create
 		// too much overhead on the source and target hosts. However, the resource reservation for the
 		// consolidation actions should be issued immediately, so that no other decision making process
@@ -150,6 +154,10 @@ public class AppConsolidationPolicyLevel1 extends Policy {
 			
 			// Process Affinity VMs.
 			if (!affinity.isEmpty()) {
+				
+				simulation.getLogger().debug(String.format("[Rack #%d] Consolidating Affinity VMs...",
+						manager.getCapability(RackManager.class).getRack().getId()));
+				
 				Map<Integer, HostData> mapping = this.consolidateAffinityVms(source, affinity, targets);
 				if (null != mapping)
 					vmHostMap.putAll(mapping);
@@ -159,6 +167,10 @@ public class AppConsolidationPolicyLevel1 extends Policy {
 			
 			// Process Anti-affinity VMs.
 			if (success && !antiAffinity.isEmpty()) {
+				
+				simulation.getLogger().debug(String.format("[Rack #%d] Consolidating Anti-affinity VMs...",
+						manager.getCapability(RackManager.class).getRack().getId()));
+				
 				Map<Integer, HostData> mapping = this.consolidateAntiAffinityVms(source, antiAffinity, targets);
 				if (null != mapping)
 					vmHostMap.putAll(mapping);
@@ -168,6 +180,10 @@ public class AppConsolidationPolicyLevel1 extends Policy {
 			
 			// Process Independent VMs.
 			if (success && !independent.isEmpty()) {
+				
+				simulation.getLogger().debug(String.format("[Rack #%d] Consolidating Independent VMs...",
+						manager.getCapability(RackManager.class).getRack().getId()));
+				
 				Map<Integer, HostData> mapping = this.consolidateIndependentVms(source, independent, targets);
 				if (null != mapping)
 					vmHostMap.putAll(mapping);
@@ -483,7 +499,7 @@ public class AppConsolidationPolicyLevel1 extends Policy {
 		
 		for (VmStatus vm : vms) {
 			TaskInstanceData vmTask = vmPool.getVm(vm.getId()).getTask();
-			if (vmTask.getId() == task.getId() && vmTask.getAppId() == task.getApplication().getId())
+			if (vmTask.getTaskId() == task.getId() && vmTask.getAppId() == task.getApplication().getId())
 				return vm;
 		}
 		
@@ -526,7 +542,7 @@ public class AppConsolidationPolicyLevel1 extends Policy {
 		
 		for (VmStatus vm : host.getSandboxStatus().getVms()) {
 			TaskInstanceData vmTask = vmPool.getVm(vm.getId()).getTask();
-			if (vmTask.getId() == task.getId() && vmTask.getAppId() == task.getAppId())
+			if (vmTask.getTaskId() == task.getTaskId() && vmTask.getAppId() == task.getAppId())
 				return true;
 		}
 		

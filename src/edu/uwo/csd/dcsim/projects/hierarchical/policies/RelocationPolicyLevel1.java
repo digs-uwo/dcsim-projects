@@ -86,8 +86,8 @@ public class RelocationPolicyLevel1 extends Policy {
 		addRequiredCapability(AppPoolManager.class);
 		addRequiredCapability(HostPoolManager.class);
 		addRequiredCapability(VmPoolManager.class);
-		addRequiredCapability(MigRequestRecord.class);
 		addRequiredCapability(MigrationTrackingManager.class);
+		addRequiredCapability(MigRequestRecord.class);
 		
 		this.target = target;
 		
@@ -1053,7 +1053,7 @@ public class RelocationPolicyLevel1 extends Policy {
 		
 		for (VmStatus vm : vms) {
 			TaskInstanceData vmTask = vmPool.getVm(vm.getId()).getTask();
-			if (vmTask.getId() == task.getId() && vmTask.getAppId() == task.getApplication().getId())
+			if (vmTask.getTaskId() == task.getId() && vmTask.getAppId() == task.getApplication().getId())
 				return vm;
 		}
 		
@@ -1106,7 +1106,7 @@ public class RelocationPolicyLevel1 extends Policy {
 		
 		for (VmStatus vm : host.getSandboxStatus().getVms()) {
 			TaskInstanceData vmTask = vmPool.getVm(vm.getId()).getTask();
-			if (vmTask.getId() == task.getId() && vmTask.getAppId() == task.getAppId())
+			if (vmTask.getTaskId() == task.getTaskId() && vmTask.getAppId() == task.getAppId())
 				return true;
 		}
 		

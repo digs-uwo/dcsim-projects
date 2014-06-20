@@ -60,7 +60,9 @@ public class ConsolidationPolicyLevel1 extends Policy {
 	 * Creates an instance of AppConsolidationPolicyLevel1.
 	 */
 	public ConsolidationPolicyLevel1(AutonomicManager target, double lowerThreshold, double upperThreshold, double targetUtilization) {
+		addRequiredCapability(AppPoolManager.class);
 		addRequiredCapability(HostPoolManager.class);
+		addRequiredCapability(VmPoolManager.class);
 		addRequiredCapability(MigrationTrackingManager.class);
 		
 		this.target = target;
@@ -483,7 +485,7 @@ public class ConsolidationPolicyLevel1 extends Policy {
 		
 		for (VmStatus vm : vms) {
 			TaskInstanceData vmTask = vmPool.getVm(vm.getId()).getTask();
-			if (vmTask.getId() == task.getId() && vmTask.getAppId() == task.getApplication().getId())
+			if (vmTask.getTaskId() == task.getId() && vmTask.getAppId() == task.getApplication().getId())
 				return vm;
 		}
 		
@@ -524,7 +526,7 @@ public class ConsolidationPolicyLevel1 extends Policy {
 		
 		for (VmStatus vm : host.getSandboxStatus().getVms()) {
 			TaskInstanceData vmTask = vmPool.getVm(vm.getId()).getTask();
-			if (vmTask.getId() == task.getId() && vmTask.getAppId() == task.getAppId())
+			if (vmTask.getTaskId() == task.getTaskId() && vmTask.getAppId() == task.getAppId())
 				return true;
 		}
 		

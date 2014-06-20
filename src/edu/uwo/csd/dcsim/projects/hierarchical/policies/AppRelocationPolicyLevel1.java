@@ -724,7 +724,7 @@ public class AppRelocationPolicyLevel1 extends Policy {
 		
 		for (VmStatus vm : vms) {
 			TaskInstanceData vmTask = vmPool.getVm(vm.getId()).getTask();
-			if (vmTask.getId() == task.getId() && vmTask.getAppId() == task.getApplication().getId())
+			if (vmTask.getTaskId() == task.getId() && vmTask.getAppId() == task.getApplication().getId())
 				return vm;
 		}
 		
@@ -779,7 +779,7 @@ public class AppRelocationPolicyLevel1 extends Policy {
 		
 		for (VmStatus vm : host.getSandboxStatus().getVms()) {
 			TaskInstanceData vmTask = vmPool.getVm(vm.getId()).getTask();
-			if (vmTask.getId() == task.getId() && vmTask.getAppId() == task.getAppId())
+			if (vmTask.getTaskId() == task.getTaskId() && vmTask.getAppId() == task.getAppId())
 				return true;
 		}
 		
