@@ -124,7 +124,9 @@ public class AppRelocationPolicyLevel1 extends Policy {
 		}
 		
 		// Send AppData and VmData information to target Rack.
-		AppData application = manager.getCapability(AppPoolManager.class).getApplication(event.getApplication().getId());
+		AppPoolManager appPool = manager.getCapability(AppPoolManager.class);
+		AppData application = appPool.getApplication(event.getApplication().getId());
+		appPool.removeApplication(application.getId());
 		simulation.sendEvent(new IncomingMigrationEvent(event.getOrigin(), application, vmPool.getVms(application.getHostingVmsIds()), targetHostMap, manager));
 		
 		// Trigger migrations.

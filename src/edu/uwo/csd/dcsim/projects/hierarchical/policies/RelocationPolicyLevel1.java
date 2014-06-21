@@ -232,7 +232,9 @@ public class RelocationPolicyLevel1 extends Policy {
 		}
 		
 		// Send AppData and VmData information to target Rack.
-		AppData application = manager.getCapability(AppPoolManager.class).getApplication(event.getApplication().getId());
+		AppPoolManager appPool = manager.getCapability(AppPoolManager.class);
+		AppData application = appPool.getApplication(event.getApplication().getId());
+		appPool.removeApplication(application.getId());
 		simulation.sendEvent(new IncomingMigrationEvent(event.getOrigin(), application, vmPool.getVms(application.getHostingVmsIds()), targetHostMap, manager));
 		
 		// Trigger migrations.
@@ -566,7 +568,7 @@ public class RelocationPolicyLevel1 extends Policy {
 	 */
 	protected boolean performInternalVmRelocation(int hostId) {
 		
-		simulation.getLogger().debug(String.format("[Rack #%d] AppRelocationPolicyLevel1 - Internal Relocation process for Host #%d.",
+		simulation.getLogger().debug(String.format("[Rack #%d] RelocationPolicyLevel1 - Internal Relocation process for Host #%d.",
 				manager.getCapability(RackManager.class).getRack().getId(),
 				hostId));
 		
@@ -805,7 +807,7 @@ public class RelocationPolicyLevel1 extends Policy {
 	 */
 	protected boolean performExternalVmRelocation(int hostId) {
 		
-		simulation.getLogger().debug(String.format("[Rack #%d] AppRelocationPolicyLevel1 - External Relocation process for Host #%d.",
+		simulation.getLogger().debug(String.format("[Rack #%d] RelocationPolicyLevel1 - External Relocation process for Host #%d.",
 				manager.getCapability(RackManager.class).getRack().getId(),
 				hostId));
 		

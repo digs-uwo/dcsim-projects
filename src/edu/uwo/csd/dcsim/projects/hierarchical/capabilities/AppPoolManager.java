@@ -19,12 +19,16 @@ public class AppPoolManager extends ManagerCapability {
 		applicationMap.put(application.getId(), application);
 	}
 	
+	public AppData getApplication(int id) {
+		return applicationMap.get(id);
+	}
+	
 	public Collection<AppData> getApplications() {
 		return applicationMap.values();
 	}
 	
-	public AppData getApplication(int id) {
-		return applicationMap.get(id);
+	public void removeApplication(int id) {
+		applicationMap.remove(id);
 	}
 
 }
