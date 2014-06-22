@@ -43,16 +43,21 @@ public class AppPlacementPolicyLevel3 extends Policy {
 		
 		for (Application application : event.getApplications()) {
 			
-			if (!this.processRequest(new ConstrainedAppAllocationRequest((InteractiveApplication) application))) {
+			if (this.processRequest(new ConstrainedAppAllocationRequest((InteractiveApplication) application)))
+				// Record application's successful deployment -- by type.
+				simulation.getSimulationMetrics().getApplicationMetrics().incrementApplicationTypeDeployed(application.getType());
+			else {
 				event.setFailed(true);
 				
 				simulation.getLogger().debug(String.format("[DC Manager] AppPlacementPolicyLevel3 - PLACEMENT FAILED - App #%d.", application.getId()));
-				System.out.println("AppPlacementPolicyLevel3 - PLACEMENT FAILED - App #" + application.getId());
+//				System.out.println("AppPlacementPolicyLevel3 - PLACEMENT FAILED - App #" + application.getId());
 				
 				// Record failure to complete placement request.
-				if (simulation.isRecordingMetrics()) {
-					simulation.getSimulationMetrics().getApplicationMetrics().incrementApplicationPlacementsFailed();
-				}
+				simulation.getSimulationMetrics().getApplicationMetrics().incrementApplicationPlacementsFailed();
+				
+//				if (simulation.isRecordingMetrics()) {
+//					simulation.getSimulationMetrics().getApplicationMetrics().incrementApplicationPlacementsFailed();
+//				}
 			}
 		}
 	}
