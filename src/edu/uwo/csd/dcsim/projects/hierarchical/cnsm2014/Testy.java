@@ -264,6 +264,9 @@ public class Testy {
 		// Infer and set application tasks' constraints.
 		this.setApplicationTasksConstraints(app);
 		
+		// Set application type -- we use the number of tasks to differentiate between application types (i.e., templates).
+		app.setType(app.getTasks().size());
+		
 		// Create application's workload.
 		int trace = appGenerationRandom.nextInt(N_TRACES);
 		TraceWorkload workload = new TraceWorkload(simulation, TRACES[trace], (long) (appGenerationRandom.nextDouble() * OFFSET_MAX[trace]));

@@ -88,8 +88,8 @@ public class TestyExp extends SimulationTask {
 		}
 		
 		// Static load experiments.
-//		runSimulationSet(printStream, 400, SimTime.hours(40), SimTime.days(10), SimTime.days(2));
-		runSimulationSet(printStream, 800, SimTime.hours(80), SimTime.days(12), SimTime.days(4));
+		runSimulationSet(printStream, 400, SimTime.hours(40), SimTime.days(10), SimTime.days(2));
+//		runSimulationSet(printStream, 800, SimTime.hours(80), SimTime.days(12), SimTime.days(4));
 //		runSimulationSet(printStream, 1440, SimTime.hours(144), SimTime.days(14), SimTime.days(6));
 //		runSimulationSet(printStream, 1600, SimTime.hours(160), SimTime.days(15), SimTime.days(7));
 		
