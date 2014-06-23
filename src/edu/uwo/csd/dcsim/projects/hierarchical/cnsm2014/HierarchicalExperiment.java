@@ -2,6 +2,8 @@ package edu.uwo.csd.dcsim.projects.hierarchical.cnsm2014;
 
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.apache.log4j.Logger;
@@ -14,6 +16,7 @@ import edu.uwo.csd.dcsim.management.AutonomicManager;
 import edu.uwo.csd.dcsim.management.capabilities.*;
 import edu.uwo.csd.dcsim.management.policies.*;
 import edu.uwo.csd.dcsim.projects.centralized.policies.ReactiveHostStatusPolicy;
+import edu.uwo.csd.dcsim.projects.hierarchical.VmFlavours;
 import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.*;
 import edu.uwo.csd.dcsim.projects.hierarchical.policies.*;
 
@@ -53,8 +56,8 @@ public class HierarchicalExperiment extends SimulationTask {
 		-6452776964812569334l,
 		-7148920787255940546l,
 		8311271444423629559l};
-	private static final long N_SEEDS = 1;
-	private static boolean printDefault = true;
+	private static final long N_SEEDS = 10;
+	private static boolean printDefault = false;
 	
 	// Utilization thresholds. Default values.
 	private static double LOWER = 0.60;
@@ -74,6 +77,8 @@ public class HierarchicalExperiment extends SimulationTask {
 	private long rampUpTime;
 	private long startTime;
 	private long duration;
+	private Resources[] vmSizes;
+	private int[] appTypes;
 	
 	
 	public static void main(String args[]) {
@@ -87,14 +92,45 @@ public class HierarchicalExperiment extends SimulationTask {
 			return;
 		}
 		
+		Resources[] vmSizes = {VmFlavours.manfi1(), VmFlavours.manfi2(), VmFlavours.manfi3()};
+		int[] appTypes = {1, 2, 3, 4, 5};
+		
 		// Static load experiments.
-//		runSimulationSet(printStream, 400, SimTime.hours(40), SimTime.days(10), SimTime.days(2));
-//		runSimulationSet(printStream, 800, SimTime.hours(80), SimTime.days(12), SimTime.days(4));
-		//runSimulationSet(printStream, 1440, SimTime.hours(144), SimTime.days(14), SimTime.days(6));
-//		runSimulationSet(printStream, 1600, SimTime.hours(160), SimTime.days(15), SimTime.days(7));
+//		runSimulationSet(printStream, 400, SimTime.hours(40), SimTime.days(10), SimTime.days(2), vmSizes, appTypes);
+//		runSimulationSet(printStream, 800, SimTime.hours(80), SimTime.days(12), SimTime.days(4), vmSizes, appTypes);
+//		runSimulationSet(printStream, 1440, SimTime.hours(144), SimTime.days(14), SimTime.days(6), vmSizes, appTypes);
+//		runSimulationSet(printStream, 1600, SimTime.hours(160), SimTime.days(15), SimTime.days(7), vmSizes, appTypes);
 		
 		// Random load experiments.
-		runSimulationSet(printStream, 800, 800, 1, SimTime.hours(80), SimTime.days(4), SimTime.days(12), SimTime.days(4));
+//		runSimulationSet(printStream, 800, 800, 1, SimTime.hours(80), SimTime.days(4), SimTime.days(12), SimTime.days(4), vmSizes, appTypes);
+		
+		for (int expSet = 0; expSet < 4; expSet++) {
+			
+			// Generate VM sizes vector.
+			switch (expSet) {
+			case 0:
+				vmSizes = new Resources[]{VmFlavours.manfi1()};
+				break;
+			case 1:
+				vmSizes = new Resources[]{VmFlavours.manfi2()};
+				break;
+			case 2:
+				vmSizes = new Resources[]{VmFlavours.manfi3()};
+				break;
+			case 3:
+				vmSizes = new Resources[]{VmFlavours.manfi1(), VmFlavours.manfi2(), VmFlavours.manfi3()};
+				break;
+			}
+			
+			for (int i = 1; i <= 5; i++) {
+				// Generate application types vector.
+				appTypes = new int[i];
+				for (int j = 0; j < appTypes.length; j++)
+					appTypes[j] = j + 1;
+				
+				runSimulationSet(printStream, 1440, SimTime.hours(144), SimTime.days(14), SimTime.days(6), vmSizes, appTypes);
+			}
+		}
 		
 		printStream.println("Done");
 		printStream.close();
@@ -113,9 +149,11 @@ public class HierarchicalExperiment extends SimulationTask {
 			int baseLoad, 
 			long rampUpTime, 
 			long duration, 
-			long metricRecordStart) {
+			long metricRecordStart,
+			Resources[] vmSizes,
+			int[] appTypes) {
 		
-		runSimulationSet(out, ServiceType.STATIC, baseLoad, 0, 0, rampUpTime, 0, duration, metricRecordStart, LOWER, TARGET, UPPER);
+		runSimulationSet(out, ServiceType.STATIC, baseLoad, 0, 0, rampUpTime, 0, duration, metricRecordStart, LOWER, TARGET, UPPER, vmSizes, appTypes);
 	}
 	
 	/**
@@ -137,9 +175,11 @@ public class HierarchicalExperiment extends SimulationTask {
 			long rampUpTime, 
 			long startTime, 
 			long duration, 
-			long metricRecordStart) {
+			long metricRecordStart,
+			Resources[] vmSizes,
+			int[] appTypes) {
 		
-		runSimulationSet(out, ServiceType.RANDOM, baseLoad, additionalLoad, changesPerDay, rampUpTime, startTime, duration, metricRecordStart, LOWER, TARGET, UPPER);
+		runSimulationSet(out, ServiceType.RANDOM, baseLoad, additionalLoad, changesPerDay, rampUpTime, startTime, duration, metricRecordStart, LOWER, TARGET, UPPER, vmSizes, appTypes);
 	}
 	
 	private static void runSimulationSet(PrintStream out, 
@@ -153,18 +193,25 @@ public class HierarchicalExperiment extends SimulationTask {
 			long metricRecordStart, 
 			double lower, 
 			double target, 
-			double upper) {
+			double upper,
+			Resources[] vmSizes,
+			int[] appTypes) {
 		
 		logger.info("Started New Simulation Set");
 		logger.info(lower + "," + target + "," + upper + "," + 
 				serviceType + "," + baseLoad + "," + additionalLoad + "," + changesPerDay + "," + 
 				rampUpTime + "," + startTime + "," + duration + "," + metricRecordStart);
+		logger.info("VM Sizes:");
+		for (Resources vmSize : vmSizes) {
+			logger.info("   " + vmSize.toString());
+		}
+		logger.info("Application Types: " + Arrays.toString(appTypes));
 		
 		List<SimulationTask> completedTasks;
 		SimulationExecutor executor = new SimulationExecutor();
 		for (int i = 0; i < N_SEEDS; ++i)  {
 			HierarchicalExperiment e = new HierarchicalExperiment("hierarchical-" + (i + 1), duration, metricRecordStart, randomSeeds[i]);
-			e.setParameters(lower, target, upper, serviceType, baseLoad, additionalLoad, changesPerDay, rampUpTime, startTime, duration);
+			e.setParameters(lower, target, upper, serviceType, baseLoad, additionalLoad, changesPerDay, rampUpTime, startTime, duration, vmSizes, appTypes);
 			executor.addTask(e);
 		}
 		
@@ -229,7 +276,9 @@ public class HierarchicalExperiment extends SimulationTask {
 			double changesPerDay, 
 			long rampUpTime, 
 			long startTime, 
-			long duration) {
+			long duration,
+			Resources[] vmSizes,
+			int[] appTypes) {
 		
 		this.lower = lower;
 		this.target = target;
@@ -241,6 +290,8 @@ public class HierarchicalExperiment extends SimulationTask {
 		this.rampUpTime = rampUpTime;
 		this.startTime = startTime;
 		this.duration = duration;
+		this.vmSizes = vmSizes;
+		this.appTypes = appTypes;
 	}
 	
 	/**
@@ -256,6 +307,10 @@ public class HierarchicalExperiment extends SimulationTask {
 		
 		// Create management infrastructure.
 		AutonomicManager dcManager = this.createMgmtInfrastructure(simulation, dc);
+		
+		// Set the VM sizes and application types (i.e., templates) available in this experiment.
+		testEnv.setVmSizes(vmSizes);
+		testEnv.setAppTypes(appTypes);
 		
 		// Create and start the Services Producer.
 		switch (serviceType) {
@@ -306,13 +361,14 @@ public class HierarchicalExperiment extends SimulationTask {
 				
 				// Create Rack's autonomic manager.
 				HostPoolManager hostPool = new HostPoolManager();
-				AutonomicManager rackManager = new AutonomicManager(simulation, new RackManager(rack), hostPool, new MigRequestRecord(), new MigrationTrackingManager(), new VmHostMapManager());
+				AutonomicManager rackManager = new AutonomicManager(simulation, new RackManager(rack), new AppPoolManager(), hostPool, new VmPoolManager(), new MigRequestRecord(), new MigrationTrackingManager());
 				
 				// Install management policies in the autonomic manager.
 				rackManager.installPolicy(new RackMonitoringPolicy(clusterManager), SimTime.minutes(5), SimTime.minutes(simulation.getRandom().nextInt(5)));
 				rackManager.installPolicy(new ReactiveHostStatusPolicy(5));
+				rackManager.installPolicy(new AppPoolPolicy());
+				rackManager.installPolicy(new VmPoolPolicy());
 				rackManager.installPolicy(new MigrationTrackingPolicy());
-				rackManager.installPolicy(new VmHostMapPolicy());
 				rackManager.installPolicy(new AppPlacementPolicyLevel1(clusterManager, lower, upper, target));
 				rackManager.installPolicy(new AppRelocationPolicyLevel1(clusterManager, lower, upper, target));
 				rackManager.installPolicy(new AppConsolidationPolicyLevel1(clusterManager, lower, upper, target), SimTime.hours(1), SimTime.hours(1));

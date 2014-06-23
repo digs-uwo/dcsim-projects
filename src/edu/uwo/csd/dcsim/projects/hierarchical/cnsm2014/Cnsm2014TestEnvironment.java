@@ -35,10 +35,10 @@ public class Cnsm2014TestEnvironment {
 
 	public static final long ARRIVAL_SYNC_INTERVAL = SimTime.minutes(1);
 	
-	public static final int[] VM_SIZES = {1500, 2500, 2500};
-	public static final int[] VM_CORES = {1, 1, 2};
-	public static final int[] VM_RAM = {512, 1024, 1024};
-	public static final int N_VM_SIZES = 3;
+//	public static final int[] VM_SIZES = {1500, 2500, 2500};
+//	public static final int[] VM_CORES = {1, 1, 2};
+//	public static final int[] VM_RAM = {512, 1024, 1024};
+//	public static final int N_VM_SIZES = 3;
 //	public static final int[] VM_SIZES = {1500, 2500, 3000, 3000};
 //	public static final int[] VM_CORES = {1, 1, 1, 2};
 //	public static final int[] VM_RAM = {512, 1024, 1024, 1024};
@@ -57,9 +57,11 @@ public class Cnsm2014TestEnvironment {
 //	public static final double[] TRACE_AVG = {0.32, 0.25, 0.32, 0.72, 0.74, 0.77, 0.83};
 	public static final long APP_RAMPUP_TIME = SimTime.hours(6);
 	
+	private Resources[] vmSizes = {VmFlavours.manfi1(), VmFlavours.manfi2(), VmFlavours.manfi3()};
+	private int[] appTypes = {1, 2, 3, 4, 5};
 	int nClusters = 5;
 	int nRacks = 4;
-	int nHosts = 20;
+	int nHosts = 10;
 	Simulation simulation;
 	AutonomicManager dcAM;
 	Random appGenerationRandom;
@@ -175,13 +177,22 @@ public class Cnsm2014TestEnvironment {
 		// Create clusters in data centre.
 		for (int i = 0; i < nClusters; i++) {
 			if (i % 2 == 0)
-				dc.addCluster(series09.build());
+				dc.addCluster(series11.build());
 			else
 				dc.addCluster(series11.build());
 		}
 		
 		return dc;
 	}
+	
+	public void setVmSizes(Resources[] vmSizes) {
+		this.vmSizes = vmSizes;
+	}
+	
+	public void setAppTypes(int[] appTypes) {
+		this.appTypes = appTypes;
+	}
+	
 	
 	/**
 	 * 
@@ -190,77 +201,58 @@ public class Cnsm2014TestEnvironment {
 	 */
 	
 	public Application createApplication() {
-//		return createApplication(appGenerationRandom.nextInt(N_APP_TEMPLATES));
-		return createApplication(appGenerationRandom.nextInt(5));	// Testing...
-		//return createApplication(0);	// Testing...
+		return createApplication(appTypes[appGenerationRandom.nextInt(appTypes.length)], vmSizes[appGenerationRandom.nextInt(vmSizes.length)]);
 	}
 	
-	public Application createApplication(int appTemplate) {
-//		++nApps;
-		
-		
-		
-		
-		// TODO: ADD SOME VARIABILITY TO THE TASKS' RES. NEEDS (cores, coreCapacity, memory, bandwidth, storage).
-//		++counter;
-//		int cores = VM_CORES[counter % N_VM_SIZES];
-//		int coreCapacity = VM_SIZES[counter % N_VM_SIZES];
-//		int memory = VM_RAM[counter % N_VM_SIZES];
-//		int bandwidth = 12800;	// 100 Mb/s
-//		int storage = 1024;	// 1 GB
-		
-		
-		//Resources[] VM_TYPES = {VmFlavours.tiny(), VmFlavours.tiny(), VmFlavours.tiny()};
-		Resources[] VM_TYPES = {VmFlavours.manfi1(), VmFlavours.manfi2(), VmFlavours.manfi3()};
-		int vmType = appGenerationRandom.nextInt(3);
-		
-	
-		
+	public Application createApplication(int appTemplate, Resources vmSize) {
 		
 		InteractiveApplication.Builder appBuilder;
 		switch(appTemplate) {
-		case 0:
-			appBuilder = new InteractiveApplication.Builder(simulation).thinkTime(4)
-						.task(1, 1, VM_TYPES[vmType], 0.03, 1);
-			break;
 		case 1:
 			appBuilder = new InteractiveApplication.Builder(simulation).thinkTime(4)
-						.task(1, 1, VM_TYPES[vmType], 0.005, 1)
-						.task(1, 1, VM_TYPES[vmType], 0.03, 1);
+						.task(1, 1, vmSize, 0.03, 1);
 			break;
 		case 2:
 			appBuilder = new InteractiveApplication.Builder(simulation).thinkTime(4)
-						.task(1, 1, VM_TYPES[vmType], 0.005, 1)
-						.task(1, 1, VM_TYPES[vmType], 0.02, 1)
-						.task(1, 1, VM_TYPES[vmType], 0.01, 1);
+						.task(1, 1, vmSize, 0.005, 1)
+						.task(1, 1, vmSize, 0.03, 1);
 			break;
 		case 3:
-			int rand = 2 + appGenerationRandom.nextInt(3);		// range: 2..4
 			appBuilder = new InteractiveApplication.Builder(simulation).thinkTime(4)
-						.task(1, 1, VM_TYPES[vmType], 0.005, 1)
-						.task(rand, rand, VM_TYPES[vmType], 0.005, 1)
-						.task(1, 1, VM_TYPES[vmType], 0.02, 1)
-						.task(1, 1, VM_TYPES[vmType], 0.01, 1);
+						.task(1, 1, vmSize, 0.005, 1)
+						.task(1, 1, vmSize, 0.02, 1)
+						.task(1, 1, vmSize, 0.01, 1);
 			break;
 		case 4:
+			int rand = 2 + appGenerationRandom.nextInt(3);		// range: 2..4
+			appBuilder = new InteractiveApplication.Builder(simulation).thinkTime(4)
+						.task(1, 1, vmSize, 0.005, 1)
+						.task(rand, rand, vmSize, 0.005, 1)
+						.task(1, 1, vmSize, 0.02, 1)
+						.task(1, 1, vmSize, 0.01, 1);
+			break;
+		case 5:
 			int higher = 4 + appGenerationRandom.nextInt(3);	// range: 4..6
 			int lower = 2 + appGenerationRandom.nextInt(2);		// range: 2..3
 			appBuilder = new InteractiveApplication.Builder(simulation).thinkTime(4)
-						.task(1, 1, VM_TYPES[vmType], 0.005, 1)
-						.task(higher, higher, VM_TYPES[vmType], 0.005, 1)
-						.task(1, 1, VM_TYPES[vmType], 0.005, 1)
-						.task(lower, lower, VM_TYPES[vmType], 0.02, 1)
-						.task(1, 1, VM_TYPES[vmType], 0.01, 1);
+						.task(1, 1, vmSize, 0.005, 1)
+						.task(higher, higher, vmSize, 0.005, 1)
+						.task(1, 1, vmSize, 0.005, 1)
+						.task(lower, lower, vmSize, 0.02, 1)
+						.task(1, 1, vmSize, 0.01, 1);
 			break;
-		default: //case 5 (shouldn't occur)
+		default:
 			appBuilder = new InteractiveApplication.Builder(simulation).thinkTime(4)
-						.task(1, 1, VM_TYPES[vmType], 0.03, 1);
+						.task(1, 1, vmSize, 0.03, 1);
 		}
 		
 		InteractiveApplication app = appBuilder.build();
 		
 		// Infer and set application tasks' constraints.
 		this.setApplicationTasksConstraints(app);
+		
+		// Set application type -- we use the number of tasks to differentiate between application types (i.e., templates).
+		app.setType(app.getTasks().size());
 		
 		// Create application's workload.
 		int trace = appGenerationRandom.nextInt(N_TRACES);
