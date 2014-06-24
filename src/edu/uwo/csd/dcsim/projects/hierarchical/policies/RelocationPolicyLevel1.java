@@ -421,10 +421,6 @@ public class RelocationPolicyLevel1 extends Policy {
 		AppPoolManager appPool = manager.getCapability(AppPoolManager.class);
 		VmPoolManager vmPool = manager.getCapability(VmPoolManager.class);
 		
-		
-//		TaskInstanceData taskInstance = vmPool.getVm(vm.getId()).getTask();
-//		TaskData task = appPool.getApplication(taskInstance.getAppId()).getTask(taskInstance.getTaskId());
-		
 		InteractiveTask taskInfo = appPool.getApplication(event.getAppId()).getTaskInfo(event.getTaskId());
 		
 		// List of potential targets.
@@ -449,8 +445,10 @@ public class RelocationPolicyLevel1 extends Policy {
 				
 				targets = new ArrayList<HostData>();	// Creating the list signals that we found a candidate Host, so there's no need to consider other Hosts.
 				
-				if (!this.isStressed(targetHost))		
-					targets.add(targetHost);			// Host not stressed. Try to place VM here.
+				if (!this.isStressed(targetHost)) {		// Host not stressed. Try to place VM here.
+					targets.add(targetHost);
+					targetHost.resetSandboxStatusToCurrent();
+				}
 				// ELSE:								// Host is stressed. Terminate method.
 			}
 			// ELSE:									// Host not found. Treat VM's task as INDEPENDENT.
