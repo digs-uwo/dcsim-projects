@@ -82,7 +82,7 @@ public class AppPlacementPolicyLevel3 extends Policy {
 		if (!this.processRequest(event.getRequest())) {
 			
 			simulation.getLogger().debug(String.format("[DC Manager] AppPlacementPolicyLevel3 - PLACEMENT FAILED AFTER REJECT - App #%d.", event.getRequest().getId()));
-			System.out.println("AppPlacementPolicyLevel3 - PLACEMENT FAILED AFTER REJECT - App #" + event.getRequest().getId());
+//			System.out.println("AppPlacementPolicyLevel3 - PLACEMENT FAILED AFTER REJECT - App #" + event.getRequest().getId());
 			
 			// Record failure to complete placement request.
 			if (simulation.isRecordingMetrics()) {
