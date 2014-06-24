@@ -76,7 +76,7 @@
         </java>
     </target>
     <target name="HierarchicalExperiment">
-        <java classname="edu.uwo.csd.dcsim.projects.hierarchical.manfi2014.HierarchicalExperiment" failonerror="true" fork="yes">
+        <java classname="edu.uwo.csd.dcsim.projects.hierarchical.cnsm2014.HierarchicalExperiment" failonerror="true" fork="yes">
             <classpath refid="digs-projects.classpath"/>
         </java>
     </target>
