@@ -261,8 +261,8 @@ public class RelocationPolicyLevel3 extends Policy {
 		
 		ArrayList<ClusterData> clusters = new ArrayList<ClusterData>(manager.getCapability(ClusterPoolManager.class).getClusters());
 		
-		// Create sublist of Clusters that have the required HW capabilities to host the application.
-		ArrayList<ClusterData> candidates = this.getCapableClustersSublist(entry.getApplication(), clusters);
+		// Create sublist of Clusters that have the required HW capabilities to host the VM.
+		ArrayList<ClusterData> candidates = this.getCapableClustersSublist(entry.getVm(), clusters);
 		
 		// Sort candidate Clusters in decreasing order by power efficiency.
 		// TODO Since Power Efficiency is a static metric, the ClusterPoolManager could maintain 
@@ -415,12 +415,27 @@ public class RelocationPolicyLevel3 extends Policy {
 	 * of the elements in the original list.
 	 */
 	protected ArrayList<ClusterData> getCapableClustersSublist(AppStatus application, ArrayList<ClusterData> clusters) {
+		return this.getCapableClustersSublist(application.getAllVms(), clusters);
+	}
+	
+	/**
+	 * Returns the subset of Clusters from the given list that have the required HW capabilities
+	 * (i.e., core count and core capacity) to host the VM. The sublist preserves the order
+	 * of the elements in the original list.
+	 */
+	protected ArrayList<ClusterData> getCapableClustersSublist(VmStatus vm, ArrayList<ClusterData> clusters) {
+		ArrayList<VmStatus> vms = new ArrayList<VmStatus>();
+		vms.add(vm);
+		return this.getCapableClustersSublist(vms, clusters);
+	}
+	
+	private ArrayList<ClusterData> getCapableClustersSublist(ArrayList<VmStatus> vms, ArrayList<ClusterData> clusters) {
 		ArrayList<ClusterData> capable = new ArrayList<ClusterData>();
 		
 		// Get maximum #cores and maximum core capacity from the VMs in the request.
 		int maxReqCores = 0;
 		int maxReqCoreCapacity = 0;
-		for (VmStatus vm : application.getAllVms()) {
+		for (VmStatus vm : vms) {
 			if (vm.getCores() > maxReqCores)
 				maxReqCores = vm.getCores();
 			
