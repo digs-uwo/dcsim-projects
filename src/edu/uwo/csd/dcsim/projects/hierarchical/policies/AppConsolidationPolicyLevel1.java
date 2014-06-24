@@ -26,6 +26,7 @@ import edu.uwo.csd.dcsim.management.action.SequentialManagementActionExecutor;
 import edu.uwo.csd.dcsim.management.action.ShutdownHostAction;
 import edu.uwo.csd.dcsim.management.capabilities.HostPoolManager;
 import edu.uwo.csd.dcsim.projects.hierarchical.TaskInstanceData;
+import edu.uwo.csd.dcsim.projects.hierarchical.VmData;
 import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.AppPoolManager;
 import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.RackManager;
 import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.MigrationTrackingManager;
@@ -141,7 +142,7 @@ public class AppConsolidationPolicyLevel1 extends Policy {
 		HostData source = null;
 		while (!sources.isEmpty()) {
 			source = sources.remove(0);
-			ArrayList<VmStatus> vmList = this.orderSourceVms(this.purgeSourceVms(source.getCurrentStatus().getVms()));
+			ArrayList<VmStatus> vmList = this.orderSourceVms(this.getSourceVms(source));
 			
 			// Classify source Host's VMs according to the constraint-type of their hosted Task instance.
 			ArrayList<VmStatus> independent = new ArrayList<VmStatus>();
@@ -541,7 +542,15 @@ public class AppConsolidationPolicyLevel1 extends Policy {
 		VmPoolManager vmPool = manager.getCapability(VmPoolManager.class);
 		
 		for (VmStatus vm : host.getSandboxStatus().getVms()) {
-			TaskInstanceData vmTask = vmPool.getVm(vm.getId()).getTask();
+			VmData vmData = vmPool.getVm(vm.getId());
+			
+			if (null == vmData)								// VM does not belong in this Rack any longer.
+				continue;
+			
+			if (vmData.getHost() != host)					// VM is actually located in another Host in this Rack.
+				continue;
+			
+			TaskInstanceData vmTask = vmData.getTask();
 			if (vmTask.getTaskId() == task.getTaskId() && vmTask.getAppId() == task.getAppId())
 				return true;
 		}
@@ -557,6 +566,10 @@ public class AppConsolidationPolicyLevel1 extends Policy {
 	 * by _size_ (capacity).)
 	 */
 	protected ArrayList<VmStatus> orderSourceVms(ArrayList<VmStatus> sourceVms) {
+		
+		if (sourceVms.isEmpty())
+			return sourceVms;
+		
 		ArrayList<VmStatus> sources = new ArrayList<VmStatus>(sourceVms);
 		
 		// Sort VMs in decreasing order by <overall capacity, CPU load>.
@@ -600,18 +613,34 @@ public class AppConsolidationPolicyLevel1 extends Policy {
 	}
 	
 	/**
-	 * Returns the subset of VMs that are not migrating out or scheduled to do so.
+	 * Returns the subset of VMs that are actually still located in the Host, and are not migrating out or scheduled to do so.
 	 */
-	private ArrayList<VmStatus> purgeSourceVms(ArrayList<VmStatus> sourceVms) {
-		ArrayList<VmStatus> vms = new ArrayList<VmStatus>();
+	private ArrayList<VmStatus> getSourceVms(HostData source) {
+		ArrayList<VmStatus> output = new ArrayList<VmStatus>();
 		
+		VmPoolManager vmPool = manager.getCapability(VmPoolManager.class);
 		MigrationTrackingManager ongoingMigs = manager.getCapability(MigrationTrackingManager.class);
-		for (VmStatus vm : sourceVms) {
-			if (!ongoingMigs.isMigrating(vm.getId()))
-				vms.add(vm);
+		
+		// Get Host's VMs.
+		ArrayList<VmStatus> vms = source.getCurrentStatus().getVms();
+		
+		// Purge VM list.
+		for (VmStatus status : vms) {
+			VmData vmData = vmPool.getVm(status.getId());
+			
+			if (null == vmData)								// VM does not belong in this Rack any longer.
+				continue;
+			
+			if (vmData.getHost() != source)					// VM is actually located in another Host in this Rack.
+				continue;
+			
+			if (ongoingMigs.isMigrating(vmData.getId()))	// VM is migrating out or scheduled to do so.
+				continue;
+			
+			output.add(status);
 		}
 		
-		return vms;
+		return output;
 	}
 	
 	@Override

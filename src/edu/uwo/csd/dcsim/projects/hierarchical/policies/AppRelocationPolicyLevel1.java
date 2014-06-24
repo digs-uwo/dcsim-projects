@@ -780,7 +780,12 @@ public class AppRelocationPolicyLevel1 extends Policy {
 		VmPoolManager vmPool = manager.getCapability(VmPoolManager.class);
 		
 		for (VmStatus vm : host.getSandboxStatus().getVms()) {
-			TaskInstanceData vmTask = vmPool.getVm(vm.getId()).getTask();
+			VmData vmData = vmPool.getVm(vm.getId());
+			
+			if (vmData.getHost() != host)					// VM is actually located in another Host in this Rack.
+				continue;
+			
+			TaskInstanceData vmTask = vmData.getTask();
 			if (vmTask.getTaskId() == task.getTaskId() && vmTask.getAppId() == task.getAppId())
 				return true;
 		}
