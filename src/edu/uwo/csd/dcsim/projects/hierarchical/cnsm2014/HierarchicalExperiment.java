@@ -2,7 +2,6 @@ package edu.uwo.csd.dcsim.projects.hierarchical.cnsm2014;
 
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -241,6 +240,14 @@ public class HierarchicalExperiment extends SimulationTask {
 					" | startTime=" + startTime + 
 					" | duration=" + duration + 
 					" | metricRecordStart=" + metricRecordStart);
+			
+			StringBuilder sb = new StringBuilder();
+			sb.append("VmSizes: ");
+			for (Resources vmSize : vmSizes) {
+				sb.append(vmSize.toString() + " | ");
+			}
+			sb.append("| ApplicationTypes: " + Arrays.toString(appTypes));
+			out.println(sb.toString());
 			
 			for(SimulationTask task : completedTasks) {
 				if (completedTasks.indexOf(task) == 0) {
