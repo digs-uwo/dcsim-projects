@@ -150,6 +150,24 @@ public class AppData {
 		return tasks.values();
 	}
 	
+	public InteractiveTask getTaskInfo(int taskId) {
+		
+		for (InteractiveTask t : independentTasks)
+			if (t.getId() == taskId)
+				return t;
+		
+		for (InteractiveTask t : antiAffinityTasks)
+			if (t.getId() == taskId)
+				return t;
+		
+		for (ArrayList<InteractiveTask> affinitySet : affinityTasks)
+			for (InteractiveTask t : affinitySet)
+				if (t.getId() == taskId)
+					return t;
+		
+		return null;
+	}
+	
 	public ArrayList<InteractiveTask> getAffinitySet(int taskId) {
 		
 		for (ArrayList<InteractiveTask> affinitySet : affinityTasks) {

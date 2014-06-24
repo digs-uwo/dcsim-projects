@@ -406,7 +406,7 @@ public class RelocationPolicyLevel1 extends Policy {
 					ongoingMigs.addMigratingVm(vm.getId());
 					
 					// Send VM status data to the Rack manager that owns the application.
-					simulation.sendEvent(new SurrogateAppDataEvent(app.getMaster(), app.getId(), vm.getCurrentStatus(), manager));
+					simulation.sendEvent(new SurrogateAppDataEvent(app.getMaster(), app.getId(), task.getId(), vm.getCurrentStatus(), manager));
 				}
 			}
 		}
@@ -421,23 +421,25 @@ public class RelocationPolicyLevel1 extends Policy {
 		AppPoolManager appPool = manager.getCapability(AppPoolManager.class);
 		VmPoolManager vmPool = manager.getCapability(VmPoolManager.class);
 		
-		VmStatus vm = event.getVm();
-		TaskInstanceData taskInstance = vmPool.getVm(vm.getId()).getTask();
-		TaskData task = appPool.getApplication(taskInstance.getAppId()).getTask(taskInstance.getTaskId());
+		
+//		TaskInstanceData taskInstance = vmPool.getVm(vm.getId()).getTask();
+//		TaskData task = appPool.getApplication(taskInstance.getAppId()).getTask(taskInstance.getTaskId());
+		
+		InteractiveTask taskInfo = appPool.getApplication(event.getAppId()).getTaskInfo(event.getTaskId());
 		
 		// List of potential targets.
 		ArrayList<HostData> targets = null;
 		
 		// AFFINITY: find the Host hosting the other tasks in the Affinity set.
 		
-		if (task.getConstraintType() == TaskConstraintType.AFFINITY) {
+		if (taskInfo.getConstraintType() == TaskConstraintType.AFFINITY) {
 			
 			// Find the Host where the tasks in the same Affinity set are hosted.
 			// If there's at least one VM in the Affinity set still hosted in this Rack, use its Host as target;
 			// otherwise, treat the VM as if hosting an INDEPENDENT task.
 			HostData targetHost = null;
 			AppData app = appPool.getApplication(event.getAppId());
-			for (InteractiveTask t : app.getAffinitySet(task.getId())) {
+			for (InteractiveTask t : app.getAffinitySet(taskInfo.getId())) {
 				TaskData localTask = app.getTask(t.getId());
 				if (null != localTask)		// Found a task in the Affinity set still hosted in this Rack.
 					targetHost = vmPool.getVm(localTask.getInstance().getHostingVmId()).getHost();
@@ -466,11 +468,16 @@ public class RelocationPolicyLevel1 extends Policy {
 			
 			// ANTI-AFFINITY: purge every Host that is hosting an instance of the given task.
 			
-			if (task.getConstraintType() == TaskConstraintType.ANTI_AFFINITY) {
+			if (taskInfo.getConstraintType() == TaskConstraintType.ANTI_AFFINITY) {
 				
-				// For each task instance, remove the Host currently hosting the VM carrying said instance.
-				for (TaskInstanceData instance : task.getInstances()) {
-					hosts.remove(vmPool.getVm(instance.getHostingVmId()).getHost());
+				// Check if there are any instances of the task still hosted locally.
+				TaskData task = appPool.getApplication(event.getAppId()).getTask(taskInfo.getId());
+				if (null != task) {		// There is still one instance, at least.
+					
+					// For each task instance, remove the Host currently hosting the VM carrying said instance.
+					for (TaskInstanceData instance : task.getInstances()) {
+						hosts.remove(vmPool.getVm(instance.getHostingVmId()).getHost());
+					}
 				}
 			}
 			
@@ -489,7 +496,7 @@ public class RelocationPolicyLevel1 extends Policy {
 		
 		HostData targetHost = null;
 		if (!targets.isEmpty())
-			targetHost = this.placeVmWherever(vm, targets);
+			targetHost = this.placeVmWherever(event.getVm(), targets);
 		
 		if (null != targetHost) {
 			
@@ -499,11 +506,11 @@ public class RelocationPolicyLevel1 extends Policy {
 			simulation.getLogger().debug(String.format("[Rack #%d] RelocationPolicyLevel1 - Found target Host #%d for VM #%d, belonging to surrogate App #%d.",
 					manager.getCapability(RackManager.class).getRack().getId(),
 					targetHost.getId(),
-					vm.getId(),
+					event.getVm().getId(),
 					event.getAppId()));
 			
 			// Request the Rack manager holding the surrogate app. to issue the migration.
-			simulation.sendEvent(new SurrogateAppMigrateEvent(event.getOrigin(), event.getAppId(), vm.getId(), targetHost.getHost()));
+			simulation.sendEvent(new SurrogateAppMigrateEvent(event.getOrigin(), event.getAppId(), event.getVm().getId(), targetHost.getHost()));
 		}
 		else {
 			simulation.getLogger().debug(String.format("[Rack #%d] RelocationPolicyLevel1 - Could not find suitable target Host for surrogate App #%d.",
@@ -511,7 +518,7 @@ public class RelocationPolicyLevel1 extends Policy {
 					event.getAppId()));
 			
 			// Inform the Rack manager holding the surrogate app. that no target Host was found.
-			simulation.sendEvent(new SurrogateAppRejectEvent(event.getOrigin(), event.getAppId(), vm.getId()));
+			simulation.sendEvent(new SurrogateAppRejectEvent(event.getOrigin(), event.getAppId(), event.getVm().getId()));
 		}
 	}
 	
