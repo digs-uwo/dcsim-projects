@@ -137,6 +137,21 @@ public class RelocationPolicyLevel1 extends Policy {
 					app.getSurrogates().size(),
 					app.getId()));
 			
+//			
+//			
+//			for (TaskData task : app.getTasks())
+//				for (TaskInstanceData instance : task.getInstances()) {
+//					
+//					simulation.getLogger().debug(String.format(" ERROR RepairBrokenAppEvent [Rack #%d] Found Task #%d-%d (#instances = %d) in VM #%d.",
+//							manager.getCapability(RackManager.class).getRack().getId(),
+//							task.getAppId(),
+//							task.getId(),
+//							task.getInstances().size(),
+//							instance.getHostingVmId()));
+//					
+//					
+//				}
+			
 			for (AutonomicManager remote : app.getSurrogates()) {
 				
 				// Contact remote Rack to recover (the VM belonging to) the application appId.
@@ -234,8 +249,10 @@ public class RelocationPolicyLevel1 extends Policy {
 		// Send AppData and VmData information to target Rack.
 		AppPoolManager appPool = manager.getCapability(AppPoolManager.class);
 		AppData application = appPool.getApplication(event.getApplication().getId());
-		appPool.removeApplication(application.getId());
 		simulation.sendEvent(new IncomingMigrationEvent(event.getOrigin(), application, vmPool.getVms(application.getHostingVmsIds()), targetHostMap, manager));
+		
+		// Remove application from pool.
+		appPool.removeApplication(application.getId());
 		
 		// Trigger migrations.
 		migrations.execute(simulation, this);
@@ -322,18 +339,74 @@ public class RelocationPolicyLevel1 extends Policy {
 		// Invalidate source Host' status, as we know it to be incorrect until the next status update arrives.
 		source.invalidateStatus(simulation.getSimulationTime());
 		
+//		
+//		
+//		
+//		AppData aplicacion = manager.getCapability(AppPoolManager.class).getApplication(vmData.getTask().getAppId());
+//		for (TaskData task : aplicacion.getTasks())
+//			for (TaskInstanceData instance : task.getInstances()) {
+//				
+//				simulation.getLogger().debug(String.format(" ERROR VmMigAcceptEvent [Rack #%d] Found Task #%d-%d (#instances = %d) in VM #%d. Instance: #%d-%d-%d.",
+//						manager.getCapability(RackManager.class).getRack().getId(),
+//						task.getAppId(),
+//						task.getId(),
+//						task.getInstances().size(),
+//						instance.getHostingVmId(),
+//						instance.getAppId(),
+//						instance.getTaskId(),
+//						instance.getId()));
+//				
+//				
+//			}
+//		
+//		
+//		
+//		
+//		
+		
 		// Send AppData (surrogate) and VmData information to target Rack.
 		TaskInstanceData task = vmData.getTask();
 		AppData surrogate = manager.getCapability(AppPoolManager.class).getApplication(task.getAppId()).createSurrogate(task, event.getOrigin());
+		
+//		
+//		
+//		for (TaskData tarea : surrogate.getTasks())
+//			for (TaskInstanceData instance : tarea.getInstances()) {
+//				
+//				simulation.getLogger().debug(String.format(" ERROR VmMigAcceptEvent [Rack #%d] SURROGATE now has Task #%d-%d (#instances = %d) in VM #%d. Instance: #%d-%d-%d.",
+//						manager.getCapability(RackManager.class).getRack().getId(),
+//						tarea.getAppId(),
+//						tarea.getId(),
+//						tarea.getInstances().size(),
+//						instance.getHostingVmId(),
+//						instance.getAppId(),
+//						instance.getTaskId(),
+//						instance.getId()));
+//				
+//				
+//			}
+//		
+//		
+		
 		Collection<VmData> vms = new ArrayList<VmData>();
 		vms.add(vmData);
 		Map<Integer, Host> targetHostMap = new HashMap<Integer, Host>();
 		targetHostMap.put(vmData.getId(), event.getTargetHost());
 		simulation.sendEvent(new IncomingMigrationEvent(event.getOrigin(), surrogate, vms, targetHostMap, manager));
 		
-		simulation.getLogger().debug(String.format("[Rack #%d] RelocationPolicyLevel1 - Migrating VM #%d from Host #%d to Host #%d.",
+//		simulation.getLogger().debug(String.format(" ERROR VmMigAcceptEvent [Rack #%d] RelocationPolicyLevel1 - Migrating VM #%d (Task #%d-%d) from Host #%d to Host #%d.",
+//				manager.getCapability(RackManager.class).getRack().getId(),
+//				vmData.getId(),
+//				task.getAppId(),
+//				task.getTaskId(),
+//				source.getId(),
+//				event.getTargetHost().getId()));
+		
+		simulation.getLogger().debug(String.format("[Rack #%d] RelocationPolicyLevel1 - Migrating VM #%d (Task #%d-%d) from Host #%d to Host #%d.",
 				manager.getCapability(RackManager.class).getRack().getId(),
 				vmData.getId(),
+				task.getAppId(),
+				task.getTaskId(),
 				source.getId(),
 				event.getTargetHost().getId()));
 		
@@ -390,10 +463,33 @@ public class RelocationPolicyLevel1 extends Policy {
 					manager.getCapability(RackManager.class).getRack().getId(),
 					app.getId()));
 		
+//		
+//		
+//		for (TaskData task : app.getTasks())
+//			for (TaskInstanceData instance : task.getInstances()) {
+//				
+//				simulation.getLogger().debug(String.format(" ERROR SurrogateAppRequestEvent [Rack #%d] Found Task #%d-%d (#instances = %d) in VM #%d.",
+//						manager.getCapability(RackManager.class).getRack().getId(),
+//						task.getAppId(),
+//						task.getId(),
+//						task.getInstances().size(),
+//						instance.getHostingVmId()));
+//				
+//				
+//			}
+//		
+//		
+		
 		// We expect there to be only one element in the list.
 		for (TaskData task : app.getTasks()) {
 			for (TaskInstanceData instance : task.getInstances()) {
 				VmData vm = manager.getCapability(VmPoolManager.class).getVm(instance.getHostingVmId());
+				
+//				if (null == vm) throw new RuntimeException(String.format("[Rack #%d] Cannot find VM #%d, carrying Task #%d-%d.",
+//						manager.getCapability(RackManager.class).getRack().getId(),
+//						instance.getHostingVmId(),
+//						app.getId(),
+//						task.getId()));
 				
 				// Mark VM as scheduled for migration.
 				// TODO: As it is currently implemented, if the VM is migrating (or scheduled to do so), we stop the process -- notice that we are not sending any events.
@@ -437,21 +533,33 @@ public class RelocationPolicyLevel1 extends Policy {
 			AppData app = appPool.getApplication(event.getAppId());
 			for (InteractiveTask t : app.getAffinitySet(taskInfo.getId())) {
 				TaskData localTask = app.getTask(t.getId());
-				if (null != localTask)		// Found a task in the Affinity set still hosted in this Rack.
+				if (null != localTask) {		// Found a task in the Affinity set still hosted in this Rack.
+					
+					
+					// TODO
+					VmData vmData = vmPool.getVm(localTask.getInstance().getHostingVmId());
+					if (null == vmData) throw new RuntimeException("Cannot find VM #" + localTask.getInstance().getHostingVmId());
+					
+					
+					
+					
 					targetHost = vmPool.getVm(localTask.getInstance().getHostingVmId()).getHost();
+				}
 			}
 			
-			if (null != targetHost) {					// Found Host.
+			if (null != targetHost) {							// Found Host.
 				
-				targets = new ArrayList<HostData>();	// Creating the list signals that we found a candidate Host, so there's no need to consider other Hosts.
+				targets = new ArrayList<HostData>();			// Creating the list signals that we found a candidate Host, so there's no need to consider other Hosts.
 				
-				if (!this.isStressed(targetHost)) {		// Host not stressed. Try to place VM here.
+				if (targetHost.isStatusValid() &&
+					!this.isStressed(targetHost)) {				// Host not stressed. Try to place VM here.
+					
 					targets.add(targetHost);
 					targetHost.resetSandboxStatusToCurrent();
 				}
-				// ELSE:								// Host is stressed. Terminate method.
+				// ELSE:										// Host is stressed. Terminate method.
 			}
-			// ELSE:									// Host not found. Treat VM's task as INDEPENDENT.
+			// ELSE:											// Host not found. Treat VM's task as INDEPENDENT.
 			
 		}
 		
@@ -526,6 +634,8 @@ public class RelocationPolicyLevel1 extends Policy {
 				manager.getCapability(RackManager.class).getRack().getId(),
 				event.getAppId()));
 		
+		AppPoolManager appPool = manager.getCapability(AppPoolManager.class);
+		
 		VmData vmData = manager.getCapability(VmPoolManager.class).getVm(event.getVmId());
 		HostData source = vmData.getHost();
 		
@@ -533,16 +643,31 @@ public class RelocationPolicyLevel1 extends Policy {
 		source.invalidateStatus(simulation.getSimulationTime());
 		
 		// Send VmData information to target Rack. AppData (surrogate) will be ignored at destination (given that the original app. resides there).
-		AppData surrogate = manager.getCapability(AppPoolManager.class).getApplication(event.getAppId());
+		AppData surrogate = appPool.getApplication(event.getAppId());
 		Collection<VmData> vms = new ArrayList<VmData>();
 		vms.add(vmData);
 		Map<Integer, Host> targetHostMap = new HashMap<Integer, Host>();
 		targetHostMap.put(vmData.getId(), event.getTargetHost());
-		simulation.sendEvent(new IncomingMigrationEvent(surrogate.getMaster(), surrogate, vms, targetHostMap, manager));
+		simulation.sendEvent(new IncomingMigrationEvent(surrogate.getMaster(), surrogate.copy(), vms, targetHostMap, manager));
 		
-		simulation.getLogger().debug(String.format("[Rack #%d] RelocationPolicyLevel1 - Migrating VM #%d from Host #%d to Host #%d.",
+		// Remove migrated task instance from surrogate application. If surrogate application becomes empty, remove it from pool.
+		surrogate.removeTaskFromSurrogate(vmData.getTask());
+		if (surrogate.getTasks().isEmpty())
+			appPool.removeApplication(surrogate.getId());
+		
+//		simulation.getLogger().debug(String.format(" ERROR SurrogateAppMigrateEvent [Rack #%d] RelocationPolicyLevel1 - Migrating VM #%d (Task #%d-%d) from Host #%d to Host #%d.",
+//				manager.getCapability(RackManager.class).getRack().getId(),
+//				vmData.getId(),
+//				vmData.getTask().getAppId(),
+//				vmData.getTask().getTaskId(),
+//				source.getId(),
+//				event.getTargetHost().getId()));
+		
+		simulation.getLogger().debug(String.format("[Rack #%d] RelocationPolicyLevel1 - Migrating VM #%d (Task #%d-%d) from Host #%d to Host #%d.",
 				manager.getCapability(RackManager.class).getRack().getId(),
 				vmData.getId(),
+				vmData.getTask().getAppId(),
+				vmData.getTask().getTaskId(),
 				source.getId(),
 				event.getTargetHost().getId()));
 		

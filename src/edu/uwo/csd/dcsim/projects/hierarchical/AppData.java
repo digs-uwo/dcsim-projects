@@ -63,6 +63,10 @@ public class AppData {
 		hashCode = original.hashCode;
 	}
 	
+	public AppData copy() {
+		return new AppData(this);
+	}
+	
 	public AppData createSurrogate(TaskInstanceData instance, AutonomicManager remoteManager) {
 		AppData app = new AppData(this);
 		
@@ -96,7 +100,7 @@ public class AppData {
 		if (id != surrogate.getId())
 			throw new RuntimeException(String.format("[AppData] Trying to merge two different applications: App #%d and #%d.", id, surrogate.getId()));
 		if (surrogate.isMaster())
-			throw new RuntimeException(String.format("[AppData] Surrogate application submitted for merging is actually a master!"));
+			throw new RuntimeException("[AppData] Surrogate application submitted for merging is actually a master!");
 		
 		// Add back surrogate's tasks.
 		for (TaskData task : surrogate.getTasks()) {
@@ -114,6 +118,18 @@ public class AppData {
 			if (surrogates.isEmpty())
 				surrogates = null;
 		}
+	}
+	
+	public void removeTaskFromSurrogate(TaskInstanceData instance) {
+		
+		if (true == isMaster)
+			throw new RuntimeException("[AppData] Cannot invoke this method on a master application!");
+		
+		TaskData task = tasks.get(instance.getTaskId());
+		if (task.getInstances().size() == 1)					// Task has only one instance; remove whole task.
+			tasks.remove(task.getId());
+		else													// Task has multiple instances; remove given instance from task.
+			task.removeInstance(instance.getId());
 	}
 	
 	public int getId() {
