@@ -63,10 +63,6 @@ public class AppData {
 		hashCode = original.hashCode;
 	}
 	
-	public AppData copy() {
-		return new AppData(this);
-	}
-	
 	public AppData createSurrogate(TaskInstanceData instance, AutonomicManager remoteManager) {
 		AppData app = new AppData(this);
 		
@@ -74,18 +70,19 @@ public class AppData {
 		app.surrogates = null;
 		
 		// Move given task to surrogate application, or create a copy of the task (if the task has multiple instances).
-		TaskData task = tasks.get(instance.getTaskId());
-		if (task.getInstances().size() == 1) {		// Task has only one instance; move whole task from master to surrogate application.
-			tasks.remove(task.getId());
-			app.tasks = new HashMap<Integer, TaskData>();
-			app.tasks.put(task.getId(), task);
+		TaskData localTask = tasks.get(instance.getTaskId());
+		TaskData remoteTask;
+		if (localTask.getInstances().size() == 1) {		// Task has only one instance; move whole task from surrogate to copy.
+			remoteTask = tasks.remove(localTask.getId());
 		}
 		else {		// Task has multiple instances; remove instance from task, and create a copy of the task containing only the given instance.
-			task.removeInstance(instance.getId());
-			TaskData remoteTask = task.copy();
-			remoteTask.getInstances().clear();
-			remoteTask.addInstance(instance);
+			localTask.removeInstance(instance.getId());
+			remoteTask = localTask.copy();
+			remoteTask.getInstances().clear();			// Delete all instances.
+			remoteTask.addInstance(instance);			// Add given instance.
 		}
+		app.tasks = new HashMap<Integer, TaskData>();
+		app.tasks.put(remoteTask.getId(), remoteTask);
 		
 		// Add target manager to the list of surrogate holders.
 		if (null == surrogates)
@@ -93,6 +90,31 @@ public class AppData {
 		surrogates.add(remoteManager);
 		
 		return app;
+	}
+	
+	public AppData copySurrogate(TaskInstanceData instance) {
+		
+		if (true == isMaster)
+			throw new RuntimeException("[AppData] Cannot invoke this method on a master application!");
+		
+		AppData copy = new AppData(this);
+		
+		// Move given task to surrogate copy, or create a copy of the task (if the task has multiple instances).
+		TaskData localTask = tasks.get(instance.getTaskId());
+		TaskData remoteTask;
+		if (localTask.getInstances().size() == 1) {		// Task has only one instance; move whole task from surrogate to copy.
+			remoteTask = tasks.remove(localTask.getId());
+		}
+		else {		// Task has multiple instances; remove instance from task, and create a copy of the task containing only the given instance.
+			localTask.removeInstance(instance.getId());
+			remoteTask = localTask.copy();
+			remoteTask.getInstances().clear();			// Delete all instances.
+			remoteTask.addInstance(instance);			// Add given instance.
+		}
+		copy.tasks = new HashMap<Integer, TaskData>();
+		copy.tasks.put(remoteTask.getId(), remoteTask);
+		
+		return copy;
 	}
 	
 	public void mergeSurrogate(AppData surrogate, AutonomicManager remoteManager) {
@@ -118,18 +140,6 @@ public class AppData {
 			if (surrogates.isEmpty())
 				surrogates = null;
 		}
-	}
-	
-	public void removeTaskFromSurrogate(TaskInstanceData instance) {
-		
-		if (true == isMaster)
-			throw new RuntimeException("[AppData] Cannot invoke this method on a master application!");
-		
-		TaskData task = tasks.get(instance.getTaskId());
-		if (task.getInstances().size() == 1)					// Task has only one instance; remove whole task.
-			tasks.remove(task.getId());
-		else													// Task has multiple instances; remove given instance from task.
-			task.removeInstance(instance.getId());
 	}
 	
 	public int getId() {
