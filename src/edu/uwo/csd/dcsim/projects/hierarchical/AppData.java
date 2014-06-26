@@ -3,7 +3,6 @@ package edu.uwo.csd.dcsim.projects.hierarchical;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 
 import edu.uwo.csd.dcsim.application.InteractiveApplication;
@@ -22,7 +21,7 @@ public class AppData {
 	
 	private boolean isMaster = true;
 	private AutonomicManager master = null;
-	private HashSet<AutonomicManager> surrogates = null;
+	private ArrayList<AutonomicManager> surrogates = null;
 	
 	private HashMap<Integer, TaskData> tasks;
 	
@@ -55,7 +54,7 @@ public class AppData {
 		isMaster = original.isMaster;
 		master = original.master;
 		if (null != surrogates)
-			surrogates = new HashSet<AutonomicManager>(original.surrogates);
+			surrogates = new ArrayList<AutonomicManager>(original.surrogates);
 		tasks = new HashMap<Integer, TaskData>(original.tasks);
 		independentTasks = new ArrayList<InteractiveTask>(original.independentTasks);
 		antiAffinityTasks = new ArrayList<InteractiveTask>(original.antiAffinityTasks);
@@ -86,7 +85,7 @@ public class AppData {
 		
 		// Add target manager to the list of surrogate holders.
 		if (null == surrogates)
-			surrogates = new HashSet<AutonomicManager>();
+			surrogates = new ArrayList<AutonomicManager>();
 		surrogates.add(remoteManager);
 		
 		return app;
