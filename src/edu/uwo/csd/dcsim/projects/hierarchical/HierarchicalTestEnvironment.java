@@ -54,19 +54,6 @@ public class HierarchicalTestEnvironment {
 		// TODO Auto-generated constructor stub
 	}
 	
-	public static HierarchicalMetrics getHierarchicalMetrics(Simulation simulation) {
-		HierarchicalMetrics metrics = simulation.getSimulationMetrics().getCustomMetricCollection(HierarchicalMetrics.class);
-		
-		if (metrics == null) {
-			metrics = new HierarchicalMetrics(simulation);
-			simulation.getSimulationMetrics().addCustomMetricCollection(metrics);
-			return metrics;
-		} else {
-			return (HierarchicalMetrics)metrics;
-		}
-	}
-	
-	
 	/**
 	 * Creates a data centre. The data centre is organized in Clusters, which consist of Racks, 
 	 * which in turn consist of Hosts.

@@ -22,8 +22,6 @@ public class VmPlacementPolicyLevel3 extends Policy {
 
 	public static final String REJECTED_PLACEMENTS = "rejectedPlacements";
 	
-	private static HierarchicalMetrics hierarchicalMetrics = null;
-	
 	/**
 	 * Creates an instance of VmPlacementPolicyLevel3.
 	 */
@@ -55,8 +53,6 @@ public class VmPlacementPolicyLevel3 extends Policy {
 	 */
 	public void execute(VmPlacementRejectEvent event) {
 		
-		if (hierarchicalMetrics == null) hierarchicalMetrics = HierarchicalTestEnvironment.getHierarchicalMetrics(simulation);
-		
 		// Mark sender's status as invalid (to avoid choosing sender again in the next step).
 		Collection<ClusterData> clusters = manager.getCapability(ClusterPoolManager.class).getClusters();
 		for (ClusterData cluster : clusters) {
@@ -70,7 +66,7 @@ public class VmPlacementPolicyLevel3 extends Policy {
 		if (!this.searchForVmPlacementTarget(event.getVmAllocationRequest())) {
 			// Record failure to complete placement request.
 			if (simulation.isRecordingMetrics()) {
-				hierarchicalMetrics.rejectedPlacements++;
+				simulation.getSimulationMetrics().getApplicationMetrics().incrementApplicationPlacementsFailed();
 			}
 		}
 	}

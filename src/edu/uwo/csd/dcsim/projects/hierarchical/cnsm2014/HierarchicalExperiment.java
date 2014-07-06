@@ -15,6 +15,7 @@ import edu.uwo.csd.dcsim.management.AutonomicManager;
 import edu.uwo.csd.dcsim.management.capabilities.*;
 import edu.uwo.csd.dcsim.management.policies.*;
 import edu.uwo.csd.dcsim.projects.centralized.policies.ReactiveHostStatusPolicy;
+import edu.uwo.csd.dcsim.projects.hierarchical.HierarchicalMetrics;
 import edu.uwo.csd.dcsim.projects.hierarchical.VmFlavours;
 import edu.uwo.csd.dcsim.projects.hierarchical.capabilities.*;
 import edu.uwo.csd.dcsim.projects.hierarchical.policies.*;
@@ -113,33 +114,40 @@ public class HierarchicalExperiment extends SimulationTask {
 		
 		
 		
+		// Experiments: First Set.
+//		for (int expSet = 0; expSet < 4; expSet++) {
+//			
+//			// Generate VM sizes vector.
+//			switch (expSet) {
+//			case 0:
+//				vmSizes = new Resources[]{VmFlavours.manfi1()};
+//				break;
+//			case 1:
+//				vmSizes = new Resources[]{VmFlavours.manfi2()};
+//				break;
+//			case 2:
+//				vmSizes = new Resources[]{VmFlavours.manfi3()};
+//				break;
+//			case 3:
+//				vmSizes = new Resources[]{VmFlavours.manfi1(), VmFlavours.manfi2(), VmFlavours.manfi3()};
+//				break;
+//			}
+//			
+//			for (int i = 1; i <= 5; i++) {
+//				// Generate application types vector.
+//				appTypes = new int[i];
+//				for (int j = 0; j < appTypes.length; j++)
+//					appTypes[j] = j + 1;
+//				
+//				runSimulationSet(printStream, 1440, SimTime.hours(144), SimTime.days(14), SimTime.days(6), vmSizes, appTypes);
+//			}
+//		}
 		
-		for (int expSet = 0; expSet < 4; expSet++) {
-			
-			// Generate VM sizes vector.
-			switch (expSet) {
-			case 0:
-				vmSizes = new Resources[]{VmFlavours.manfi1()};
-				break;
-			case 1:
-				vmSizes = new Resources[]{VmFlavours.manfi2()};
-				break;
-			case 2:
-				vmSizes = new Resources[]{VmFlavours.manfi3()};
-				break;
-			case 3:
-				vmSizes = new Resources[]{VmFlavours.manfi1(), VmFlavours.manfi2(), VmFlavours.manfi3()};
-				break;
-			}
-			
-			for (int i = 1; i <= 5; i++) {
-				// Generate application types vector.
-				appTypes = new int[i];
-				for (int j = 0; j < appTypes.length; j++)
-					appTypes[j] = j + 1;
-				
-				runSimulationSet(printStream, 1440, SimTime.hours(144), SimTime.days(14), SimTime.days(6), vmSizes, appTypes);
-			}
+		// Experiments: Second Set.
+		appTypes = new int[]{1};				// Create application types vector.
+		while (appTypes[0] < 6) {
+			runSimulationSet(printStream, 1440, SimTime.hours(144), SimTime.days(14), SimTime.days(6), vmSizes, appTypes);
+			appTypes[0]++;
 		}
 		
 		printStream.println("Done");
@@ -238,6 +246,12 @@ public class HierarchicalExperiment extends SimulationTask {
 		}
 		else {
 			
+			// Print output.
+			for(SimulationTask task : completedTasks) {
+				logger.info(task.getName());
+				task.getMetrics().printDefault(logger);
+			}
+			
 			// Output CSV file.
 			out.println("Hierarchical Experiment");
 			out.println("lower=" + lower + 
@@ -319,6 +333,9 @@ public class HierarchicalExperiment extends SimulationTask {
 	@Override
 	public void setup(Simulation simulation) {
 		
+		// Register custom metrics.
+		simulation.getSimulationMetrics().addCustomMetricCollection(new HierarchicalMetrics(simulation));
+		
 		// Create data centre.
 		Cnsm2014TestEnvironment testEnv = new Cnsm2014TestEnvironment(simulation);
 		DataCentre dc = testEnv.createInfrastructure(simulation);
@@ -388,8 +405,8 @@ public class HierarchicalExperiment extends SimulationTask {
 				rackManager.installPolicy(new VmPoolPolicy());
 				rackManager.installPolicy(new MigrationTrackingPolicy());
 				rackManager.installPolicy(new AppPlacementPolicyLevel1(clusterManager, lower, upper, target));
-				rackManager.installPolicy(new RelocationPolicyLevel1(clusterManager, lower, upper, target));
-				rackManager.installPolicy(new ConsolidationPolicyLevel1(clusterManager, lower, upper, target), SimTime.hours(1), SimTime.hours(1));
+				rackManager.installPolicy(new AppRelocationPolicyLevel1(clusterManager, lower, upper, target));
+				rackManager.installPolicy(new AppConsolidationPolicyLevel1(clusterManager, lower, upper, target), SimTime.hours(1), SimTime.hours(1));
 				
 				// TODO: Autonomic manager is NOT installed anywhere.
 				
