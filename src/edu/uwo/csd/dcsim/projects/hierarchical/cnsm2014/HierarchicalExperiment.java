@@ -2,7 +2,12 @@ package edu.uwo.csd.dcsim.projects.hierarchical.cnsm2014;
 
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 
 import org.apache.log4j.Logger;
@@ -108,47 +113,47 @@ public class HierarchicalExperiment extends SimulationTask {
 		
 		
 		// Debugging
-//		vmSizes = new Resources[]{VmFlavours.manfi3()};
-//		appTypes = new int[]{1, 2, 3};
+//		vmSizes = new Resources[]{VmFlavours.manfi1()};
+//		appTypes = new int[]{1, 2};
 //		runSimulationSet(printStream, 1440, SimTime.hours(144), SimTime.days(14), SimTime.days(6), vmSizes, appTypes);
 		
 		
 		
 		// Experiments: First Set.
-//		for (int expSet = 0; expSet < 4; expSet++) {
-//			
-//			// Generate VM sizes vector.
-//			switch (expSet) {
-//			case 0:
-//				vmSizes = new Resources[]{VmFlavours.manfi1()};
-//				break;
-//			case 1:
-//				vmSizes = new Resources[]{VmFlavours.manfi2()};
-//				break;
-//			case 2:
-//				vmSizes = new Resources[]{VmFlavours.manfi3()};
-//				break;
-//			case 3:
-//				vmSizes = new Resources[]{VmFlavours.manfi1(), VmFlavours.manfi2(), VmFlavours.manfi3()};
-//				break;
-//			}
-//			
-//			for (int i = 1; i <= 5; i++) {
-//				// Generate application types vector.
-//				appTypes = new int[i];
-//				for (int j = 0; j < appTypes.length; j++)
-//					appTypes[j] = j + 1;
-//				
-//				runSimulationSet(printStream, 1440, SimTime.hours(144), SimTime.days(14), SimTime.days(6), vmSizes, appTypes);
-//			}
-//		}
+		for (int expSet = 0; expSet < 4; expSet++) {
+			
+			// Generate VM sizes vector.
+			switch (expSet) {
+			case 0:
+				vmSizes = new Resources[]{VmFlavours.manfi1()};
+				break;
+			case 1:
+				vmSizes = new Resources[]{VmFlavours.manfi2()};
+				break;
+			case 2:
+				vmSizes = new Resources[]{VmFlavours.manfi3()};
+				break;
+			case 3:
+				vmSizes = new Resources[]{VmFlavours.manfi1(), VmFlavours.manfi2(), VmFlavours.manfi3()};
+				break;
+			}
+			
+			for (int i = 1; i <= 5; i++) {
+				// Generate application types vector.
+				appTypes = new int[i];
+				for (int j = 0; j < appTypes.length; j++)
+					appTypes[j] = j + 1;
+				
+				runSimulationSet(printStream, 1440, SimTime.hours(144), SimTime.days(14), SimTime.days(6), vmSizes, appTypes);
+			}
+		}
 		
 		// Experiments: Second Set.
-		appTypes = new int[]{1};				// Create application types vector.
-		while (appTypes[0] < 6) {
-			runSimulationSet(printStream, 1440, SimTime.hours(144), SimTime.days(14), SimTime.days(6), vmSizes, appTypes);
-			appTypes[0]++;
-		}
+//		appTypes = new int[]{1};				// Create application types vector.
+//		while (appTypes[0] < 6) {
+//			runSimulationSet(printStream, 1440, SimTime.hours(144), SimTime.days(14), SimTime.days(6), vmSizes, appTypes);
+//			appTypes[0]++;
+//		}
 		
 		printStream.println("Done");
 		printStream.close();
@@ -274,12 +279,41 @@ public class HierarchicalExperiment extends SimulationTask {
 			sb.append("| ApplicationTypes: " + Arrays.toString(appTypes));
 			out.println(sb.toString());
 			
-			for(SimulationTask task : completedTasks) {
-				if (completedTasks.indexOf(task) == 0) {
-					task.getMetrics().printCSV(out);
-				} else {
-					task.getMetrics().printCSV(out, false);
+			// Build dictionary of metrics to print.
+			HashSet<String> metricSet = new HashSet<String>();
+			for (SimulationTask task : completedTasks) {
+				for (Tuple<String, Object> metric : task.getMetrics().getMetricValues())
+					metricSet.add(metric.a);
+			}
+			// Convert set to list.
+			ArrayList<String> metricList = new ArrayList<String>();
+			for (Iterator<String> iterator = metricSet.iterator(); iterator.hasNext();)
+				metricList.add(iterator.next());
+			Collections.sort(metricList);
+			
+			// Print heading.
+			out.print("name");
+			for (String metric : metricList) {
+				out.printf(",%s", metric);
+			}
+			out.println("");
+			
+			// Print metrics.
+			HashMap<String, Object> taskMetrics;
+			for (SimulationTask task : completedTasks) {
+				
+				taskMetrics = new HashMap<String, Object>();
+				for (Tuple<String, Object> metric : task.getMetrics().getMetricValues())
+					taskMetrics.put(metric.a, metric.b);
+				
+				out.print(task.getName());
+				for (String metric : metricList) {
+					if (taskMetrics.containsKey(metric))
+						out.printf(",%s", taskMetrics.get(metric).toString());
+					else
+						out.print(",0");
 				}
+				out.println("");
 			}
 			
 			out.println("");
@@ -405,8 +439,8 @@ public class HierarchicalExperiment extends SimulationTask {
 				rackManager.installPolicy(new VmPoolPolicy());
 				rackManager.installPolicy(new MigrationTrackingPolicy());
 				rackManager.installPolicy(new AppPlacementPolicyLevel1(clusterManager, lower, upper, target));
-				rackManager.installPolicy(new AppRelocationPolicyLevel1(clusterManager, lower, upper, target));
-				rackManager.installPolicy(new AppConsolidationPolicyLevel1(clusterManager, lower, upper, target), SimTime.hours(1), SimTime.hours(1));
+				rackManager.installPolicy(new RelocationPolicyLevel1(clusterManager, lower, upper, target));
+				rackManager.installPolicy(new ConsolidationPolicyLevel1(clusterManager, lower, upper, target), SimTime.hours(1), SimTime.hours(1));
 				
 				// TODO: Autonomic manager is NOT installed anywhere.
 				
