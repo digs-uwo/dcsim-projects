@@ -214,31 +214,45 @@ public class Cnsm2014TestEnvironment {
 			break;
 		case 2:
 			appBuilder = new InteractiveApplication.Builder(simulation).thinkTime(4)
-						.task(1, 1, vmSize, 0.005, 1)
-						.task(1, 1, vmSize, 0.03, 1);
+//						.task(1, 1, vmSize, 0.005, 1)
+//						.task(1, 1, vmSize, 0.03, 1);
+						.task(1, 1, vmSize, 0.02, 1)
+						.task(1, 1, vmSize, 0.015, 1);
 			break;
 		case 3:
 			appBuilder = new InteractiveApplication.Builder(simulation).thinkTime(4)
-						.task(1, 1, vmSize, 0.005, 1)
+//						.task(1, 1, vmSize, 0.005, 1)
+//						.task(1, 1, vmSize, 0.02, 1)
+//						.task(1, 1, vmSize, 0.01, 1);
 						.task(1, 1, vmSize, 0.02, 1)
-						.task(1, 1, vmSize, 0.01, 1);
+						.task(1, 1, vmSize, 0.015, 1)
+						.task(1, 1, vmSize, 0.015, 1);
 			break;
 		case 4:
 			int rand = 2 + appGenerationRandom.nextInt(3);		// range: 2..4
 			appBuilder = new InteractiveApplication.Builder(simulation).thinkTime(4)
-						.task(1, 1, vmSize, 0.005, 1)
-						.task(rand, rand, vmSize, 0.005, 1)
-						.task(1, 1, vmSize, 0.02, 1)
-						.task(1, 1, vmSize, 0.01, 1);
+//						.task(1, 1, vmSize, 0.005, 1)
+//						.task(rand, rand, vmSize, 0.005, 1)
+//						.task(1, 1, vmSize, 0.02, 1)
+//						.task(1, 1, vmSize, 0.01, 1);
+						.task(1, 1, vmSize, 0.01, 1)
+						.task(rand, rand, vmSize, 0.02, 1 * (rand / 2))
+						.task(1, 1, vmSize, 0.008, 1)
+						.task(1, 1, vmSize, 0.007, 1);
 			break;
 		case 5:
 			int higher = 4 + appGenerationRandom.nextInt(3);	// range: 4..6
 			int lower = 2 + appGenerationRandom.nextInt(2);		// range: 2..3
 			appBuilder = new InteractiveApplication.Builder(simulation).thinkTime(4)
-						.task(1, 1, vmSize, 0.005, 1)
-						.task(higher, higher, vmSize, 0.005, 1)
-						.task(1, 1, vmSize, 0.005, 1)
-						.task(lower, lower, vmSize, 0.02, 1)
+//						.task(1, 1, vmSize, 0.005, 1)
+//						.task(higher, higher, vmSize, 0.005, 1)
+//						.task(1, 1, vmSize, 0.005, 1)
+//						.task(lower, lower, vmSize, 0.02, 1)
+//						.task(1, 1, vmSize, 0.01, 1);
+						.task(1, 1, vmSize, 0.01, 1)
+						.task(higher, higher, vmSize, 0.04, 1 * (higher / 4))
+						.task(1, 1, vmSize, 0.01, 1)
+						.task(lower, lower, vmSize, 0.02, 1 * (lower / 2))
 						.task(1, 1, vmSize, 0.01, 1);
 			break;
 		default:
