@@ -81,28 +81,31 @@ public class HierarchicalMetrics extends MetricCollection {
 	public void printDefault(Logger out) {
 		out.info("-- APPLICATION MANAGEMENT --");
 		out.info("Spread Penalties: ");
-		out.info("   total: " + (long)appSpreadPenaltyStats.getSum());
+		out.info("   total: " + (long) appSpreadPenaltyStats.getSum());
 		out.info("   mean: " + Utility.roundDouble(appSpreadPenaltyStats.getMean(), Simulation.getMetricPrecision()));
 		out.info("   stdev: " + Utility.roundDouble(appSpreadPenaltyStats.getStandardDeviation(), Simulation.getMetricPrecision()));
 		out.info("   max: " + Utility.roundDouble(appSpreadPenaltyStats.getMax(), Simulation.getMetricPrecision()));
 		out.info("   min: " + Utility.roundDouble(appSpreadPenaltyStats.getMin(), Simulation.getMetricPrecision()));
 		out.info("   zero-penalty: " + nZeroSpreadPenalty + "/" + appSpreadPenalty.size() + " = " + 
-				Utility.roundDouble(Utility.toPercentage(nZeroSpreadPenalty / (double)appSpreadPenalty.size()), Simulation.getMetricPrecision()) + "%");
+				Utility.roundDouble(Utility.toPercentage(nZeroSpreadPenalty / (double) appSpreadPenalty.size()), Simulation.getMetricPrecision()) + "%");
 		
 		out.info("Application VM time: ");
-		out.info("   total: " + SimTime.toHumanReadable((long)appVmTimeStats.getSum()));
-		out.info("   mean: " + SimTime.toHumanReadable((long)appVmTimeStats.getMean()));
-		out.info("   stdev: " + SimTime.toHumanReadable((long)appVmTimeStats.getStandardDeviation()));
-		out.info("   max: " + SimTime.toHumanReadable((long)appVmTimeStats.getMax()));
-		out.info("   min: " + SimTime.toHumanReadable((long)appVmTimeStats.getMin()));
+		out.info("   total: " + SimTime.toHumanReadable((long) appVmTimeStats.getSum()));
+		out.info("   mean: " + SimTime.toHumanReadable((long) appVmTimeStats.getMean()));
+		out.info("   stdev: " + SimTime.toHumanReadable((long) appVmTimeStats.getStandardDeviation()));
+		out.info("   max: " + SimTime.toHumanReadable((long) appVmTimeStats.getMax()));
+		out.info("   min: " + SimTime.toHumanReadable((long) appVmTimeStats.getMin()));
 	}
 	
 	@Override
 	public List<Tuple<String, Object>> getMetricValues() {
 		List<Tuple<String, Object>> metrics = new ArrayList<Tuple<String, Object>>();
 		
-		metrics.add(new Tuple<String, Object>("spreadPenalty", (long)appSpreadPenaltyStats.getSum()));
-		metrics.add(new Tuple<String, Object>("zeroPenalty", Utility.roundDouble(Utility.toPercentage(nZeroSpreadPenalty / (double)appSpreadPenalty.size()), Simulation.getMetricPrecision())));
+		metrics.add(new Tuple<String, Object>("spreadPenaltyTotal", (long) appSpreadPenaltyStats.getSum()));
+		metrics.add(new Tuple<String, Object>("spreadPenaltyMax", Utility.roundDouble(appSpreadPenaltyStats.getMax(), Simulation.getMetricPrecision())));
+		metrics.add(new Tuple<String, Object>("spreadPenaltyMean", Utility.roundDouble(appSpreadPenaltyStats.getMean(), Simulation.getMetricPrecision())));
+		metrics.add(new Tuple<String, Object>("spreadPenaltyMin", Utility.roundDouble(appSpreadPenaltyStats.getMin(), Simulation.getMetricPrecision())));
+		metrics.add(new Tuple<String, Object>("spreadPenaltyZeroPenalty", Utility.roundDouble(Utility.toPercentage(nZeroSpreadPenalty / (double)appSpreadPenalty.size()), Simulation.getMetricPrecision())));
 		metrics.add(new Tuple<String, Object>("appVmTime(Days)", SimTime.toDays((long)appVmTimeStats.getSum())));
 		metrics.add(new Tuple<String, Object>("appVmTimeAvg(Hours)", SimTime.toHours((long)appVmTimeStats.getMean())));
 		
