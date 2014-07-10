@@ -108,9 +108,14 @@ public class ConsolidationPolicyLevel1 extends Policy {
 			// Ensure that the Host is not involved in any migrations and is not powering on.
 			if (host.getCurrentStatus().getIncomingMigrationCount() == 0 && 
 				host.getCurrentStatus().getOutgoingMigrationCount() == 0 && 
-				host.getCurrentStatus().getState() != HostState.POWERING_ON)
+				host.getCurrentStatus().getState() != HostState.POWERING_ON) {
+				
+				simulation.getLogger().debug(String.format("[Rack #%d] ConsolidationPolicyLevel1 - Powering OFF (empty) Host #%d.",
+						manager.getCapability(RackManager.class).getRack().getId(),
+						host.getId()));
 				
 				shutdownActions.addAction(new ShutdownHostAction(host.getHost()));
+			}
 		}
 		actionExecutor.addAction(shutdownActions);
 		
