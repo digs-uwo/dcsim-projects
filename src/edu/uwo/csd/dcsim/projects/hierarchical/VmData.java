@@ -9,8 +9,8 @@ public class VmData {
 	private int id = -1;
 	private TaskInstanceData task;
 	private HostData host;
-	
 	private VmStatus status;
+	private boolean migrating = false;
 	
 	private final int hashCode;
 	
@@ -45,6 +45,14 @@ public class VmData {
 	
 	public void setCurrentStatus(VmStatus status) {
 		this.status = status;
+	}
+	
+	public boolean isMigrating() {
+		return migrating;
+	}
+	
+	public void migrating(boolean value) {
+		migrating = value;
 	}
 	
 	@Override

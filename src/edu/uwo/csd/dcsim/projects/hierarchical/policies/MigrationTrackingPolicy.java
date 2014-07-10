@@ -12,15 +12,13 @@ public class MigrationTrackingPolicy extends Policy {
 	}
 	
 	public void execute(MigrationCompleteEvent event) {
-		MigrationTrackingManager ongoingMigs = manager.getCapability(MigrationTrackingManager.class);
-		
-		if (!ongoingMigs.removeMigratingVm(event.getVmId()))
-			throw new RuntimeException(String.format("Migration of VM #%d completed, but the migration was NOT registered as actually happening.", event.getVmId()));
 		
 		simulation.getLogger().debug(String.format("Migration of VM #%d completed from Host #%d to Host #%d.",
 				event.getVmId(),
 				event.getSourceHostId(),
 				event.getTargetHostId()));
+		
+		manager.getCapability(MigrationTrackingManager.class).removeMigratingVm(event.getVmId());
 	}
 	
 	@Override

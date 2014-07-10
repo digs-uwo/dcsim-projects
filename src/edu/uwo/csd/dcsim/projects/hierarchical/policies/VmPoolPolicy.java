@@ -43,6 +43,7 @@ public class VmPoolPolicy extends Policy {
 		Map<Integer, Host> targetHostMap = event.getTargetHosts();
 		for (VmData vm : event.getVms()) {
 			vm.updateHost(hostPool.getHost(targetHostMap.get(vm.getId()).getId()));
+			vm.migrating(true);
 			vmPool.addVm(vm);
 			
 			simulation.getLogger().debug(String.format("[VmPool] Added VM #%d to the pool.", vm.getId()));
@@ -51,12 +52,14 @@ public class VmPoolPolicy extends Policy {
 	
 	public void execute(MigrationCompleteEvent event) {
 		
-		simulation.getLogger().debug(String.format("[VmPool] Processing MigrationCompleteEvent for VM #%d in Host #%d.", event.getVmId(), event.getSourceHostId()));
+		simulation.getLogger().debug(String.format("[VmPool] Processing MigrationCompleteEvent for VM #%d from Host #%d to Host #%d.", event.getVmId(), event.getSourceHostId(), event.getTargetHostId()));
 		
 		VmPoolManager vmPool = manager.getCapability(VmPoolManager.class);
 		HostData targetHost = manager.getCapability(HostPoolManager.class).getHost(event.getTargetHostId());
 		if (null != targetHost) {		// Target Host is local.
-			vmPool.getVm(event.getVmId()).updateHost(targetHost);
+			VmData vm = vmPool.getVm(event.getVmId());
+			vm.updateHost(targetHost);
+			vm.migrating(false);
 		}
 		else {		// Target Host is remote. Remove VM from pool.
 			vmPool.removeVm(event.getVmId());

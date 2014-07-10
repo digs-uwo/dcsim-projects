@@ -487,7 +487,6 @@ public class RelocationPolicyLevel1 extends Policy {
 		/////////////////////////////////////////////////////
 		
 		
-		// We expect there to be only one element in the list.
 		for (TaskData task : app.getTasks()) {
 			for (TaskInstanceData instance : task.getInstances()) {
 				VmData vm = manager.getCapability(VmPoolManager.class).getVm(instance.getHostingVmId());
@@ -499,7 +498,7 @@ public class RelocationPolicyLevel1 extends Policy {
 				// (actually, the surrogate app.) to be migrated back and the VM is migrating, the migration back should be queued until the current migration is completed
 				// (or it is cancelled, if the migration hadn't actually started).
 				MigrationTrackingManager ongoingMigs = manager.getCapability(MigrationTrackingManager.class);
-				if (!ongoingMigs.isMigrating(vm.getId())) {
+				if (!ongoingMigs.isMigrating(vm.getId()) && !vm.isMigrating()) {
 					ongoingMigs.addMigratingVm(vm.getId());
 					
 					// Send VM status data to the Rack manager that owns the application.
