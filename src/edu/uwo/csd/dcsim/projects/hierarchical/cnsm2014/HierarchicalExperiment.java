@@ -61,7 +61,7 @@ public class HierarchicalExperiment extends SimulationTask {
 		-6452776964812569334l,
 		-7148920787255940546l,
 		8311271444423629559l};
-	private static final long N_SEEDS = 10;
+	private static final long N_SEEDS = 3;
 	private static boolean printDefault = false;
 	
 	// Utilization thresholds. Default values.
@@ -113,9 +113,10 @@ public class HierarchicalExperiment extends SimulationTask {
 		
 		
 		// Debugging
-//		vmSizes = new Resources[]{VmFlavours.manfi1()};
+//		vmSizes = new Resources[]{VmFlavours.manfi3()};
 //		appTypes = new int[]{1, 2};
 //		runSimulationSet(printStream, 1440, SimTime.hours(144), SimTime.days(14), SimTime.days(6), vmSizes, appTypes);
+//		runSimulationSet(printStream, 1200, SimTime.hours(120), SimTime.days(13), SimTime.days(6), vmSizes, appTypes);
 		
 		
 		
@@ -144,7 +145,8 @@ public class HierarchicalExperiment extends SimulationTask {
 				for (int j = 0; j < appTypes.length; j++)
 					appTypes[j] = j + 1;
 				
-				runSimulationSet(printStream, 1440, SimTime.hours(144), SimTime.days(14), SimTime.days(6), vmSizes, appTypes);
+				//runSimulationSet(printStream, 1440, SimTime.hours(144), SimTime.days(14), SimTime.days(6), vmSizes, appTypes);
+				runSimulationSet(printStream, 1200, SimTime.hours(120), SimTime.days(13), SimTime.days(6), vmSizes, appTypes);
 			}
 		}
 		

@@ -808,7 +808,7 @@ public class RelocationPolicyLevel1 extends Policy {
 					
 					mig = new MigrationAction(source.getHostManager(), source.getHost(), target.getHost(), vm.getId());
 					
-					simulation.getLogger().debug(String.format("[Rack #%d] AppRelocationPolicyLevel1 - Migrating (Independent) VM #%d from Host #%d to Host #%d.",
+					simulation.getLogger().debug(String.format("[Rack #%d] RelocationPolicyLevel1 - Migrating (Independent) VM #%d from Host #%d to Host #%d.",
 							manager.getCapability(RackManager.class).getRack().getId(),
 							vm.getId(),
 							source.getId(),
@@ -861,7 +861,7 @@ public class RelocationPolicyLevel1 extends Policy {
 					
 					mig = new MigrationAction(source.getHostManager(), source.getHost(), target.getHost(), vm.getId());
 					
-					simulation.getLogger().debug(String.format("[Rack #%d] AppRelocationPolicyLevel1 - Migrating (Anti-affinity) VM #%d from Host #%d to Host #%d.",
+					simulation.getLogger().debug(String.format("[Rack #%d] RelocationPolicyLevel1 - Migrating (Anti-affinity) VM #%d from Host #%d to Host #%d.",
 							manager.getCapability(RackManager.class).getRack().getId(),
 							vm.getId(),
 							source.getId(),
@@ -942,7 +942,7 @@ public class RelocationPolicyLevel1 extends Policy {
 						
 						migs.addAction(new MigrationAction(source.getHostManager(), source.getHost(), target.getHost(), vm.getId()));
 						
-						simulation.getLogger().debug(String.format("[Rack #%d] AppRelocationPolicyLevel1 - Migrating (Affinity) VM #%d from Host #%d to Host #%d.",
+						simulation.getLogger().debug(String.format("[Rack #%d] RelocationPolicyLevel1 - Migrating (Affinity) VM #%d from Host #%d to Host #%d.",
 								manager.getCapability(RackManager.class).getRack().getId(),
 								vm.getId(),
 								source.getId(),
