@@ -112,7 +112,8 @@ public class AppRelocationPolicyLevel2 extends Policy {
 			for (RackData rack : active) {
 				
 				// Filter out Racks with a currently invalid status.
-				if (!rack.isStatusValid())
+				// Skip as well the Rack that sent the request -- if it belongs in this Cluster.
+				if (!rack.isStatusValid() || rack.getId() == entry.getSender())
 					continue;
 				
 				// Find the Rack that would result in the least number of Host activations.
