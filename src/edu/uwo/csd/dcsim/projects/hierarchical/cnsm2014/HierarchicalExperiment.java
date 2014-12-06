@@ -61,7 +61,7 @@ public class HierarchicalExperiment extends SimulationTask {
 		-6452776964812569334l,
 		-7148920787255940546l,
 		8311271444423629559l};
-	private static final long N_SEEDS = 3;
+	private static final long N_SEEDS = 10;
 	private static boolean printDefault = false;
 	
 	// Utilization thresholds. Default values.
@@ -114,46 +114,50 @@ public class HierarchicalExperiment extends SimulationTask {
 		
 		// Debugging
 //		vmSizes = new Resources[]{VmFlavours.manfi3()};
-//		appTypes = new int[]{1, 2};
-//		runSimulationSet(printStream, 1440, SimTime.hours(144), SimTime.days(14), SimTime.days(6), vmSizes, appTypes);
-//		runSimulationSet(printStream, 1200, SimTime.hours(120), SimTime.days(13), SimTime.days(6), vmSizes, appTypes);
+		appTypes = new int[]{2, 3};
+		//runSimulationSet(printStream, 1440, SimTime.hours(144), SimTime.days(14), SimTime.days(6), vmSizes, appTypes);
+		runSimulationSet(printStream, 1200, SimTime.hours(120), SimTime.days(13), SimTime.days(6), vmSizes, appTypes);
+		
+		appTypes = new int[]{2, 3, 4};
+		runSimulationSet(printStream, 1200, SimTime.hours(120), SimTime.days(13), SimTime.days(6), vmSizes, appTypes);
 		
 		
 		
 		// Experiments: First Set.
-		for (int expSet = 0; expSet < 4; expSet++) {
-			
-			// Generate VM sizes vector.
-			switch (expSet) {
-			case 0:
-				vmSizes = new Resources[]{VmFlavours.manfi1()};
-				break;
-			case 1:
-				vmSizes = new Resources[]{VmFlavours.manfi2()};
-				break;
-			case 2:
-				vmSizes = new Resources[]{VmFlavours.manfi3()};
-				break;
-			case 3:
-				vmSizes = new Resources[]{VmFlavours.manfi1(), VmFlavours.manfi2(), VmFlavours.manfi3()};
-				break;
-			}
-			
-			for (int i = 1; i <= 5; i++) {
-				// Generate application types vector.
-				appTypes = new int[i];
-				for (int j = 0; j < appTypes.length; j++)
-					appTypes[j] = j + 1;
-				
-				//runSimulationSet(printStream, 1440, SimTime.hours(144), SimTime.days(14), SimTime.days(6), vmSizes, appTypes);
-				runSimulationSet(printStream, 1200, SimTime.hours(120), SimTime.days(13), SimTime.days(6), vmSizes, appTypes);
-			}
-		}
+//		for (int expSet = 3; expSet < 4; expSet++) {
+//			
+//			// Generate VM sizes vector.
+//			switch (expSet) {
+//			case 0:
+//				vmSizes = new Resources[]{VmFlavours.manfi1()};
+//				break;
+//			case 1:
+//				vmSizes = new Resources[]{VmFlavours.manfi2()};
+//				break;
+//			case 2:
+//				vmSizes = new Resources[]{VmFlavours.manfi3()};
+//				break;
+//			case 3:
+//				vmSizes = new Resources[]{VmFlavours.manfi1(), VmFlavours.manfi2(), VmFlavours.manfi3()};
+//				break;
+//			}
+//			
+//			for (int i = 1; i <= 5; i++) {
+//				// Generate application types vector.
+//				appTypes = new int[i];
+//				for (int j = 0; j < appTypes.length; j++)
+//					appTypes[j] = j + 1;
+//				
+//				//runSimulationSet(printStream, 1440, SimTime.hours(144), SimTime.days(14), SimTime.days(6), vmSizes, appTypes);
+//				runSimulationSet(printStream, 1200, SimTime.hours(120), SimTime.days(13), SimTime.days(6), vmSizes, appTypes);
+//			}
+//		}
 		
 		// Experiments: Second Set.
-//		appTypes = new int[]{1};				// Create application types vector.
+//		appTypes = new int[]{2};				// Create application types vector.
 //		while (appTypes[0] < 6) {
-//			runSimulationSet(printStream, 1440, SimTime.hours(144), SimTime.days(14), SimTime.days(6), vmSizes, appTypes);
+//			//runSimulationSet(printStream, 1440, SimTime.hours(144), SimTime.days(14), SimTime.days(6), vmSizes, appTypes);
+//			runSimulationSet(printStream, 1200, SimTime.hours(120), SimTime.days(13), SimTime.days(6), vmSizes, appTypes);
 //			appTypes[0]++;
 //		}
 		
@@ -240,7 +244,7 @@ public class HierarchicalExperiment extends SimulationTask {
 			executor.addTask(e);
 		}
 		
-		completedTasks = executor.execute(4);
+		completedTasks = executor.execute(3);
 		
 		// Generate output.
 		if (printDefault) {
@@ -248,7 +252,12 @@ public class HierarchicalExperiment extends SimulationTask {
 			// Print output.
 			for(SimulationTask task : completedTasks) {
 				logger.info(task.getName());
-				task.getMetrics().printDefault(logger);
+				
+				// Check if task has completed its execution (or actually failed).
+				if (task.isComplete())
+					task.getMetrics().printDefault(logger);
+				else
+					logger.info("Task did NOT complete its execution.");
 			}
 		}
 		else {
@@ -256,7 +265,12 @@ public class HierarchicalExperiment extends SimulationTask {
 			// Print output.
 			for(SimulationTask task : completedTasks) {
 				logger.info(task.getName());
-				task.getMetrics().printDefault(logger);
+				
+				// Check if task has completed its execution (or actually failed).
+				if (task.isComplete())
+					task.getMetrics().printDefault(logger);
+				else
+					logger.info("Task did NOT complete its execution.");
 			}
 			
 			// Output CSV file.
@@ -284,6 +298,10 @@ public class HierarchicalExperiment extends SimulationTask {
 			// Build dictionary of metrics to print.
 			HashSet<String> metricSet = new HashSet<String>();
 			for (SimulationTask task : completedTasks) {
+				// Check if task has completed its execution (or actually failed).
+				if (!task.isComplete())
+					continue;
+				
 				for (Tuple<String, Object> metric : task.getMetrics().getMetricValues())
 					metricSet.add(metric.a);
 			}
@@ -303,6 +321,11 @@ public class HierarchicalExperiment extends SimulationTask {
 			// Print metrics.
 			HashMap<String, Object> taskMetrics;
 			for (SimulationTask task : completedTasks) {
+				// Check if task has completed its execution (or actually failed).
+				if (!task.isComplete()) {
+					out.println(task.getName());
+					continue;
+				}
 				
 				taskMetrics = new HashMap<String, Object>();
 				for (Tuple<String, Object> metric : task.getMetrics().getMetricValues())
