@@ -100,66 +100,41 @@ public class HierarchicalExperiment extends SimulationTask {
 		Resources[] vmSizes = {VmFlavours.manfi1(), VmFlavours.manfi2(), VmFlavours.manfi3()};
 		int[] appTypes = {1, 2, 3, 4, 5};
 		
-		// Static load experiments.
-//		runSimulationSet(printStream, 400, SimTime.hours(40), SimTime.days(10), SimTime.days(2), vmSizes, appTypes);
-//		runSimulationSet(printStream, 800, SimTime.hours(80), SimTime.days(12), SimTime.days(4), vmSizes, appTypes);
-//		runSimulationSet(printStream, 1440, SimTime.hours(144), SimTime.days(14), SimTime.days(6), vmSizes, appTypes);
-//		runSimulationSet(printStream, 1600, SimTime.hours(160), SimTime.days(15), SimTime.days(7), vmSizes, appTypes);
-		
-		// Random load experiments.
-//		runSimulationSet(printStream, 800, 800, 1, SimTime.hours(80), SimTime.days(4), SimTime.days(12), SimTime.days(4), vmSizes, appTypes);
-		
-		
-		
-		
-		// Debugging
-//		vmSizes = new Resources[]{VmFlavours.manfi3()};
-		appTypes = new int[]{2, 3};
-		//runSimulationSet(printStream, 1440, SimTime.hours(144), SimTime.days(14), SimTime.days(6), vmSizes, appTypes);
-		runSimulationSet(printStream, 1200, SimTime.hours(120), SimTime.days(13), SimTime.days(6), vmSizes, appTypes);
-		
-		appTypes = new int[]{2, 3, 4};
-		runSimulationSet(printStream, 1200, SimTime.hours(120), SimTime.days(13), SimTime.days(6), vmSizes, appTypes);
-		
-		
-		
 		// Experiments: First Set.
-//		for (int expSet = 3; expSet < 4; expSet++) {
-//			
-//			// Generate VM sizes vector.
-//			switch (expSet) {
-//			case 0:
-//				vmSizes = new Resources[]{VmFlavours.manfi1()};
-//				break;
-//			case 1:
-//				vmSizes = new Resources[]{VmFlavours.manfi2()};
-//				break;
-//			case 2:
-//				vmSizes = new Resources[]{VmFlavours.manfi3()};
-//				break;
-//			case 3:
-//				vmSizes = new Resources[]{VmFlavours.manfi1(), VmFlavours.manfi2(), VmFlavours.manfi3()};
-//				break;
-//			}
-//			
-//			for (int i = 1; i <= 5; i++) {
-//				// Generate application types vector.
-//				appTypes = new int[i];
-//				for (int j = 0; j < appTypes.length; j++)
-//					appTypes[j] = j + 1;
-//				
-//				//runSimulationSet(printStream, 1440, SimTime.hours(144), SimTime.days(14), SimTime.days(6), vmSizes, appTypes);
-//				runSimulationSet(printStream, 1200, SimTime.hours(120), SimTime.days(13), SimTime.days(6), vmSizes, appTypes);
-//			}
-//		}
+		for (int expSet = 0; expSet < 4; expSet++) {
+			
+			// Generate VM sizes vector.
+			switch (expSet) {
+			case 0:
+				vmSizes = new Resources[]{VmFlavours.manfi1()};
+				break;
+			case 1:
+				vmSizes = new Resources[]{VmFlavours.manfi2()};
+				break;
+			case 2:
+				vmSizes = new Resources[]{VmFlavours.manfi3()};
+				break;
+			case 3:
+				vmSizes = new Resources[]{VmFlavours.manfi1(), VmFlavours.manfi2(), VmFlavours.manfi3()};
+				break;
+			}
+			
+			for (int i = 1; i <= 5; i++) {
+				// Generate application types vector.
+				appTypes = new int[i];
+				for (int j = 0; j < appTypes.length; j++)
+					appTypes[j] = j + 1;
+				
+				runSimulationSet(printStream, 1200, SimTime.hours(120), SimTime.days(13), SimTime.days(6), vmSizes, appTypes);
+			}
+		}
 		
 		// Experiments: Second Set.
-//		appTypes = new int[]{2};				// Create application types vector.
-//		while (appTypes[0] < 6) {
-//			//runSimulationSet(printStream, 1440, SimTime.hours(144), SimTime.days(14), SimTime.days(6), vmSizes, appTypes);
-//			runSimulationSet(printStream, 1200, SimTime.hours(120), SimTime.days(13), SimTime.days(6), vmSizes, appTypes);
-//			appTypes[0]++;
-//		}
+		appTypes = new int[]{2};				// Create application types vector.
+		while (appTypes[0] < 6) {
+			runSimulationSet(printStream, 1200, SimTime.hours(120), SimTime.days(13), SimTime.days(6), vmSizes, appTypes);
+			appTypes[0]++;
+		}
 		
 		printStream.println("Done");
 		printStream.close();
