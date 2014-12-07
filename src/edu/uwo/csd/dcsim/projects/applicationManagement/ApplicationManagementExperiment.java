@@ -63,7 +63,7 @@ public class ApplicationManagementExperiment extends SimulationTask {
 
 		PrintStream printStream;
 		try {
-			printStream = new PrintStream("out_integrated_topo_rack_target");
+			printStream = new PrintStream("out_integrated_topo");
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -85,43 +85,43 @@ public class ApplicationManagementExperiment extends SimulationTask {
 		
 		//with SLA (0.3, 0.2, 0.3)
 //			//90 - 85 - 60
-//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.9, 0.85, 0.6, 2, 12);
+//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.9, 0.85, 0.6, 2, 12, 0.5);
 //			//90 - 85 - 50
-//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.9, 0.85, 0.5, 2, 12);
+//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.9, 0.85, 0.5, 2, 12, 0.5);
 //			//90 - 85 - 40
-//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.9, 0.85, 0.4, 2, 12);
+//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.9, 0.85, 0.4, 2, 12, 0.5);
 //			//85 - 80 - 60
-//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.85, 0.8, 0.6, 2, 12);
+//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.85, 0.8, 0.6, 2, 12, 0.5);
 //			//85 - 80 - 50
-//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.85, 0.8, 0.5, 2, 12);
+//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.85, 0.8, 0.5, 2, 12, 0.5);
 //			//85 - 80 - 40
-//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.85, 0.8, 0.4, 2, 12);
+//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.85, 0.8, 0.4, 2, 12, 0.5);
 //			//80 - 75 - 60
-//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.8, 0.75, 0.6, 2, 12);
+//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.8, 0.75, 0.6, 2, 12, 0.5);
 //			//80 - 75 - 50
-//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.8, 0.75, 0.5, 2, 12);
-//			//80 - 75 - 40
-//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.8, 0.75, 0.4, 2, 12); //FAILED
-//			//75 - 70 - 60
-//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.75, 0.7, 0.6, 2, 12);
-//			//75 - 70 - 50
-//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.75, 0.7, 0.5, 2, 12);
-//			//75 - 70 - 40
-//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.75, 0.7, 0.4, 2, 12);
+//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.8, 0.75, 0.5, 2, 12, 0.5);
+			//80 - 75 - 40
+		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.8, 0.75, 0.4, 2, 12, 0.5); //FAILED
+			//75 - 70 - 60
+		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.75, 0.7, 0.6, 2, 12, 0.5);
+			//75 - 70 - 50
+		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.75, 0.7, 0.5, 2, 12, 0.5);
+			//75 - 70 - 40
+		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.75, 0.7, 0.4, 2, 12, 0.5);
 	
 		/*
 		 * Rack Target level experiments
 		 */
 			//80 - 75 - 40
-		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.8, 0.75, 0.4, 2, 12, 0.1);
+//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.8, 0.75, 0.4, 2, 12, 0.1);
 //		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.8, 0.75, 0.4, 2, 12, 0.2);
-		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.8, 0.75, 0.4, 2, 12, 0.3);
+//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.8, 0.75, 0.4, 2, 12, 0.3);
 //		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.8, 0.75, 0.4, 2, 12, 0.4);
-		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.8, 0.75, 0.4, 2, 12, 0.5);
+//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.8, 0.75, 0.4, 2, 12, 0.5);
 //		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.8, 0.75, 0.4, 2, 12, 0.6);
-		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.8, 0.75, 0.4, 2, 12, 0.7);
+//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.8, 0.75, 0.4, 2, 12, 0.7);
 //		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.8, 0.75, 0.4, 2, 12, 0.8);
-		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.8, 0.75, 0.4, 2, 12, 0.9);
+//		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.8, 0.75, 0.4, 2, 12, 0.9);
 //		runSimulationSet(printStream, 0.3, 0.2, 0.3, 0.8, 0.75, 0.4, 2, 12, 1.0);
 		
 		printStream.close();
